@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tìm nhà thuê</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;700;800&display=swap">
+<style>
+:root{
+  --bg:#eef1ee;--surface:#fff;--ink:#1b2a26;--mute:#5f6f6a;--line:#d5ddd8;--accent:#0f6b57;--accent-ink:#fff;--danger:#b3372b;
+  --s-new:#5f6f6a;--s-contact:#8a5a00;--s-seen:#1d5fa8;--s-won:#0f6b57;--s-out:#9a9f9d;
+  --b-new:#e4e9e6;--b-contact:#faecc8;--b-seen:#dbe8f7;--b-won:#d2eee4;--b-out:#ececec;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121a17;--surface:#1b2622;--ink:#e6efeb;--mute:#93a39d;--line:#2d3b36;--accent:#4cc3a3;--accent-ink:#0b1a15;--danger:#ff8a7a;
+  --s-new:#b3c0bb;--s-contact:#f2c46a;--s-seen:#8dbcf0;--s-won:#4cc3a3;--s-out:#7d8884;
+  --b-new:#27332f;--b-contact:#3b3220;--b-seen:#1f3047;--b-won:#16372e;--b-out:#262d2a;}}
+:root[data-theme="dark"]{
+  --bg:#121a17;--surface:#1b2622;--ink:#e6efeb;--mute:#93a39d;--line:#2d3b36;--accent:#4cc3a3;--accent-ink:#0b1a15;--danger:#ff8a7a;
+  --s-new:#b3c0bb;--s-contact:#f2c46a;--s-seen:#8dbcf0;--s-won:#4cc3a3;--s-out:#7d8884;
+  --b-new:#27332f;--b-contact:#3b3220;--b-seen:#1f3047;--b-won:#16372e;--b-out:#262d2a;}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 "Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:640px;margin:0 auto;padding:16px 14px 96px}
+h1{font-size:22px;font-weight:800;margin:4px 0 2px;letter-spacing:-.01em}
+.sub{color:var(--mute);font-size:13px;margin:0 0 12px}
+.bar{display:flex;gap:8px;margin-bottom:10px}
+input,select,textarea,button{font:inherit;color:inherit}
+input,select,textarea{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 10px;min-height:42px}
+textarea{min-height:64px;resize:vertical}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:8px}
+.chip{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip b{font-weight:700;margin-left:4px}
+.stat{font-size:13px;color:var(--mute);margin:2px 0 10px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;border-left:5px solid var(--c,var(--s-new))}
+.card.out{opacity:.62}
+.top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.name{font-weight:700;font-size:16px;margin:0;overflow-wrap:anywhere}
+.addr{color:var(--mute);font-size:13px;margin:2px 0 0;overflow-wrap:anywhere}
+.price{font-size:20px;font-weight:800;text-align:right;white-space:nowrap;line-height:1.1}
+.price small{display:block;font-size:12px;font-weight:500;color:var(--mute);margin-top:2px}
+.facts{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;margin:8px 0 0;color:var(--mute)}
+.facts span b{color:var(--ink);font-weight:600}
+.pill{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:600;background:var(--bg2,var(--b-new));color:var(--c,var(--s-new))}
+.note{font-size:13px;margin:8px 0 0;overflow-wrap:anywhere}
+.note i{font-style:normal;font-weight:600}
+.row{display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 12px;min-height:40px;cursor:pointer;text-decoration:none;font-size:13px;font-weight:600;display:inline-flex;align-items:center}
+.btn.p{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.d{color:var(--danger)}
+.grow{flex:1}
+.fab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:5;box-shadow:0 4px 14px rgba(0,0,0,.25);border-radius:999px;padding:12px 20px;font-size:15px}
+.empty{text-align:center;padding:36px 12px;color:var(--mute)}
+.empty p{margin:0 0 14px}
+dialog{border:none;border-radius:14px;padding:0;width:min(560px,94vw);max-height:92vh;background:var(--bg);color:var(--ink)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.form{padding:16px;display:grid;gap:10px}
+.form h2{margin:0;font-size:18px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{font-size:12px;font-weight:600;color:var(--mute);display:block;margin-bottom:3px}
+.foot{display:flex;gap:8px;justify-content:flex-end;position:sticky;bottom:0;background:var(--bg);padding-top:6px}
+.tools{display:flex;gap:8px;margin-top:6px}
+.link{background:none;border:none;color:var(--mute);text-decoration:underline;font-size:13px;cursor:pointer;padding:6px 0}
+.pm{font-size:12px;color:var(--mute);margin:0}
+[hidden]{display:none!important}
+.flt{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.flt .w{grid-column:1/-1}
+.flt select,.flt input{min-height:40px;font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Tìm nhà thuê</h1>
+  <p class="sub">Lưu, so sánh và theo dõi từng căn bạn đã xem.</p>
+  <div class="bar">
+    <input id="q" type="search" placeholder="Tìm theo tên, địa chỉ, quận" aria-label="Tìm kiếm">
+    <select id="sort" aria-label="Sắp xếp" style="max-width:150px">
+      <option value="new">Mới thêm</option>
+      <option value="price">Giá thấp nhất</option>
+      <option value="ppm">Giá/m² thấp nhất</option>
+      <option value="rate">Điểm cao nhất</option>
+      <option value="vd">Ngày hẹn xem</option>
+    </select>
+  </div>
+  <div class="flt">
+    <select id="fdist" class="w" aria-label="Khu vực"><option value="">Mọi khu vực</option></select>
+    <select id="dty" aria-label="Loại ngày"><option value="add">Ngày thêm</option><option value="lh">Ngày liên hệ</option><option value="vd">Ngày hẹn xem</option></select>
+    <select id="drg" aria-label="Khoảng ngày"><option value="">Mọi ngày</option><option value="today">Hôm nay</option><option value="p7">7 ngày qua</option><option value="p30">30 ngày qua</option><option value="n7">7 ngày tới</option><option value="custom">Chọn khoảng…</option></select>
+    <div class="w flt" id="cust" hidden style="margin:0"><input type="date" id="df" aria-label="Từ ngày"><input type="date" id="dt" aria-label="Đến ngày"></div>
+  </div>
+  <button class="link" id="clr" hidden>Xóa lọc khu vực và ngày</button>
+  <div class="chips" id="chips"></div>
+  <div class="stat" id="stat"></div>
+  <div id="list"></div>
+  <div class="tools"><button class="link" id="bk">Sao lưu / khôi phục dữ liệu</button></div>
+</div>
+<button class="btn p fab" id="add">+ Thêm nhà</button>
+
+<dialog id="dlg"><form class="form" id="f" method="dialog">
+  <h2 id="ft">Thêm nhà</h2>
+  <div><label for="n">Tên / mã *</label><input id="n" required placeholder="VD: Phòng 2PN hẻm 45 Lê Văn Sỹ"></div>
+  <div><label for="a">Địa chỉ</label><input id="a" placeholder="Số nhà, đường, phường"></div>
+  <div class="g2">
+    <div><label for="d">Quận / khu vực</label><input id="d"></div>
+    <div><label for="st">Trạng thái</label><select id="st"></select></div>
+  </div>
+  <div class="g2">
+    <div><label for="p">Giá (triệu/tháng)</label><input id="p" type="number" step="0.1" min="0" inputmode="decimal"></div>
+    <div><label for="ar">Diện tích (m²)</label><input id="ar" type="number" step="1" min="0" inputmode="decimal"></div>
+  </div>
+  <div class="g2">
+    <div><label for="dp">Tiền cọc (triệu)</label><input id="dp" type="number" step="0.1" min="0" inputmode="decimal"></div>
+    <div><label for="u">Điện / nước</label><input id="u" placeholder="VD: 3.5k / 100k"></div>
+  </div>
+  <div class="g2">
+    <div><label for="ph">SĐT chủ nhà</label><input id="ph" type="tel" inputmode="tel"></div>
+    <div><label for="vd">Ngày hẹn xem</label><input id="vd" type="date"></div>
+  </div>
+  <div class="g2">
+    <div><label for="lh">Ngày liên hệ</label><input id="lh" type="date"></div>
+    <div></div>
+  </div>
+  <div><label for="lk">Link tin đăng</label><input id="lk" type="url" placeholder="https://"></div>
+  <div class="g2">
+    <div><label for="pr">Ưu điểm</label><textarea id="pr"></textarea></div>
+    <div><label for="co">Nhược điểm</label><textarea id="co"></textarea></div>
+  </div>
+  <div><label for="rt">Điểm (1–5)</label><select id="rt"><option value="">Chưa chấm</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+  <div class="foot">
+    <button class="btn d" type="button" id="del" hidden>Xóa</button>
+    <span class="grow"></span>
+    <button class="btn" type="button" id="cx">Hủy</button>
+    <button class="btn p" type="submit" id="sv">Lưu</button>
+  </div>
+</form></dialog>
+
+<dialog id="bd"><div class="form">
+  <h2>Sao lưu / khôi phục</h2>
+  <p class="pm">Dữ liệu chỉ lưu trong trình duyệt này. Sao chép đoạn mã bên dưới để lưu lại, hoặc dán mã cũ vào rồi bấm Khôi phục.</p>
+  <textarea id="bt" style="min-height:140px;font-size:12px"></textarea>
+  <div class="foot">
+    <button class="btn" type="button" id="bcp">Sao chép</button>
+    <button class="btn" type="button" id="bim">Khôi phục</button>
+    <button class="btn p" type="button" id="bcl">Đóng</button>
+  </div>
+  <p class="pm" id="bm"></p>
+</div></dialog>
+
+<script>
+var ST=[["new","Mới tìm"],["contact","Đã liên hệ"],["seen","Đã xem"],["won","Chốt"],["out","Loại"]];
+var KEY="nha-thue-v1",items=[],filter="all",editId=null;
+var $=function(i){return document.getElementById(i)};
+function load(){try{var r=localStorage.getItem(KEY);items=r?JSON.parse(r):[]}catch(e){items=[]}if(!Array.isArray(items))items=[]}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(items))}catch(e){}}
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function num(v){var x=parseFloat(v);return isNaN(x)?null:x}
+function fmt(x){return x.toLocaleString("vi-VN",{maximumFractionDigits:2})}
+function ppm(it){return it.p!=null&&it.ar?it.p*1000/it.ar:null}
+function stName(k){for(var i=0;i<ST.length;i++)if(ST[i][0]===k)return ST[i][1];return ST[0][1]}
+$("st").innerHTML=ST.map(function(s){return '<option value="'+s[0]+'">'+s[1]+'</option>'}).join("");
+
+function pad(n){return n<10?"0"+n:""+n}
+function ymd(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
+function addDays(n){var d=new Date();d.setDate(d.getDate()+n);return ymd(d)}
+function dm(s){return s.split("-").reverse().join("/")}
+function dkey(s){return (s||"").trim().toLowerCase()}
+function itemDate(it,ty){return ty==="add"?ymd(new Date(it.t)):(it[ty]||"")}
+function passFilters(it,q){
+  if(q&&[it.n,it.a,it.d,it.pr,it.co].join(" ").toLowerCase().indexOf(q)<0)return false;
+  var fd=$("fdist").value;
+  if(fd==="__none"){if(dkey(it.d))return false}else if(fd&&dkey(it.d)!==fd)return false;
+  var r=$("drg").value;
+  if(r){
+    var d=itemDate(it,$("dty").value),T=ymd(new Date());
+    if(!d)return false;
+    if(r==="today"&&d!==T)return false;
+    if(r==="p7"&&(d<addDays(-6)||d>T))return false;
+    if(r==="p30"&&(d<addDays(-29)||d>T))return false;
+    if(r==="n7"&&(d<T||d>addDays(7)))return false;
+    if(r==="custom"){var a=$("df").value,b=$("dt").value;if((a&&d<a)||(b&&d>b))return false}
+  }
+  return true;
+}
+function buildDist(){
+  var sel=$("fdist"),cur=sel.value,m={},order=[],none=0;
+  items.forEach(function(it){var k=dkey(it.d);if(!k){none++;return}if(!m[k]){m[k]={l:it.d.trim(),c:0};order.push(k)}m[k].c++});
+  order.sort(function(a,b){return m[a].l.localeCompare(m[b].l,"vi")});
+  var h='<option value="">Mọi khu vực</option>'+order.map(function(k){return '<option value="'+esc(k)+'">'+esc(m[k].l)+' ('+m[k].c+')</option>'}).join("")+(none?'<option value="__none">Chưa ghi khu vực ('+none+')</option>':"");
+  if(sel.dataset.h!==h){sel.innerHTML=h;sel.dataset.h=h}
+  sel.value=cur;if(sel.value!==cur)sel.value="";
+}
+function render(){
+  var q=$("q").value.trim().toLowerCase(),sort=$("sort").value;
+  buildDist();var base=items.filter(function(it){return passFilters(it,q)});$("clr").hidden=!($("fdist").value||$("drg").value);var counts={all:base.length};ST.forEach(function(s){counts[s[0]]=0});
+  base.forEach(function(it){counts[it.st]=(counts[it.st]||0)+1});
+  var cs=[["all","Tất cả"]].concat(ST);
+  $("chips").innerHTML=cs.map(function(c){return '<button class="chip" data-f="'+c[0]+'" aria-pressed="'+(filter===c[0])+'">'+c[1]+'<b>'+(counts[c[0]]||0)+'</b></button>'}).join("");
+  var list=base.filter(function(it){
+    if(filter!=="all"&&it.st!==filter)return false;
+    if(!q)return true;
+    return [it.n,it.a,it.d,it.pr,it.co].join(" ").toLowerCase().indexOf(q)>-1;
+  });
+  list.sort(function(a,b){
+    if(sort==="price")return (a.p==null)-(b.p==null)||a.p-b.p;
+    if(sort==="ppm"){var x=ppm(a),y=ppm(b);return (x==null)-(y==null)||x-y}
+    if(sort==="rate")return (b.rt||0)-(a.rt||0);
+    if(sort==="vd"){var x2=a.vd||"",y2=b.vd||"";return (!x2)-(!y2)||(x2<y2?-1:x2>y2?1:0)}
+    return b.t-a.t;
+  });
+  var pr=list.filter(function(i){return i.p!=null});
+  $("stat").textContent=list.length+" căn"+(pr.length?" · giá trung bình "+fmt(pr.reduce(function(s,i){return s+i.p},0)/pr.length)+" triệu/tháng":"");
+  if(!list.length){
+    $("list").innerHTML='<div class="empty"><p>'+(items.length?"Không có căn nào khớp bộ lọc.":"Chưa có căn nào. Thêm căn đầu tiên bạn tìm được.")+'</p>'+(items.length?"":'<button class="btn p" data-act="add">+ Thêm nhà</button>')+'</div>';
+    return;
+  }
+  $("list").innerHTML=list.map(function(it){
+    var m=ppm(it),col="var(--s-"+it.st+")",bg="var(--b-"+it.st+")";
+    var h='<div class="card'+(it.st==="out"?" out":"")+'" style="--c:'+col+';--bg2:'+bg+'">';
+    h+='<div class="top"><div><p class="name">'+esc(it.n)+'</p>'+(it.a||it.d?'<p class="addr">'+esc([it.a,it.d].filter(Boolean).join(", "))+'</p>':"")+'</div>';
+    h+='<div class="price">'+(it.p!=null?fmt(it.p)+' tr':'—')+'<small>'+(m!=null?fmt(Math.round(m*10)/10)+'k/m²':'/tháng')+'</small></div></div>';
+    h+='<div class="facts"><span class="pill">'+stName(it.st)+'</span>';
+    if(it.ar)h+='<span><b>'+fmt(it.ar)+'</b> m²</span>';
+    if(it.dp!=null)h+='<span>Cọc <b>'+fmt(it.dp)+'</b> tr</span>';
+    if(it.u)h+='<span>Điện/nước <b>'+esc(it.u)+'</b></span>';
+    if(it.lh)h+='<span>Liên hệ <b>'+dm(it.lh)+'</b></span>';
+    if(it.vd)h+='<span>Xem <b>'+dm(it.vd)+'</b></span>';
+    h+='<span>Thêm <b>'+dm(ymd(new Date(it.t)))+'</b></span>';
+    if(it.rt)h+='<span><b>'+it.rt+'/5</b> điểm</span>';
+    h+='</div>';
+    if(it.pr)h+='<p class="note"><i>Được:</i> '+esc(it.pr)+'</p>';
+    if(it.co)h+='<p class="note"><i>Chưa được:</i> '+esc(it.co)+'</p>';
+    h+='<div class="row">';
+    if(it.ph)h+='<a class="btn" href="tel:'+esc(it.ph.replace(/[^\d+]/g,""))+'">Gọi</a>';
+    if(it.a||it.d)h+='<a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent([it.a,it.d].filter(Boolean).join(", "))+'">Bản đồ</a>';
+    if(it.lk)h+='<a class="btn" target="_blank" rel="noopener" href="'+esc(it.lk)+'">Tin đăng</a>';
+    h+='<span class="grow"></span><button class="btn" data-edit="'+it.id+'">Sửa</button></div></div>';
+    return h;
+  }).join("");
+}
+
+function openForm(id){
+  editId=id||null;
+  var it=items.filter(function(x){return x.id===id})[0]||{st:"new"};
+  $("ft").textContent=id?"Sửa thông tin":"Thêm nhà";
+  $("del").hidden=!id;
+  var map={n:"n",a:"a",d:"d",st:"st",p:"p",ar:"ar",dp:"dp",u:"u",ph:"ph",vd:"vd",lh:"lh",lk:"lk",pr:"pr",co:"co",rt:"rt"};
+  for(var k in map){var v=it[k];$(map[k]).value=v==null?"":v}
+  $("dlg").showModal();
+}
+$("f").addEventListener("submit",function(e){
+  e.preventDefault();
+  var o={n:$("n").value.trim(),a:$("a").value.trim(),d:$("d").value.trim(),st:$("st").value,p:num($("p").value),ar:num($("ar").value),dp:num($("dp").value),u:$("u").value.trim(),ph:$("ph").value.trim(),vd:$("vd").value,lh:$("lh").value,lk:$("lk").value.trim(),pr:$("pr").value.trim(),co:$("co").value.trim(),rt:num($("rt").value)};
+  if(!o.n)return;
+  if(editId){items=items.map(function(x){return x.id===editId?Object.assign({},x,o):x})}
+  else{o.id="h"+Date.now().toString(36);o.t=Date.now();items.push(o)}
+  save();$("dlg").close();render();
+});
+$("cx").onclick=function(){$("dlg").close()};
+$("del").onclick=function(){if(confirm("Xóa căn này?")){items=items.filter(function(x){return x.id!==editId});save();$("dlg").close();render()}};
+$("add").onclick=function(){openForm()};
+$("q").oninput=render;$("sort").onchange=render;
+$("chips").onclick=function(e){var b=e.target.closest("[data-f]");if(b){filter=b.dataset.f;render()}};
+$("list").onclick=function(e){
+  var b=e.target.closest("[data-edit]");if(b)openForm(b.dataset.edit);
+  if(e.target.closest("[data-act='add']"))openForm();
+};
+$("bk").onclick=function(){$("bt").value=JSON.stringify(items);$("bm").textContent="";$("bd").showModal()};
+$("bcl").onclick=function(){$("bd").close()};
+$("bcp").onclick=function(){
+  $("bt").select();
+  try{navigator.clipboard.writeText($("bt").value).then(function(){$("bm").textContent="Đã sao chép."},function(){$("bm").textContent="Chọn toàn bộ mã và sao chép thủ công."})}
+  catch(e){$("bm").textContent="Chọn toàn bộ mã và sao chép thủ công."}
+};
+$("bim").onclick=function(){
+  try{
+    var d=JSON.parse($("bt").value);
+    if(!Array.isArray(d))throw 0;
+    if(!confirm("Thay toàn bộ dữ liệu hiện tại bằng "+d.length+" căn trong mã này?"))return;
+    items=d;save();render();$("bm").textContent="Đã khôi phục "+d.length+" căn.";
+  }catch(e){$("bm").textContent="Mã không hợp lệ."}
+};
+["fdist","dty","drg","df","dt"].forEach(function(i){$(i).onchange=render});
+$("drg").addEventListener("change",function(){var v=$("drg").value;if(v==="n7")$("dty").value="vd";$("cust").hidden=v!=="custom";render()});
+$("clr").onclick=function(){$("fdist").value="";$("drg").value="";$("df").value="";$("dt").value="";$("cust").hidden=true;render()};
+load();render();
+</script>
+</body>
+</html>
