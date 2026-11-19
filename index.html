@@ -1407,28 +1407,40 @@ function ckLbl(it){var s=it.ck&&ckStat(it.ck);return s&&s.d+s.b?" "+s.d+"/"+s.t:
 function findItem(id){for(var i=0;i<items.length;i++)if(items[i].id===id)return items[i]}
 /* Chi tiết checklist của một căn: lấy từ ckC nếu mã h còn khớp với danh sách, không thì hỏi server (server cũng cache). Gọi trùng thì dùng chung một yêu cầu. */
 var CKC="ckc1",ckP={},ckTok=0,ckC=(function(){try{var d=JSON.parse(ls(CKC)||"null");if(d&&d.k===lcKey()&&d.c&&typeof d.c==="object")return d.c}catch(e){}return {}})(),ckSvT=null,ckWarming=false;
-/* Lưu chi tiết checklist vào máy (khớp theo mã h nên không bao giờ hiện dữ liệu cũ): lần sau mở app là có sẵn, khỏi chờ Google */
-function ckcSave(){clearTimeout(ckSvT);ckSvT=setTimeout(function(){try{var o={},id,n=0;for(id in ckC){if(findItem(id)){o[id]=ckC[id];n++}}var j=JSON.stringify({k:lcKey(),c:o});if(j.length<1500000)ls(CKC,j)}catch(e){}},800)}
-/* Tải ngầm checklist các căn đã có nội dung, lần lượt từng căn, để lúc bấm vào là hiện ngay */
+/* Lưu chi tiết checklist vào máy (khớp theo mã h nên không bao giờ hiện dữ liệu cũ): lần sau mở app là có sẵn, khỏi chờ Google.
+   Quá dung lượng thì bỏ các căn ít dùng nhất (trước đây vượt ngưỡng là không lưu gì cả). */
+var ckA={};
+function ckcSave(){clearTimeout(ckSvT);ckSvT=setTimeout(function(){try{
+  var ids=[],id,o={},len=60,i,s;for(id in ckC)if(findItem(id))ids.push(id);
+  ids.sort(function(x,y){return (ckA[y]||0)-(ckA[x]||0)});
+  for(i=0;i<ids.length;i++){s=JSON.stringify(ckC[ids[i]]).length+ids[i].length+8;if(len+s>1500000)continue;o[ids[i]]=ckC[ids[i]];len+=s}
+  ls(CKC,JSON.stringify({k:lcKey(),c:o}))}catch(e){}},1500)}
+function ckNeed(it){var l=it.ck;if(!l)return false;var e=ckC[it.id];return !(e&&e.h===(l.h||""))}
+/* Tải ngầm checklist của TẤT CẢ các căn (không còn chờ bấm vào mới tải), 2 luồng song song.
+   Thứ tự: căn đang hiện > căn đã quan tâm > căn có nội dung > còn lại. Ai mở trước thì ckGet dùng chung yêu cầu đang chạy. */
+function ckRank(it){return (IW.vis[it.id]?3:IW.eng[it.id]?2:ckAny(it.ck)?1:0)}
 function ckWarm(){
-  if(ckWarming||document.hidden||!apiUrl()||!role)return;
+  if(ckWarming||document.hidden||navigator.onLine===false||!apiUrl()||!role||pend>0)return;
   if(navigator.connection&&navigator.connection.saveData)return;
-  var q=items.filter(function(it){var l=it.ck;if(!l)return false;var e=ckC[it.id];return !(e&&e.h===(l.h||""))&&ckAny(l)}).slice(0,15);
+  var q=items.filter(ckNeed).map(function(it,i){return {it:it,r:ckRank(it),i:i}});
   if(!q.length)return;
-  ckWarming=true;
-  (function next(){
-    var it=q.shift();
-    if(!it||document.hidden||pend>0){ckWarming=false;return}
-    ckGet(it.id).then(function(){setTimeout(next,250)},function(){ckWarming=false})
-  })()}
+  q.sort(function(x,y){return y.r-x.r||x.i-y.i});q=q.map(function(x){return x.it});
+  ckWarming=true;var active=0,fail=0;
+  function next(){
+    if(document.hidden||pend>0||fail>=3||navigator.onLine===false){if(!active)ckWarming=false;return}
+    var it=q.shift();if(!it){if(!active)ckWarming=false;return}
+    if(!ckNeed(it)){next();return}
+    active++;
+    ckGet(it.id).then(function(){fail=0},function(){fail++}).then(function(){active--;setTimeout(next,200)})}
+  next();next()}
 function ckGet(id){
   var it=findItem(id);if(!it)return Promise.reject(new Error("Không tìm thấy căn này"));
   var l=it.ck;if(!l)return Promise.resolve(null);
-  var e=ckC[id];if(e&&e.h===(l.h||""))return Promise.resolve(e.ck);
+  var e=ckC[id];if(e&&e.h===(l.h||"")){ckA[id]=Date.now();return Promise.resolve(e.ck)}
   if(ckP[id])return ckP[id];
   return ckP[id]=apiGet("&action=ck&id="+encodeURIComponent(id)).then(function(d){
     delete ckP[id];if(!d.ok)throw new Error(d.error||"Lỗi máy chủ");
-    ckC[id]={h:d.h||"",ck:d.ck||null};ckcSave();return d.ck||null
+    ckC[id]={h:d.h||"",ck:d.ck||null};ckA[id]=Date.now();ckcSave();return d.ck||null
   },function(er){delete ckP[id];throw er})}
 function ckLoad(id){
   var t=++ckTok,it=id&&findItem(id);
@@ -1521,7 +1533,7 @@ function ckSnap(c){var s=ckCopy(c),r={rt:s.rt||null,pr:(s.pr||"").trim(),co:(s.c
 /* Lưu checklist: danh sách giữ bản nhẹ, server nhận bản đầy đủ; xong thì nhớ luôn bản đầy đủ với mã h mới (mở lại không phải tải) */
 function ckPersist(id,base,x){
   var o=Object.assign({},base,{ck:ckLiteOf(x.s,base.ck&&base.ck.h),rt:x.rt,pr:x.pr,co:x.co});
-  return persist(o,x.s).then(function(d){if(d&&d.ch&&d.ch[id]){ckC[id]={h:d.ch[id],ck:x.s};ckcSave()}return d})}
+  return persist(o,x.s).then(function(d){if(d&&d.ch&&d.ch[id]){ckC[id]={h:d.ch[id],ck:x.s};ckA[id]=Date.now();ckcSave()}return d})}
 function ckFlush(){
   clearTimeout(ckT);if(!ckDirty||!ckId||!ckCur||!canW)return;
   var it=findItem(ckId);if(!it)return;
@@ -1817,8 +1829,8 @@ document.body.dataset.tab="list";
 (function(){var b=$("totop"),tk=false;function u(){tk=false;b.classList.toggle("on",window.scrollY>700)}window.addEventListener("scroll",function(){if(!tk){tk=true;requestAnimationFrame(u)}},{passive:true});b.onclick=function(){window.scrollTo({top:0,behavior:"smooth"})}})();
 /* Chạm vào nút Checklist là bắt đầu tải chi tiết ngay, lúc mở xong thường đã có sẵn */
 var PRI={};
-function pre(e){var t=e.target,b=t.closest&&t.closest("[data-ck],[data-sck]");if(b)ckGet(b.dataset.ck||b.dataset.sck).catch(function(){});
-  var tp=t.closest&&t.closest(".top");if(tp&&!t.closest("a,button,.th")){var cd=tp.closest(".card"),it=cd&&findItem(cd.dataset.id);if(it)iwIntent(it)}var pi=t.closest&&t.closest(".ph img");if(pi&&pi.dataset.big)iwNow(pi.dataset.big)}
+function pre(e){var t=e.target,b=t.closest&&t.closest("[data-ck],[data-sck]");if(b){var cid=b.dataset.ck||b.dataset.sck;ckGet(cid).catch(function(){});iwCkNow(findItem(cid))}
+  var tp=t.closest&&t.closest(".top");if(tp&&!t.closest("a,button,.th")){var cd=tp.closest(".card"),it=cd&&findItem(cd.dataset.id);if(it)iwIntent(it)}var pi=t.closest&&t.closest(".ph img,.cph img");if(pi&&pi.dataset.big)iwNow(pi.dataset.big)}
 $("list").addEventListener("pointerdown",pre,{passive:true});$("mdl").addEventListener("pointerdown",pre,{passive:true});
 /* ===== Tải sẵn ảnh thông minh =====
    Ưu tiên: (0) người dùng vừa chạm/mở -> tải ngay, không giới hạn; (1) thẻ đang hiện trên màn hình;
@@ -1826,14 +1838,16 @@ $("list").addEventListener("pointerdown",pre,{passive:true});$("mdl").addEventLi
    Chiều sâu: thẻ chỉ lướt qua tải 1 ảnh đầu; thẻ "quan tâm" (chạm hoặc dừng >1 giây) tải 3 ảnh.
    Ngân sách theo mạng (wifi nhiều, mạng di động ít, tiết kiệm dữ liệu/2G thì không), nhường băng thông cho ảnh nhỏ đang hiện.
    Chỉ chạy khi sw.js đã kiểm soát trang (lúc đó ảnh mới được lưu bền). Ảnh tải bằng cỡ xem VW nên trang chi tiết và lightbox dùng chung. */
-var IW={q:[],n:0,run:0,wait:0,fail:0,t:0,lo:0,io:null,seen:{},vis:{},eng:{},PER:3};
-var IWT=[null,{max:36,ahead:4,par:1},{max:120,ahead:10,par:2}];
+var IW={q:[],n:0,nt:0,run:0,wait:0,fail:0,t:0,lo:0,io:null,seen:{},vis:{},eng:{},PER:3};
+var IWT=[null,{max:36,maxT:80,ahead:4,par:1},{max:120,maxT:400,ahead:10,par:2}];   // max: ảnh xem; maxT: ảnh nhỏ của checklist (nhẹ nên tính riêng)
 function iwTier(){var c=navigator.connection||{};
   if(document.hidden||navigator.onLine===false||c.saveData||/2g/.test(c.effectiveType||""))return 0;
   if(!(navigator.serviceWorker&&navigator.serviceWorker.controller))return 0;
   return (c.type==="wifi"||c.type==="ethernet")?2:1}
 function iwArr(it){return tab==="real"?segArr(it,curSeg(it)):(it.im||[])}
 function iwUrls(it,n){var o=[];iwArr(it).slice(0,n).forEach(function(x){var u=imgSrc(x,VW);if(u.indexOf("https://lh3.")===0)o.push(u)});return o}
+function iwCkUrls(it){var o=[];segArr(it,"v").concat(segArr(it,"h")).slice(0,12).forEach(function(x){var u=imgSrc(x,300);if(u.indexOf("https://lh3.")===0)o.push(u)});return o}
+function iwCkNow(it){if(it)iwCkUrls(it).forEach(iwNow)}
 function iwNow(u){if(!u||IW.seen[u])return;IW.seen[u]=1;var im=new Image();im.decoding="async";im.onerror=function(){delete IW.seen[u]};im.src=u}
 function iwIntent(it){IW.eng[it.id]=1;iwUrls(it,2).forEach(iwNow)}
 function iwGal(g,i){var c=g.children;[i+1,i+2,i-1].forEach(function(k){if(k<0||k>=c.length)return;var u=c[k].getAttribute&&c[k].getAttribute("src");if(u&&u.indexOf("https://lh3.")===0)iwNow(u)})}
@@ -1860,20 +1874,23 @@ function iwPlan(){
   var q=[],o=0;
   order.forEach(function(ix,rank){var it=findItem(cs[ix].dataset.id);if(!it)return;
     iwUrls(it,IW.eng[it.id]?IW.PER:1).forEach(function(u,n){if(!IW.seen[u])q.push({u:u,p:(rank<vis.length?0:10)+n,o:o++})})});
+  var dn={};function ckT(it,p){if(dn[it.id])return;dn[it.id]=1;iwCkUrls(it).forEach(function(u){if(!IW.seen[u])q.push({u:u,p:p,o:o++,t:1})})}
+  order.forEach(function(ix){var it=findItem(cs[ix].dataset.id);if(it)ckT(it,100)});   // ảnh checklist: căn đang xem trước, rồi tất cả căn còn lại
+  items.forEach(function(it){ckT(it,200)});
   q.sort(function(x,y){return x.p-y.p||x.o-y.o});IW.q=q}
-function iwLoad(u){
+function iwLoad(u,t){
   iwHas(u).then(function(has){
     if(has){IW.run--;iwPump();return}
-    IW.n++;var im=new Image();im.decoding="async";try{im.fetchPriority="low"}catch(e){}
+    if(t)IW.nt++;else IW.n++;var im=new Image();im.decoding="async";try{im.fetchPriority="low"}catch(e){}
     function done(ok){im.onload=im.onerror=null;IW.fail=ok?0:IW.fail+1;if(!ok)delete IW.seen[u];setTimeout(function(){IW.run--;iwPump()},150)}
     im.onload=function(){done(true)};im.onerror=function(){done(false)};im.src=u})}
 function iwPump(){
   var T=iwTier();if(!T||IW.fail>=3)return;var P=IWT[T];
-  while(IW.run<P.par&&IW.q.length&&IW.n<P.max){
+  while(IW.run<P.par&&IW.q.length){
     if(IW.wait<8&&iwBusy()){IW.wait++;iwLater(500);return}
-    IW.wait=0;var u=IW.q.shift().u;if(IW.seen[u])continue;
-    IW.seen[u]=1;IW.run++;iwLoad(u)}}
-function iwGo(){iwObs();iwPlan();iwPump()}
+    IW.wait=0;var x=IW.q.shift(),u=x.u;if(IW.seen[u]||(x.t?IW.nt>=P.maxT:IW.n>=P.max))continue;
+    IW.seen[u]=1;IW.run++;iwLoad(u,x.t)}}
+function iwGo(){ckWarm();iwObs();iwPlan();iwPump()}
 function iwLater(ms){clearTimeout(IW.t);IW.t=setTimeout(iwGo,ms)}
 if(window.MutationObserver)new MutationObserver(function(){iwLater(1200)}).observe($("list"),{childList:true,subtree:true});
 document.addEventListener("visibilitychange",function(){if(!document.hidden){IW.fail=0;iwLater(600)}});
