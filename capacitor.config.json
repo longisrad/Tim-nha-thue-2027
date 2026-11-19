@@ -1,0 +1,12 @@
+{
+  "appId": "io.github.longisrad.timnhathue",
+  "appName": "Tìm nhà thuê",
+  "webDir": "www",
+  "backgroundColor": "#1e4d4a",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
