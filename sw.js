@@ -70,6 +70,7 @@ self.addEventListener('fetch', function (e) {
 });
 
 /* ---------- Ảnh Drive: cache trước, không hỏi lại mạng (ảnh theo id là bất biến) ---------- */
+var pending = {};   // key -> Promise<Response> gốc chưa ai đọc; mọi bên đều dùng bản clone, nên một ảnh chỉ tải một lần
 function image(e, url, id, w) {
   var base = url.origin + '/d/' + id + '=w', key = base + w;
   // Ưu tiên đúng cỡ; nếu chưa có thì dùng cỡ lớn hơn nhưng không quá 2 lần (đỡ tải lại, không tốn RAM giải mã)
@@ -77,11 +78,20 @@ function image(e, url, id, w) {
   var work = caches.open(IMG).then(function (c) {
     return pick(c, base, list).then(function (hit) {
       if (hit) return { res: hit };
-      // mode:'cors' để lưu được phản hồi đầy đủ (opaque bị Chrome tính ~7 MB/ảnh vào hạn mức)
-      return fetch(new Request(url.href, { mode: 'cors', credentials: 'omit', referrerPolicy: 'no-referrer' })).then(function (res) {
-        if (!res.ok) return { res: res };
-        return { res: res, saved: c.put(key, res.clone()).then(function () { return trim(c, IMG_MAX); }).catch(noop) };
-      }, function () { return { res: null }; });   // CORS bị chặn hoặc mất mạng: bên dưới để trình duyệt tải như cũ (không lưu)
+      var p = pending[key], saved = null;
+      if (!p) {
+        // mode:'cors' để lưu được phản hồi đầy đủ (opaque bị Chrome tính ~7 MB/ảnh vào hạn mức)
+        p = fetch(new Request(url.href, { mode: 'cors', credentials: 'omit', referrerPolicy: 'no-referrer' })).then(function (res) {
+          if (res.ok) saved = c.put(key, res.clone()).then(function () { return trim(c, IMG_MAX); }).catch(noop);
+          return res;
+        });
+        pending[key] = p;
+        var done = function () { delete pending[key]; };
+        p.then(function () { return saved; }).then(done, done);   // giữ mục này đến khi ghi cache xong, tránh khe hở tải trùng
+      }
+      var mine = saved;
+      return p.then(function (res) { return { res: res.clone(), saved: mine }; },
+                    function () { return { res: null }; });      // CORS bị chặn hoặc mất mạng: để trình duyệt tải như cũ (không lưu)
     });
   });
   e.waitUntil(work.then(function (w2) { return w2.saved; }).catch(noop));   // gọi ngay trong sự kiện fetch
