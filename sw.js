@@ -3,16 +3,18 @@
    - PWA (mặc định): cache vỏ app + font/icon + ảnh Drive.
    - APK Capacitor (đăng ký với ?app=1): file app đã nằm sẵn trong APK nên KHÔNG cache vỏ app, chỉ cache ảnh Drive.
    Đổi VERSION khi đổi font/icon/manifest. Sửa index.html thì không cần đổi (tự cập nhật mỗi lần mở). */
-const VERSION = 'v17';
+const VERSION = 'v18';
 const SHELL = 'shell-' + VERSION;
 const RUNTIME = 'runtime-' + VERSION;
 const IMG = 'img-v1';            // KHÔNG gắn VERSION: đổi VERSION không làm mất ảnh đã tải
 const APP_MODE = new URL(self.location.href).searchParams.get('app') === '1';
 const INDEX = './index.html';
+const DUP = './dup.js';
 const MARK = './__update';       // dấu "đã có bản mới chưa được mở"
 const SHELL_FILES = [
   './',
   INDEX,
+  DUP,
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -64,14 +66,14 @@ self.addEventListener('fetch', function (e) {
   }
   // API Apps Script và mọi nguồn Google khác: luôn lấy dữ liệu mới
   if (url.origin !== location.origin) return;
-  if (APP_MODE) return;            // APK: file app lấy thẳng từ gói APK
+  if (APP_MODE) return;            // APK/App: file app lấy thẳng từ gói app
 
   if (req.mode === 'navigate') { e.respondWith(openPage(e)); return; }
   e.respondWith(asset(e, req));
 });
 
 /* ---------- Ảnh Drive: cache trước, không hỏi lại mạng (ảnh theo id là bất biến) ---------- */
-var pending = {};   // key -> Promise<Response> gốc chưa ai đọc; mọi bên đều dùng bản clone, nên một ảnh chỉ tải một lần
+var pending = {};   // key -> { p: Promise<Response>, saved: Promise<void>|null }
 function image(e, url, id, w) {
   var base = url.origin + '/d/' + id + '=w', key = base + w;
   // Ưu tiên đúng cỡ; nếu chưa có thì dùng cỡ lớn hơn nhưng không quá 2 lần (đỡ tải lại, không tốn RAM giải mã)
@@ -79,20 +81,20 @@ function image(e, url, id, w) {
   var work = caches.open(IMG).then(function (c) {
     return pick(c, base, list).then(function (hit) {
       if (hit) return { res: hit };
-      var p = pending[key], saved = null;
-      if (!p) {
+      var ent = pending[key];
+      if (!ent) {
+        ent = { p: null, saved: null };
         // mode:'cors' để lưu được phản hồi đầy đủ (opaque bị Chrome tính ~7 MB/ảnh vào hạn mức)
-        p = fetch(new Request(url.href, { mode: 'cors', credentials: 'omit', referrerPolicy: 'no-referrer' })).then(function (res) {
-          if (res.ok) saved = c.put(key, res.clone()).then(function () { return trim(c, IMG_MAX); }).catch(noop);
+        ent.p = fetch(new Request(url.href, { mode: 'cors', credentials: 'omit', referrerPolicy: 'no-referrer' })).then(function (res) {
+          if (res.ok) ent.saved = c.put(key, res.clone()).then(function () { return trim(c, IMG_MAX); }).catch(noop);
           return res;
         });
-        pending[key] = p;
+        pending[key] = ent;
         var done = function () { delete pending[key]; };
-        p.then(function () { return saved; }).then(done, done);   // giữ mục này đến khi ghi cache xong, tránh khe hở tải trùng
+        ent.p.then(function () { return ent.saved; }).then(done, done);   // giữ mục này đến khi ghi cache xong, tránh khe hở tải trùng
       }
-      var mine = saved;
-      return p.then(function (res) { return { res: res.clone(), saved: mine }; },
-                    function () { return { res: null }; });      // CORS bị chặn hoặc mất mạng: để trình duyệt tải như cũ (không lưu)
+      return ent.p.then(function (res) { return { res: res.clone(), saved: ent.saved }; },
+                        function () { return { res: null }; });            // CORS bị chặn hoặc mất mạng: để trình duyệt tải như cũ (không lưu)
     });
   });
   e.waitUntil(work.then(function (w2) { return w2.saved; }).catch(noop));   // gọi ngay trong sự kiện fetch
@@ -103,27 +105,35 @@ function pick(c, base, list) {
   return c.match(base + list[0]).then(function (h) { return h || pick(c, base, list.slice(1)); });
 }
 
-/* ---------- PWA: trang chính mở ngay từ bản đã lưu, tải bản mới ngầm ---------- */
+/* ---------- PWA: trang chính mở ngay từ bản đã lưu, tải bản mới ngầm (cả index.html và dup.js) ---------- */
 function clean(res) {   // phản hồi đã bị chuyển hướng không dùng được cho điều hướng trang
   return res.redirected ? res.blob().then(function (b) {
     return new Response(b, { status: res.status, statusText: res.statusText, headers: res.headers });
   }) : res;
 }
-function openPage(e) {
-  // cache:'no-cache' = hỏi lại server bằng ETag (nhẹ, thường 304); không bị kẹt bản cũ trong cache HTTP
-  var net = fetch(INDEX, { cache: 'no-cache' }).then(clean).then(function (res) {
-    if (!res || !res.ok) return res;
-    return caches.open(SHELL).then(function (c) {
-      return c.match(INDEX).then(function (old) {
-        return (old ? differs(old, res.clone()) : Promise.resolve(false)).then(function (changed) {
-          // Chỉ ghi khi có thay đổi (trước đây ghi 2 lần ~160 KB mỗi lần mở app)
-          var write = (changed || !old) ? Promise.all([c.put(INDEX, res.clone()), c.put('./', res.clone())]) : Promise.resolve();
-          return write.then(function () {
-            return changed ? c.put(MARK, new Response('1')) : c.delete(MARK);
-          }).then(function () { if (changed) tellPages(); return res; });
-        });
+function syncShellFile(c, path, extraPath) {
+  return fetch(path, { cache: 'no-cache' }).then(clean).then(function (res) {
+    if (!res || !res.ok) return { res: res, changed: false };
+    return c.match(path).then(function (old) {
+      return (old ? differs(old, res.clone()) : Promise.resolve(false)).then(function (changed) {
+        if (!changed && old) return { res: res, changed: false };
+        var writes = [c.put(path, res.clone())];
+        if (extraPath) writes.push(c.put(extraPath, res.clone()));
+        return Promise.all(writes).then(function () { return { res: res, changed: changed }; });
       });
-    }).catch(function () { return res; });
+    });
+  }).catch(function () { return { res: null, changed: false }; });
+}
+function openPage(e) {
+  var net = caches.open(SHELL).then(function (c) {
+    return Promise.all([
+      syncShellFile(c, INDEX, './'),
+      syncShellFile(c, DUP, null)
+    ]).then(function (results) {
+      var anyChanged = results[0].changed || results[1].changed;
+      return (anyChanged ? c.put(MARK, new Response('1')) : c.delete(MARK))
+        .then(function () { if (anyChanged) tellPages(); return results[0].res; });
+    });
   }).catch(function () { return null; });
   e.waitUntil(net);
   return caches.match(INDEX, { ignoreSearch: true }).then(function (hit) {
