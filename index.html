@@ -225,6 +225,18 @@ button.hrt[aria-pressed="true"] svg{fill:currentColor}
 .big .acts .ab{min-height:40px}
 .card:hover,.sx:hover{box-shadow:0 2px 10px rgba(0,0,0,.08)}
 .sx[open]{box-shadow:0 2px 12px rgba(0,0,0,.1)}
+/* ===== Tab Yêu thích: ảnh đầu to làm bìa, các ảnh còn lại thành hàng thumbnail ===== */
+.card.fav{padding:10px 12px 12px;border-radius:14px;box-shadow:0 2px 12px rgba(0,0,0,.07)}
+.card.fav .gal.gal{grid-template-columns:repeat(5,1fr);gap:4px;margin:0 0 10px}
+.card.fav .gal.gal img{height:56px;border-radius:8px}
+.card.fav .gal.gal img:first-child{grid-column:1/-1;height:176px;border-radius:10px}
+.card.fav .gal.gal:not(.open) .gmore{width:calc((100% - 16px)/5);height:56px}
+.card.fav .gal.gal:not(.open) .gmore b{font-size:16px}
+.card.fav .gal.gal:not(.open) .gmore .t1{display:none}
+.card.fav .name{font-size:16px;line-height:1.3}
+.card.fav .price{font-size:20px}
+.card.fav .facts{padding-top:8px;border-top:1px dashed var(--line)}
+.card.fav .acts{border-top:1px solid var(--line)}
 /* Làm nổi căn vừa đóng checklist: chỉ đổi viền (transition) */
 body .card.hl,body .sx.hl{border-color:var(--violet);box-shadow:0 0 0 3px var(--violet),0 6px 18px rgba(124,58,237,.25)}
 .map{margin-top:10px;width:100%;height:220px;border:1px solid var(--line);border-radius:8px}
@@ -947,7 +959,7 @@ function buildReal(src){
 function cardH(it,big){
     var rl=big==="real";if(rl)big=false;
     var m=ppm(it),col="var(--s-"+it.st+")",bg="var(--b-"+it.st+")";
-    var h='<div class="card '+(big?"big":"cc")+(rl?" real":"")+(it.st==="out"?" out":"")+'" data-id="'+esc(it.id)+'" style="--c:'+col+';--bg2:'+bg+'">';
+    var h='<div class="card '+(big?"big fav":"cc")+(rl?" real":"")+(it.st==="out"?" out":"")+'" data-id="'+esc(it.id)+'" style="--c:'+col+';--bg2:'+bg+'">';
     var th=it.im&&it.im.length?'<div class="th ph"><img alt="Ảnh nhà" loading="lazy" decoding="async" src="'+esc(imgSrc(it.im[0],big?640:200))+'" data-big="'+esc(imgSrc(it.im[0],VW))+'">'+(it.im.length>1?'<b>+'+(it.im.length-1)+'</b>':'')+'</div>':'';
     if(rl)th="";else if(big&&it.im&&it.im.length)th=galH(it.im,it.id);
     h+=(big?th:'')+'<div class="top">'+(big?'':th)+'<div class="mid"><p class="name">'+heartH(it)+esc(it.n)+'</p>'+(addrOf(it)?'<p class="addr">'+esc(addrOf(it))+'</p>':"")+'</div>';
@@ -1770,7 +1782,7 @@ function sumCard(it){
   if(tel(it.sp))h+=mw(mb("tel","tel","Gọi sale","sale"),"sale",ctc("sale",it.sp));
   if(ad||it.mp)h+=mw(mb("","pin","Bản đồ","map"),"map",ab("","ext","Mở Maps",'target="_blank" rel="noopener" href="'+(it.mp?esc(su(it.mp)):'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(ad))+'"')+(ad?ab("","nav","Chỉ đường",'target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(ad)+'"'):""));
   if(it.lk)h+=ab("","link","Tin đăng",'target="_blank" rel="noopener" href="'+esc(su(it.lk))+'"');
-  h+='<span class="grow"></span>'+heartH(it)+ab("ck"+(ckHas(it)?" has":""),"check","Checklist"+(cks?" "+cks:""),'data-sck="'+esc(it.id)+'"',"button");
+  h+='<span class="grow"></span>'+ab("ck"+(ckHas(it)?" has":""),"check","Checklist"+(cks?" "+cks:""),'data-sck="'+esc(it.id)+'"',"button");
   h+=(canW?ab("ed","edit","Sửa",'data-sed="'+esc(it.id)+'"',"button"):'')+'</div></div></details>';
   return h;
 }
@@ -1811,7 +1823,6 @@ function sumClick(e){
   var gm=e.target.closest("[data-gmore]");if(gm){var gl=gm.parentElement,gid=gm.dataset.gk,go=gl.classList.toggle("open");if(go)galOpen[gid]=1;else delete galOpen[gid];gm.setAttribute("aria-expanded",go);return}
   var pi=e.target.closest(".ph img");if(pi){openLb(pi);return}
   if(e.target.closest("[data-smore]")){sumLim+=SPAGE;renderSumDet();return}
-  var hb=e.target.closest("[data-fav]");if(hb){e.preventDefault();toggleFav(hb.dataset.fav);return}
   var a=e.target.closest("[data-sck]");if(a){openCk(a.dataset.sck);return}
   var b=e.target.closest("[data-sed]");if(b)openForm(b.dataset.sed);
 }
