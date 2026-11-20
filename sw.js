@@ -3,7 +3,7 @@
    - PWA (mặc định): cache vỏ app + font/icon + ảnh Drive.
    - APK Capacitor (đăng ký với ?app=1): file app đã nằm sẵn trong APK nên KHÔNG cache vỏ app, chỉ cache ảnh Drive.
    Đổi VERSION khi đổi font/icon/manifest. Sửa index.html thì không cần đổi (tự cập nhật mỗi lần mở). */
-const VERSION = 'v16';
+const VERSION = 'v17';
 const SHELL = 'shell-' + VERSION;
 const RUNTIME = 'runtime-' + VERSION;
 const IMG = 'img-v1';            // KHÔNG gắn VERSION: đổi VERSION không làm mất ảnh đã tải
@@ -18,11 +18,11 @@ const SHELL_FILES = [
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',
   './icons/apple-touch-icon.png',
-  './fonts/bvp-400.ttf',
-  './fonts/bvp-500.ttf',
-  './fonts/bvp-700.ttf',
-  './fonts/bvp-800.ttf',
-  './fonts/montserrat-800.ttf'
+  './fonts/bvp-400.woff',
+  './fonts/bvp-500.woff',
+  './fonts/bvp-700.woff',
+  './fonts/bvp-800.woff',
+  './fonts/montserrat-800.woff'
 ];
 const RUNTIME_MAX = 30;          // file tĩnh lạ cùng nguồn
 const IMG_MAX = 400;             // số ảnh tối đa giữ lại (~40–80 MB), xóa ảnh cũ nhất trước
