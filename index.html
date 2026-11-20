@@ -969,8 +969,8 @@ function cardH(it,big){
         +ab("","ext","Mở Maps",'target="_blank" rel="noopener" href="'+(it.mp?esc(su(it.mp)):'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(ad))+'"')
         +(ad?ab("","nav","Chỉ đường",'target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(ad)+'"'):""))}
     if(it.lk)h+=ab("","link","Tin đăng",'target="_blank" rel="noopener" href="'+esc(su(it.lk))+'"');
-    h+=ab("ck"+(ckHas(it)?" has":""),"check","Checklist"+ckLbl(it),'data-ck="'+esc(it.id)+'"',"button");
-    h+='<span class="grow"></span>'+(canW?ab("ed","edit","Sửa",'data-edit="'+esc(it.id)+'"',"button"):'')+'</div></div>';
+    h+='<span class="grow"></span>'+ab("ck"+(ckHas(it)?" has":""),"check","Checklist"+ckLbl(it),'data-ck="'+esc(it.id)+'"',"button");
+    h+=(canW?ab("ed","edit","Sửa",'data-edit="'+esc(it.id)+'"',"button"):'')+'</div></div>';
     return h;
 }
 var noMoreUntil=0;
@@ -1770,8 +1770,8 @@ function sumCard(it){
   if(tel(it.sp))h+=mw(mb("tel","tel","Gọi sale","sale"),"sale",ctc("sale",it.sp));
   if(ad||it.mp)h+=mw(mb("","pin","Bản đồ","map"),"map",ab("","ext","Mở Maps",'target="_blank" rel="noopener" href="'+(it.mp?esc(su(it.mp)):'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(ad))+'"')+(ad?ab("","nav","Chỉ đường",'target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(ad)+'"'):""));
   if(it.lk)h+=ab("","link","Tin đăng",'target="_blank" rel="noopener" href="'+esc(su(it.lk))+'"');
-  h+=ab("ck"+(ckHas(it)?" has":""),"check","Checklist"+(cks?" "+cks:""),'data-sck="'+esc(it.id)+'"',"button");
-  h+='<span class="grow"></span>'+heartH(it)+(canW?ab("ed","edit","Sửa",'data-sed="'+esc(it.id)+'"',"button"):'')+'</div></div></details>';
+  h+='<span class="grow"></span>'+heartH(it)+ab("ck"+(ckHas(it)?" has":""),"check","Checklist"+(cks?" "+cks:""),'data-sck="'+esc(it.id)+'"',"button");
+  h+=(canW?ab("ed","edit","Sửa",'data-sed="'+esc(it.id)+'"',"button"):'')+'</div></div></details>';
   return h;
 }
 function renderSumDet(){renderSumDet0();hlRe()}
