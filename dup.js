@@ -204,7 +204,7 @@ function checkPairImg(el){
     if(pos>=list.length)return Promise.resolve();
     var s=list[pos++];
     return hashOf(s).then(function(h){if(h)map[s]=hx2(h);else if(h===null)bad++}).then(worker)}
-  Promise.all([worker(),worker()]).then(function(){
+  Promise.all([worker(),worker(),worker()]).then(function(){
     saveCache();
     var found=[],seen={},i,j,sa,sb,ha,hb,d;
     for(i=0;i<aIm.length;i++){
@@ -225,7 +225,7 @@ function checkPairImg(el){
     if(found.length){
       pairImgMsg[k]={ok:true,text:"Tìm thấy "+found.length+" cặp ảnh giống nhau"+(bad?" ("+bad+" ảnh không đọc được)":"")+"."};
     }else if(bad&&bad===list.length){
-      pairImgMsg[k]={bad:true,text:"Không đọc được ảnh của 2 căn này (ảnh Drive bị xóa/chưa mở quyền hoặc mất mạng)."};
+      pairImgMsg[k]={bad:true,text:"Không đọc được ảnh của 2 căn này (trình duyệt chặn Drive hoặc mất mạng)."};
     }else{
       pairImgMsg[k]={text:"Không trùng ảnh ("+aIm.length+" vs "+bIm.length+" ảnh"+(bad?", "+bad+" ảnh lỗi":"")+"; ngưỡng lệch ≤ "+TH+"/64 bit)."};
     }
@@ -273,61 +273,36 @@ function openZoom(val){
 function closeZoom(){var z=G("dupz");if(z&&!z.hidden){z.hidden=true;return true}return false}
 function msg(t,bad){var m=G("dupm");m.textContent=t||"";m.className="pm"+(bad?" bad":"")}
 
-/* ---------- Thuật toán quét ảnh 64-bit (gộp URL trùng + thử lại nhiều nguồn CORS tránh lỗi 429) ---------- */
+/* ---------- Thuật toán quét ảnh 64-bit (có gộp URL trùng + thử lại 3 nấc tránh 429) ---------- */
 function loadCache(){if(cacheLoaded)return;cacheLoaded=true;try{cache=JSON.parse(ls("dhc1")||"{}")||{}}catch(e){cache={}}}
 function saveCache(){try{var k=Object.keys(cache);if(k.length>6000){var n={};k.slice(-4000).forEach(function(x){n[x]=cache[x]});cache=n}ls("dhc1",JSON.stringify(cache))}catch(e){}}
-function hashImage(im){
-  if(!(im.naturalWidth||im.width))return null;
-  var cv=document.createElement("canvas");cv.width=9;cv.height=8;
-  var cx=cv.getContext("2d",{willReadFrequently:true});cx.drawImage(im,0,0,9,8);
-  var d=cx.getImageData(0,0,9,8).data,g=[],i,x,y;
-  for(i=0;i<72;i++)g.push(d[i*4]*.299+d[i*4+1]*.587+d[i*4+2]*.114);
-  var hx="",bits="";
-  for(y=0;y<8;y++)for(x=0;x<8;x++)bits+=g[y*9+x]>g[y*9+x+1]?"1":"0";
-  for(i=0;i<64;i+=4)hx+=parseInt(bits.substr(i,4),2).toString(16);
-  return bits.split("1").length-1<6?"":hx}
-function loadViaFetch(u){
-  return fetch(u,{mode:"cors",credentials:"omit",referrerPolicy:"no-referrer",cache:"reload"}).then(function(r){
-    if(!r.ok)throw new Error(r.status);return r.blob()
-  }).then(function(b){
-    return new Promise(function(res,rej){
-      var obj=URL.createObjectURL(b),im=new Image();
-      im.onload=function(){URL.revokeObjectURL(obj);res(im)};
-      im.onerror=function(){URL.revokeObjectURL(obj);rej()};
-      im.src=obj})})}
 function hashOf(s){
   if(cache[s])return Promise.resolve(cache[s]);
   if(inflight[s])return inflight[s];
   var p=new Promise(function(res){
     var s0=imgSrc(s,64),isLh=s0.indexOf("https://lh3.googleusercontent.com/")===0;
-    var tries=isLh?[s0+"?dh=1",imgSrc(s,200)+"?dh=2"]:[s0];
-    var step=0,done=false,fetched=false;
+    var tries=isLh?[s0+"?dh=1",imgSrc(s,120)+"?dh=2",imgSrc(s,200)]:[s0];
+    var step=0,done=false;
     function fin(h){if(done)return;done=true;if(h&&String(s).indexOf("data:")!==0)cache[s]=h;delete inflight[s];res(h)}
     function next(){
       if(done)return;
-      if(step>=tries.length){
-        if(isLh&&!fetched&&window.fetch&&window.URL&&URL.createObjectURL){
-          fetched=true;
-          setTimeout(function(){
-            if(done)return;
-            loadViaFetch(imgSrc(s,200)).then(function(im){fin(hashImage(im))},function(){fin(null)})
-          },700);
-          return;
-        }
-        fin(null);return;
-      }
+      if(step>=tries.length){fin(null);return}
       var u=tries[step++],im=new Image(),settled=false;
       if(u.indexOf("https://lh3.googleusercontent.com/")===0)im.crossOrigin="anonymous";
       im.referrerPolicy="no-referrer";
       var t=setTimeout(fail,12000);
-      function fail(){if(settled||done)return;settled=true;clearTimeout(t);im.onload=im.onerror=null;setTimeout(next,step===1?450:700)}
+      function fail(){if(settled||done)return;settled=true;clearTimeout(t);im.onload=im.onerror=null;setTimeout(next,step===1?400:700)}
       im.onload=function(){
         if(settled||done)return;settled=true;clearTimeout(t);im.onload=im.onerror=null;
         try{
-          var h=hashImage(im);
-          if(h===null){setTimeout(next,450);return}
-          fin(h)
-        }catch(e){setTimeout(next,450)}};
+          if(!(im.naturalWidth||im.width)){setTimeout(next,400);return}
+          var cv=document.createElement("canvas");cv.width=9;cv.height=8;var cx=cv.getContext("2d",{willReadFrequently:true});cx.drawImage(im,0,0,9,8);
+          var d=cx.getImageData(0,0,9,8).data,g=[],i,x,y;for(i=0;i<72;i++)g.push(d[i*4]*.299+d[i*4+1]*.587+d[i*4+2]*.114);
+          var hx="",bits="";for(y=0;y<8;y++)for(x=0;x<8;x++)bits+=g[y*9+x]>g[y*9+x+1]?"1":"0";
+          for(i=0;i<64;i+=4)hx+=parseInt(bits.substr(i,4),2).toString(16);
+          if(bits.split("1").length-1<6)return fin("");   /* ảnh gần như một màu: bỏ qua */
+          fin(hx)
+        }catch(e){setTimeout(next,400)}};
       im.onerror=fail;
       im.src=u}
     next()});
@@ -351,41 +326,27 @@ function rescanFromCache(){
   render()}
 function scan(){
   if(scanning)return;loadCache();
-  var jobs=[],urls=[],seenU={},urlItems={};
-  items.forEach(function(it){(it.im||[]).forEach(function(s){
-    if(!s)return;
-    jobs.push({it:it,s:s});
-    if(!seenU[s]){seenU[s]=1;urls.push(s)}
-    if(!urlItems[s])urlItems[s]=[];
-    if(urlItems[s].indexOf(it.n)<0)urlItems[s].push(it.n);
-  })});
+  var jobs=[];items.forEach(function(it){(it.im||[]).forEach(function(s){if(s)jobs.push({it:it,s:s})})});
   if(jobs.length<2){msg("Chưa đủ ảnh để so sánh.");return}
+  var urls=[],seenU={};jobs.forEach(function(j){if(!seenU[j.s]){seenU[j.s]=1;urls.push(j.s)}});
   scanning=true;stopFlag=false;G("dupimg").disabled=true;G("dupstop").hidden=false;G("dupbar").hidden=false;
-  var done=0,bad=0,idx=0,Hm={},bar=G("dupbar").firstChild,badMap={},badList=[];
+  var done=0,bad=0,idx=0,Hm={},bar=G("dupbar").firstChild;
   function upd(){bar.style.width=(done/urls.length*100)+"%";msg("Đang đọc ảnh "+done+"/"+urls.length+(bad?" ("+bad+" ảnh không đọc được)":"")+"…")}
   function worker(){
     if(stopFlag||idx>=urls.length)return Promise.resolve();
-    var u=urls[idx++],had=!!cache[u];
-    return hashOf(u).then(function(h){
-      if(h)Hm[u]=hx2(h);
-      else if(h===null){bad++;(urlItems[u]||[]).forEach(function(nm){if(!badMap[nm]){badMap[nm]=1;badList.push(nm)}})}
-      done++;if(done%50===0)saveCache();if(done%5===0||done===urls.length)upd();
-    }).then(function(){
-      if(had||stopFlag)return worker();
-      return new Promise(function(z){setTimeout(z,60)}).then(worker);
-    })}
+    var u=urls[idx++];
+    return hashOf(u).then(function(h){if(h)Hm[u]=hx2(h);else if(h===null)bad++;done++;if(done%50===0)saveCache();if(done%5===0||done===urls.length)upd()}).then(worker)}
   upd();
-  Promise.all([worker(),worker()]).then(function(){
+  Promise.all([worker(),worker(),worker()]).then(function(){
     saveCache();
     var out=matchJobs(jobs,Hm);
     imgPairs=out;pairImgMsg={};
     scanning=false;G("dupimg").disabled=false;G("dupstop").hidden=true;G("dupbar").hidden=true;
     var ok=urls.length-bad;
-    var badTxt=bad?" ("+bad+" ảnh không đọc được"+(badList.length?": "+badList.slice(0,3).join(", ")+(badList.length>3?" và "+(badList.length-3)+" căn khác":""):"")+")":"";
     if(stopFlag)msg("Đã dừng. Kết quả tính trên "+ok+" ảnh đã đọc.");
     else if(bad&&bad>=urls.length*0.8)msg("Hầu hết ảnh không đọc được (trình duyệt chặn đọc ảnh Drive hoặc mất mạng), nên chưa so sánh ảnh được. Kết quả bên dưới chỉ theo thông tin và mã ảnh.",1);
-    else if(!out.length)msg("Đã so "+ok+" ảnh"+badTxt+": không tìm thấy ảnh nào trùng nhau (ngưỡng giống nhau: lệch ≤ "+TH+"/64 bit). Ảnh chụp lại cùng một căn từ góc khác có thể không bị bắt.");
-    else msg("Đã so "+ok+" ảnh"+badTxt+", tìm thấy "+out.length+" cặp ảnh giống nhau. Ảnh chụp lại cùng một căn từ góc khác có thể không bị bắt.");
+    else if(!out.length)msg("Đã so "+ok+" ảnh"+(bad?" ("+bad+" ảnh không đọc được)":"")+": không tìm thấy ảnh nào trùng nhau (ngưỡng giống nhau: lệch ≤ "+TH+"/64 bit). Ảnh chụp lại cùng một căn từ góc khác có thể không bị bắt.");
+    else msg("Đã so "+ok+" ảnh"+(bad?", "+bad+" ảnh không đọc được":"")+", tìm thấy "+out.length+" cặp ảnh giống nhau. Ảnh chụp lại cùng một căn từ góc khác có thể không bị bắt.");
     render()})}
 
 function onPairClick(e){
