@@ -4,7 +4,7 @@
   "private": true,
   "description": "Bản app Android (Capacitor) của Tìm nhà thuê 2027",
   "scripts": {
-    "prepare-www": "node -e \"const fs=require('fs');fs.rmSync('www',{recursive:true,force:true});fs.mkdirSync('www');for(const f of ['index.html','manifest.webmanifest','sw.js']){if(fs.existsSync(f))fs.copyFileSync(f,'www/'+f)}for(const d of ['icons','fonts']){if(fs.existsSync(d))fs.cpSync(d,'www/'+d,{recursive:true})}\"",
+    "prepare-www": "node -e \"const fs=require('fs');fs.rmSync('www',{recursive:true,force:true});fs.mkdirSync('www');for(const f of ['index.html','dup.js','manifest.webmanifest','sw.js']){if(fs.existsSync(f))fs.copyFileSync(f,'www/'+f)}for(const d of ['icons','fonts']){if(fs.existsSync(d))fs.cpSync(d,'www/'+d,{recursive:true})}\"",
     "sync": "npm run prepare-www && npx cap sync android"
   },
   "dependencies": {
