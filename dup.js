@@ -1,5 +1,5 @@
 /* dup.js: công cụ "Kiểm tra trùng" (trùng thông tin và trùng ảnh) cho app Tìm nhà thuê.
-   Tự gắn nút, hộp thoại và CSS vào trang; index.html chỉ cần khai báo window.NT và <script src="dup.js" defer></script>.
+   Hoạt động trực tiếp với index.html chỉ cần khai báo window.NT và <script src="dup.js" defer></script>.
    Quy tắc: báo cặp trùng từ 2 điều kiện trở lên, hoặc cặp có trùng ảnh. */
 (function(){
 "use strict";
@@ -21,7 +21,7 @@ var TH=10,MIN=2,imgPairs=null,scanning=false,stopFlag=false,cache={},cacheLoaded
 /* ---------- Lưu danh sách "không phải trùng" vào localStorage ---------- */
 function loadIgnored(){if(ignLoaded)return;ignLoaded=true;try{ignored=JSON.parse(ls("dign1")||"{}")||{}}catch(e){ignored={}}}
 function saveIgnored(){try{ls("dign1",JSON.stringify(ignored))}catch(e){}}
-function canDel(){return !!(N()&&N().del&&(!N().canW||N().canW()))}
+function canWrite(){if(N()&&N().canW)return !!N().canW();var b=G("bnow");return b?!b.hidden:true}
 
 /* ---------- Chuẩn hoá ---------- */
 function nd(s){return String(s==null?"":s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d").replace(/[^a-z0-9]+/g," ").trim()}
@@ -110,7 +110,7 @@ function rowH(it,idx,side,allowDel){
   var k=it.st||"new",ad=addrOf(it);
   return '<div class="dprow"><button type="button" class="dpr" data-open="'+esc(it.id)+'"><span class="dpt"><b>'+esc(it.n)+'</b><small>'+esc(ad||"Chưa có địa chỉ")+(it.p!=null?" · "+fmt(it.p)+" tr":"")+(it.ar?" · "+fmt(it.ar)+" m²":"")+'</small></span><span class="pill" style="--c:var(--s-'+k+');--bg2:var(--b-'+k+')">'+esc(stName(k))+'</span></button>'+(allowDel?'<button type="button" class="dpdel" data-del="'+idx+':'+side+'" title="Xóa căn này" aria-label="Xóa căn '+esc(it.n)+'">Xóa</button>':'')+'</div>'}
 function pairH(o,idx,isIgn){
-  var n=o.why.length,k=o.a.id+"|"+o.b.id,isOpen=!!openSet[k],allowDel=canDel();
+  var n=o.why.length,k=o.a.id+"|"+o.b.id,isOpen=!!openSet[k],allowDel=canWrite();
   var lbl=n>=3?"Gần như chắc chắn trùng":n>=2?"Có thể trùng":o.img.length?"Trùng ảnh":"Chỉ trùng 1 điều kiện";
   var h='<div class="dpc'+(n>=3&&!isIgn?" hi":"")+'">'+rowH(o.a,idx,"a",allowDel)+rowH(o.b,idx,"b",allowDel)+'<p class="dpn" data-tog="'+idx+'">'+lbl+' ('+n+' điều kiện)</p><div class="dpw" data-tog="'+idx+'" title="Bấm để xem thông tin trùng">';
   o.why.forEach(function(w){if(w!=="img")h+='<span>'+esc(w)+'</span>'});
@@ -151,21 +151,37 @@ function ignorePair(el,val){
   var k=o.a.id+"|"+o.b.id;
   if(val){ignored[k]=Date.now();delete openSet[k]}else delete ignored[k];
   saveIgnored();render()}
+function afterDel(id){
+  loadIgnored();var changed=false;
+  Object.keys(ignored).forEach(function(k){var ids=k.split("|");if(ids[0]===id||ids[1]===id){delete ignored[k];changed=true}});
+  if(changed)saveIgnored();
+  sync()}
 function delItem(el){
   var p=String(el.dataset.del||"").split(":"),o=viewList[+p[0]],it=o&&o[p[1]];
   if(!it)return;
-  if(N().canW&&!N().canW()){alert("Bạn chỉ có quyền xem, không thể xóa.");return}
-  if(!N().del){alert("Cần cập nhật window.NT.del trong index.html để xóa trực tiếp.");return}
-  if(!confirm('Xóa căn "'+it.n+'"? Thư mục ảnh của căn trên Drive cũng sẽ được chuyển vào thùng rác.'))return;
-  el.disabled=true;el.textContent="Đang xóa…";
-  N().del(it.id).then(function(){
-    loadIgnored();var changed=false;
-    Object.keys(ignored).forEach(function(k){var ids=k.split("|");if(ids[0]===it.id||ids[1]===it.id){delete ignored[k];changed=true}});
-    if(changed)saveIgnored();
-    sync();
-  },function(){
-    if(document.contains(el)){el.disabled=false;el.textContent="Xóa"}
-  })}
+  if(!canWrite()){alert("Bạn chỉ có quyền xem, không thể xóa.");return}
+  if(N().del){
+    if(!confirm('Xóa căn "'+it.n+'"? Thư mục ảnh của căn trên Drive cũng sẽ được chuyển vào thùng rác.'))return;
+    el.disabled=true;el.textContent="Đang xóa…";
+    N().del(it.id).then(function(){afterDel(it.id)},function(){if(document.contains(el)){el.disabled=false;el.textContent="Xóa"}});
+    return;
+  }
+  /* Dùng trực tiếp luồng Xóa có sẵn của index.html khi window.NT chưa khai báo del */
+  var dv=G("dv"),dlg=G("dlg");
+  if(!dv||!dlg||!N().openDv){alert("Không thể xóa từ hộp thoại này.");return}
+  dv.style.visibility="hidden";dlg.style.visibility="hidden";
+  try{
+    N().openDv(it.id);
+    var ed=dv.querySelector("[data-dvedit]");
+    if(!ed){if(dv.open)dv.close();alert("Bạn chỉ có quyền xem, không thể xóa.");return}
+    ed.click();
+    var dbtn=G("del");
+    if(dbtn)dbtn.click();
+    if(dlg.open)dlg.close();
+  }finally{
+    dv.style.visibility="";dlg.style.visibility="";
+  }
+  if(!N().items().some(function(x){return x.id===it.id}))afterDel(it.id)}
 function openZoom(val){
   var p=String(val||"").split(":"),o=viewList[+p[0]],m=o&&o.img[+p[1]];if(!m)return;
   G("dupzt").textContent=simText(m.d);
