@@ -969,7 +969,6 @@ function cardH(it,big){
         +ab("","ext","Mở Maps",'target="_blank" rel="noopener" href="'+(it.mp?esc(su(it.mp)):'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(ad))+'"')
         +(ad?ab("","nav","Chỉ đường",'target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(ad)+'"'):""))}
     if(it.lk)h+=ab("","link","Tin đăng",'target="_blank" rel="noopener" href="'+esc(su(it.lk))+'"');
-    if(it.dr)h+=ab("","img","Album ảnh",'target="_blank" rel="noopener" href="'+esc(su(it.dr))+'"');
     h+=ab("ck"+(ckHas(it)?" has":""),"check","Checklist"+ckLbl(it),'data-ck="'+esc(it.id)+'"',"button");
     h+='<span class="grow"></span>'+(canW?ab("ed","edit","Sửa",'data-edit="'+esc(it.id)+'"',"button"):'')+'</div></div>';
     return h;
@@ -1335,7 +1334,7 @@ function openDv(id){var it=findItem(id);if(!it)return;
   if(cs&&cs.d+cs.b){var note=it.ck&&it.ck.nt?String(it.ck.nt).trim():"";
     h+='<div><p class="dvh3" style="margin-bottom:4px">Kết quả đi xem</p><div class="dvpg"><i style="width:'+(cs.d/cs.t*100)+'%;background:var(--s-won)"></i><i style="width:'+(cs.b/cs.t*100)+'%;background:var(--danger)"></i></div><p class="dvpgt">Đạt '+cs.d+' · Có lỗi '+cs.b+' · Tổng '+cs.t+' mục</p>'+(note?'<div class="dvq" style="margin-top:8px"><div class="no"><i>Ghi chú &amp; hư hỏng</i>'+esc(note).replace(/\n/g,"<br>")+'</div></div>':'')+'</div>'}
   if(ad)h+='<iframe class="map dvmap" loading="lazy" title="Bản đồ" src="https://maps.google.com/maps?q='+encodeURIComponent(ad)+'&output=embed"></iframe>';
-  var lks=(ad||it.mp?ab("","ext","Mở Maps",'target="_blank" rel="noopener" href="'+(it.mp?esc(su(it.mp)):'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(ad))+'"')+(ad?ab("","nav","Chỉ đường",'target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(ad)+'"'):""):"")+(it.lk?ab("","link","Tin đăng",'target="_blank" rel="noopener" href="'+esc(su(it.lk))+'"'):"")+(it.dr?ab("","img","Album ảnh",'target="_blank" rel="noopener" href="'+esc(su(it.dr))+'"'):"");
+  var lks=(ad||it.mp?ab("","ext","Mở Maps",'target="_blank" rel="noopener" href="'+(it.mp?esc(su(it.mp)):'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(ad))+'"')+(ad?ab("","nav","Chỉ đường",'target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(ad)+'"'):""):"")+(it.lk?ab("","link","Tin đăng",'target="_blank" rel="noopener" href="'+esc(su(it.lk))+'"'):"");
   if(lks)h+='<div class="dvl">'+lks+'</div>';
   h+='</div><div class="dvbar">';
   var ctl=function(role,ph){if(!ph)return"";var d=esc(ph.replace(/[^\d+]/g,"")),z=ph.replace(/\D/g,"").replace(/^84/,"0");return ab("tel","tel","Gọi "+role,'href="tel:'+d+'"')+ab("zl","chat","Zalo "+role,'target="_blank" rel="noopener" href="https://zalo.me/'+z+'"')};
@@ -1771,7 +1770,6 @@ function sumCard(it){
   if(tel(it.sp))h+=mw(mb("tel","tel","Gọi sale","sale"),"sale",ctc("sale",it.sp));
   if(ad||it.mp)h+=mw(mb("","pin","Bản đồ","map"),"map",ab("","ext","Mở Maps",'target="_blank" rel="noopener" href="'+(it.mp?esc(su(it.mp)):'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(ad))+'"')+(ad?ab("","nav","Chỉ đường",'target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(ad)+'"'):""));
   if(it.lk)h+=ab("","link","Tin đăng",'target="_blank" rel="noopener" href="'+esc(su(it.lk))+'"');
-  if(it.dr)h+=ab("","img","Album ảnh",'target="_blank" rel="noopener" href="'+esc(su(it.dr))+'"');
   h+=ab("ck"+(ckHas(it)?" has":""),"check","Checklist"+(cks?" "+cks:""),'data-sck="'+esc(it.id)+'"',"button");
   h+='<span class="grow"></span>'+heartH(it)+(canW?ab("ed","edit","Sửa",'data-sed="'+esc(it.id)+'"',"button"):'')+'</div></div></details>';
   return h;
