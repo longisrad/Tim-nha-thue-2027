@@ -1,6 +1,6 @@
 /* dup.js: công cụ "Kiểm tra trùng" (trùng thông tin và trùng ảnh) cho app Tìm nhà thuê.
    Hoạt động trực tiếp với index.html chỉ cần khai báo window.NT và <script src="dup.js" defer></script>.
-   Quy tắc: báo cặp trùng từ 2 điều kiện trở lên, hoặc cặp có trùng ảnh. */
+   Quy tắc: báo cặp trùng từ 2 điều kiện trở lên, hoặc cặp có trùng ảnh (ưu tiên hiện đầu tiên). */
 (function(){
 "use strict";
 var G=function(i){return document.getElementById(i)};
@@ -77,7 +77,7 @@ function build(){
   items.forEach(function(it){byId[it.id]=it});
   textPairs().forEach(function(t){var a=byId[t.a],b=byId[t.b];if(a&&b)P[t.a+"|"+t.b]={a:a,b:b,why:t.why.slice(),img:[]}});
   if(imgPairs)imgPairs.forEach(function(r){var o=addP(P,byId[r.a.id]||r.a,byId[r.b.id]||r.b,"img");if(!o)return;var sw=o.a.id!==r.a.id;o.img.push(sw?{x:r.y,y:r.x,d:r.d}:{x:r.x,y:r.y,d:r.d})});
-  var all=Object.keys(P).map(function(k){var o=P[k];o.sc=sc(o);return o}).sort(function(a,b){return b.sc-a.sc||b.img.length-a.img.length});
+  var all=Object.keys(P).map(function(k){var o=P[k];o.sc=sc(o);return o}).sort(function(a,b){return(b.img.length>0?1:0)-(a.img.length>0?1:0)||b.sc-a.sc||b.img.length-a.img.length});
   var active=[],ign=[];
   all.forEach(function(p){if(ignored[p.a.id+"|"+p.b.id])ign.push(p);else active.push(p)});
   return{
