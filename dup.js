@@ -404,19 +404,24 @@ function closeZoom(){zoomCmp=null;var z=G("dupz");if(z&&!z.hidden){z.hidden=true
 function msg(t,bad){var m=G("dupm");m.textContent=t||"";m.className="pm"+(bad?" bad":"")}
 
 /* ---------- Thuật toán quét ảnh thông minh: dHash 64-bit + Lật ngang + Vùng giữa 75% + Tông màu 4 góc ---------- */
-var CACHE_KEY="dhc2";
+var CACHE_KEY="dhc3";
 function parseCache(raw){try{var o=JSON.parse(raw||"{}");return(o&&typeof o==="object")?o:{}}catch(e){return{}}}
+function clearOldCaches(){
+  ["dhc1","dhc2"].forEach(function(k){
+    try{if(ls(k))ls(k,"")}catch(e){}
+    if(N()&&N().idbSave)N().idbSave(k,"");
+  });
+}
 function loadCache(){
   if(cacheLoaded)return Promise.resolve(cache);
   if(cacheP)return cacheP;
   var idb=N()&&N().idbGet;
-  if(!idb){cacheLoaded=true;cache=parseCache(ls(CACHE_KEY));if(ls("dhc1"))ls("dhc1","");return Promise.resolve(cache)}
+  if(!idb){cacheLoaded=true;cache=parseCache(ls(CACHE_KEY));clearOldCaches();return Promise.resolve(cache)}
   cacheP=idb(CACHE_KEY).then(function(v){
     var leg=ls(CACHE_KEY);
     if(typeof v==="string"&&v){cache=parseCache(v);if(leg)ls(CACHE_KEY,"")}
     else if(leg){cache=parseCache(leg);if(N().idbSave)N().idbSave(CACHE_KEY,leg);ls(CACHE_KEY,"")}
-    if(ls("dhc1"))ls("dhc1","");
-    if(N().idbSave)N().idbSave("dhc1","");
+    clearOldCaches();
     cacheLoaded=true;cacheP=null;return cache;
   },function(){cacheLoaded=true;cacheP=null;cache=parseCache(ls(CACHE_KEY));return cache});
   return cacheP}
@@ -479,9 +484,9 @@ function hashOf(s){
           var px=cx.getImageData(0,0,72,64).data,gray=[],i,sum=0,sum2=0,l,Npx=4608;
           for(i=0;i<Npx;i++){l=px[i*4]*.299+px[i*4+1]*.587+px[i*4+2]*.114;gray.push(l);sum+=l;sum2+=l*l}
           var mean=sum/Npx;
-          if(sum2/Npx-mean*mean<64)return fin("");   /* ảnh quá phẳng / tương phản thấp / tường trắng: bỏ qua */
+          if(sum2/Npx-mean*mean<12)return fin("");   /* ảnh trắng trơn / đen đặc không có chi tiết: bỏ qua */
           var gF=grid9x8(gray,0,0,72,64),f=dhOf(gF,false);
-          if(f.ones<6||f.ones>58)return fin("");       /* ảnh chuyển sắc đơn điệu: bỏ qua */
+          if(f.ones<=1||f.ones>=63)return fin("");   /* ảnh chuyển sắc hoàn toàn đơn điệu: bỏ qua */
           var fm=dhOf(gF,true),gC=grid9x8(gray,9,8,54,48),c=dhOf(gC,false),cm=dhOf(gC,true);
           fin(f.hx+":"+fm.hx+":"+c.hx+":"+cm.hx+":"+colorHex(px))
         }catch(e){dropIm();setTimeout(next,400)}};
@@ -498,7 +503,7 @@ function parseSig(raw){
 function hd(x,y){return pc(x[0]^y[0])+pc(x[1]^y[1])}
 function colorDiff(c1,c2,mirror){
   var s1=0,s2=0,i;for(i=0;i<12;i++){s1+=c1[i];s2+=c2[i]}
-  var sh=(s1-s2)/12;if(sh>35)sh=35;else if(sh<-35)sh=-35;
+  var sh=(s1-s2)/12;if(sh>75)sh=75;else if(sh<-75)sh=-75;
   var d=0;
   for(i=0;i<12;i++){
     var j=mirror?(i<6?(i<3?i+3:i-3):(i<9?i+3:i-3)):i;
@@ -506,20 +511,20 @@ function colorDiff(c1,c2,mirror){
   }
   return d/12}
 function cmpSig(a,b,th){
-  var best=null,ct=Math.max(4,Math.floor(th*0.75)),cmt=Math.max(3,Math.floor(th*0.7));
+  var best=null,ct=Math.max(4,th-2),cmt=Math.max(4,th-2),cMin=Math.max(4,Math.floor(th*0.5)),boost=Math.max(0,th-10)*1.5;
   function tryM(d,lim,mirror,clim,k){
     if(d>lim)return;
-    if(d>3&&colorDiff(a.col,b.col,mirror)>clim)return;
+    if(d>cMin&&colorDiff(a.col,b.col,mirror)>clim+boost)return;
     if(!best||d<best.d||(d===best.d&&k===""))best={d:d,k:k};
   }
-  tryM(hd(a.f,b.f),th,false,44,"");
-  tryM(hd(a.f,b.fm),Math.max(4,th-1),true,40,"m");
-  tryM(hd(a.c,b.c),ct,false,38,"c");
-  tryM(hd(a.c,b.f),ct,false,42,"c");
-  tryM(hd(a.f,b.c),ct,false,42,"c");
-  tryM(hd(a.c,b.cm),cmt,true,36,"cm");
-  tryM(hd(a.c,b.fm),cmt,true,38,"cm");
-  tryM(hd(a.f,b.cm),cmt,true,38,"cm");
+  tryM(hd(a.f,b.f),th,false,66,"");
+  tryM(hd(a.f,b.fm),Math.max(4,th-1),true,64,"m");
+  tryM(hd(a.c,b.c),ct,false,72,"c");
+  tryM(hd(a.c,b.f),ct,false,72,"c");
+  tryM(hd(a.f,b.c),ct,false,72,"c");
+  tryM(hd(a.c,b.cm),cmt,true,68,"cm");
+  tryM(hd(a.c,b.fm),cmt,true,68,"cm");
+  tryM(hd(a.f,b.cm),cmt,true,68,"cm");
   return best}
 function matchJobs(jobs,Hm){
   var out=[],seen={},i,j,A=jobs.map(function(x){return Hm[x.s]}),m,k;
@@ -529,6 +534,19 @@ function matchJobs(jobs,Hm){
     else if(A[i]&&A[j])m=cmpSig(A[i],A[j],TH);else continue;
     if(m){k=jobs[i].it.id+"|"+jobs[j].it.id+"|"+jobs[i].s+"|"+jobs[j].s;if(!seen[k]){seen[k]=1;out.push({a:jobs[i].it,b:jobs[j].it,x:jobs[i].s,y:jobs[j].s,d:m.d,k:m.k})}}}
   return out}
+function applyCachedPairs(){
+  if(scanning||!cacheLoaded)return;
+  var jobs=[],Hm={},src=activeItems(),hc=0;
+  src.forEach(function(it){(it.im||[]).forEach(function(s){if(s){jobs.push({it:it,s:s});if(cache[s]&&!Hm[s]){var sg=parseSig(cache[s]);if(sg){Hm[s]=sg;hc++}}}})});
+  if(hc<2||jobs.length<2)return;
+  imgPairs=matchJobs(jobs,Hm);pairImgMsg={};
+  var missed=0,seenM={};
+  jobs.forEach(function(j){if(cache[j.s]===undefined&&!seenM[j.s]){seenM[j.s]=1;missed++}});
+  if(imgPairs.length||!missed){
+    if(missed)msg("Đã đối chiếu từ bộ nhớ đệm: tìm thấy "+imgPairs.length+" cặp trùng ảnh (còn "+missed+" ảnh chưa quét — bấm “Quét ảnh trùng” để quét đủ).");
+    else msg("Đã đối chiếu "+hc+" ảnh đã lưu: tìm thấy "+imgPairs.length+" cặp ảnh giống nhau (lệch ≤ "+TH+"/64 bit).");
+  }
+  render()}
 function rescanFromCache(){
   if(scanning||imgPairs===null)return;
   loadCache().then(function(){
@@ -544,12 +562,12 @@ function scan(){
   if(jobs.length<2){msg("Chưa đủ ảnh để so sánh"+(sk?" (đang bỏ qua "+sk+" căn Loại).":"."));return}
   var urls=[],seenU={};jobs.forEach(function(j){if(!seenU[j.s]){seenU[j.s]=1;urls.push(j.s)}});
   scanning=true;stopFlag=false;G("dupimg").disabled=true;G("dupstop").hidden=false;G("dupbar").hidden=false;
-  var done=0,bad=0,idx=0,Hm={},bar=G("dupbar").firstChild;
+  var done=0,bad=0,skipFlat=0,idx=0,Hm={},bar=G("dupbar").firstChild;
   function upd(){bar.style.width=(done/urls.length*100)+"%";msg("Đang đọc ảnh "+done+"/"+urls.length+(bad?" ("+bad+" ảnh không đọc được)":"")+"…")}
   function worker(){
     if(stopFlag||idx>=urls.length)return Promise.resolve();
     var u=urls[idx++];
-    return hashOf(u).then(function(h){if(h){var sg=parseSig(h);if(sg)Hm[u]=sg}else if(h===null)bad++;done++;if(done%50===0)saveCache();if(done%5===0||done===urls.length)upd()}).then(worker)}
+    return hashOf(u).then(function(h){if(h){var sg=parseSig(h);if(sg)Hm[u]=sg}else if(h===null)bad++;else skipFlat++;done++;if(done%50===0)saveCache();if(done%5===0||done===urls.length)upd()}).then(worker)}
   upd();
   loadCache().then(function(){
     return Promise.all([worker(),worker(),worker()]).then(function(){
@@ -557,11 +575,14 @@ function scan(){
       var out=matchJobs(jobs,Hm);
       imgPairs=out;pairImgMsg={};
       scanning=false;G("dupimg").disabled=false;G("dupstop").hidden=true;G("dupbar").hidden=true;
-      var ok=urls.length-bad;
+      var ok=urls.length-bad,extra=[];
+      if(bad)extra.push(bad+" ảnh không đọc được");
+      if(skipFlat)extra.push(skipFlat+" ảnh trơn ít chi tiết");
+      var exTxt=extra.length?" ("+extra.join(", ")+")":"";
       if(stopFlag)msg("Đã dừng. Kết quả tính trên "+ok+" ảnh đã đọc.");
       else if(bad&&bad>=urls.length*0.8)msg("Hầu hết ảnh không đọc được (trình duyệt chặn đọc ảnh Drive hoặc mất mạng), nên chưa so sánh ảnh được. Kết quả bên dưới chỉ theo thông tin và mã ảnh.",1);
-      else if(!out.length)msg("Đã so "+ok+" ảnh"+(bad?" ("+bad+" ảnh không đọc được)":"")+": không tìm thấy ảnh nào trùng nhau (ngưỡng giống nhau: lệch ≤ "+TH+"/64 bit). Ảnh chụp lại cùng một căn từ góc khác có thể không bị bắt.");
-      else msg("Đã so "+ok+" ảnh"+(bad?", "+bad+" ảnh không đọc được":"")+", tìm thấy "+out.length+" cặp ảnh giống nhau. Ảnh chụp lại cùng một căn từ góc khác có thể không bị bắt.");
+      else if(!out.length)msg("Đã so "+ok+" ảnh"+exTxt+": không tìm thấy ảnh nào trùng nhau (ngưỡng giống nhau: lệch ≤ "+TH+"/64 bit). Ảnh chụp lại cùng một căn từ góc khác có thể không bị bắt.");
+      else msg("Đã so "+ok+" ảnh"+exTxt+", tìm thấy "+out.length+" cặp ảnh giống nhau. Ảnh chụp lại cùng một căn từ góc khác có thể không bị bắt.");
       render()})})}
 
 function onPairClick(e){
@@ -637,7 +658,7 @@ function init(nt){
     try{ls("dimgv",imgAutoMode)}catch(e){}
     openImgSet={};pairImgMode={};render();
   };
-  G("dupnoout").onchange=function(){skipOut=this.checked;try{ls("dnoout",skipOut?"1":"0")}catch(e){}limMain=LIMIT;render()};
+  G("dupnoout").onchange=function(){skipOut=this.checked;try{ls("dnoout",skipOut?"1":"0")}catch(e){}limMain=LIMIT;if(imgPairs!==null)rescanFromCache();else{render();applyCachedPairs()}};
   G("dupimg").onclick=function(){items=N().items();scan()};
   G("dupstop").onclick=function(){stopFlag=true};
   G("duptog").onclick=function(){showOne=!showOne;render()};
@@ -657,12 +678,12 @@ function open(nt){
   init(N());
   loadSkip();
   loadImgMode();
-  loadCache();
   G("dupsens").value=String(TH);
   G("dupimgv").value=imgAutoMode;
   G("dupnoout").checked=skipOut;
-  items=N().items();cleanImgPairs();limMain=limIgn=LIMIT;openSet={};openImgSet={};pairImgMode={};pairImgMsg={};zoomCmp=null;showIgn=false;msg("");G("dupbar").hidden=true;G("dupstop").hidden=true;G("dupz").hidden=true;render();
-  if(!G("dupd").open)G("dupd").showModal();G("dupd").scrollTop=0}
+  items=N().items();cleanImgPairs();limMain=limIgn=LIMIT;openSet={};openImgSet={};pairImgMode={};pairImgMsg={};zoomCmp=null;showIgn=false;msg(imgPairs&&imgPairs.length?"Đang hiện "+imgPairs.length+" cặp ảnh giống nhau (lệch ≤ "+TH+"/64 bit).":"");G("dupbar").hidden=true;G("dupstop").hidden=true;G("dupz").hidden=true;render();
+  if(!G("dupd").open)G("dupd").showModal();G("dupd").scrollTop=0;
+  loadCache().then(function(){if(G("dupd").open&&!scanning&&imgPairs===null)applyCachedPairs()})}
 function close(){
   stopFlag=true;zoomCmp=null;
   var z=G("dupz"),d=G("dupd");
