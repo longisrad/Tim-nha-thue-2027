@@ -90,7 +90,7 @@ function build(){
   var active=[],ign=[];
   all.forEach(function(p){
     if(ignored[p.a.id+"|"+p.b.id]){ign.push(p);return}
-    if(p.sc>=MIN&&priceDiffOver20(p.a,p.b))return;
+    if(!p.img.length&&p.sc>=MIN&&priceDiffOver20(p.a,p.b))return;
     active.push(p);
   });
   return{
@@ -224,7 +224,8 @@ function render(){
   tg.hidden=!r.weak.length;tg.textContent=showOne?"Ẩn "+r.weak.length+" cặp chỉ trùng 1 điều kiện":"Hiện thêm "+r.weak.length+" cặp chỉ trùng 1 điều kiện";
   itg.hidden=!r.ign.length;itg.textContent="Xem danh sách không phải trùng ("+r.ign.length+") →";
   G("duplinks").hidden=tg.hidden&&itg.hidden;
-  el.innerHTML=mainHtml}
+  el.innerHTML=mainHtml;
+  return r}
 function togglePair(el){
   var idx=+el.dataset.tog,o=viewList[idx];if(!o)return;
   var k=o.a.id+"|"+o.b.id;openSet[k]=!openSet[k];
@@ -534,6 +535,10 @@ function matchJobs(jobs,Hm){
     else if(A[i]&&A[j])m=cmpSig(A[i],A[j],TH);else continue;
     if(m){k=jobs[i].it.id+"|"+jobs[j].it.id+"|"+jobs[i].s+"|"+jobs[j].s;if(!seen[k]){seen[k]=1;out.push({a:jobs[i].it,b:jobs[j].it,x:jobs[i].s,y:jobs[j].s,d:m.d,k:m.k})}}}
   return out}
+function ignImgNote(r){
+  if(!r||!r.ign||!r.ign.length)return"";
+  var n=0;r.ign.forEach(function(o){if(o.img&&o.img.length)n++});
+  return n?" ("+n+" cặp đang ở mục “Không phải trùng”).":""}
 function applyCachedPairs(){
   if(scanning||!cacheLoaded)return;
   var jobs=[],Hm={},src=activeItems(),hc=0;
@@ -542,19 +547,19 @@ function applyCachedPairs(){
   imgPairs=matchJobs(jobs,Hm);pairImgMsg={};
   var missed=0,seenM={};
   jobs.forEach(function(j){if(cache[j.s]===undefined&&!seenM[j.s]){seenM[j.s]=1;missed++}});
+  var r=render(),note=ignImgNote(r);
   if(imgPairs.length||!missed){
-    if(missed)msg("Đã đối chiếu từ bộ nhớ đệm: tìm thấy "+imgPairs.length+" cặp trùng ảnh (còn "+missed+" ảnh chưa quét — bấm “Quét ảnh trùng” để quét đủ).");
-    else msg("Đã đối chiếu "+hc+" ảnh đã lưu: tìm thấy "+imgPairs.length+" cặp ảnh giống nhau (lệch ≤ "+TH+"/64 bit).");
-  }
-  render()}
+    if(missed)msg("Đã đối chiếu từ bộ nhớ đệm: tìm thấy "+imgPairs.length+" cặp trùng ảnh (còn "+missed+" ảnh chưa quét — bấm “Quét ảnh trùng” để quét đủ)."+note);
+    else msg("Đã đối chiếu "+hc+" ảnh đã lưu: tìm thấy "+imgPairs.length+" cặp ảnh giống nhau (lệch ≤ "+TH+"/64 bit)."+note);
+  }}
 function rescanFromCache(){
   if(scanning||imgPairs===null)return;
   loadCache().then(function(){
     var jobs=[],Hm={},src=activeItems();
     src.forEach(function(it){(it.im||[]).forEach(function(s){if(s){jobs.push({it:it,s:s});if(cache[s]&&!Hm[s]){var sg=parseSig(cache[s]);if(sg)Hm[s]=sg}}})});
     imgPairs=matchJobs(jobs,Hm);pairImgMsg={};
-    msg("Đã cập nhật theo độ nhạy mới (lệch ≤ "+TH+"/64 bit): tìm thấy "+imgPairs.length+" cặp ảnh giống nhau.");
-    render()})}
+    var r=render(),note=ignImgNote(r);
+    msg("Đã cập nhật theo độ nhạy mới (lệch ≤ "+TH+"/64 bit): tìm thấy "+imgPairs.length+" cặp ảnh giống nhau."+note)})}
 function scan(){
   if(scanning)return;
   var src=activeItems(),sk=items.length-src.length,jobs=[];
@@ -575,6 +580,7 @@ function scan(){
       var out=matchJobs(jobs,Hm);
       imgPairs=out;pairImgMsg={};
       scanning=false;G("dupimg").disabled=false;G("dupstop").hidden=true;G("dupbar").hidden=true;
+      var r=render(),note=ignImgNote(r);
       var ok=urls.length-bad,extra=[];
       if(bad)extra.push(bad+" ảnh không đọc được");
       if(skipFlat)extra.push(skipFlat+" ảnh trơn ít chi tiết");
@@ -582,8 +588,7 @@ function scan(){
       if(stopFlag)msg("Đã dừng. Kết quả tính trên "+ok+" ảnh đã đọc.");
       else if(bad&&bad>=urls.length*0.8)msg("Hầu hết ảnh không đọc được (trình duyệt chặn đọc ảnh Drive hoặc mất mạng), nên chưa so sánh ảnh được. Kết quả bên dưới chỉ theo thông tin và mã ảnh.",1);
       else if(!out.length)msg("Đã so "+ok+" ảnh"+exTxt+": không tìm thấy ảnh nào trùng nhau (ngưỡng giống nhau: lệch ≤ "+TH+"/64 bit). Ảnh chụp lại cùng một căn từ góc khác có thể không bị bắt.");
-      else msg("Đã so "+ok+" ảnh"+exTxt+", tìm thấy "+out.length+" cặp ảnh giống nhau. Ảnh chụp lại cùng một căn từ góc khác có thể không bị bắt.");
-      render()})})}
+      else msg("Đã so "+ok+" ảnh"+exTxt+", tìm thấy "+out.length+" cặp ảnh giống nhau. Ảnh chụp lại cùng một căn từ góc khác có thể không bị bắt."+note)})})}
 
 function onPairClick(e){
   var mo=e.target.closest("[data-more]");if(mo){if(mo.dataset.more==="ign")limIgn+=LIMIT;else limMain+=LIMIT;render();return}
