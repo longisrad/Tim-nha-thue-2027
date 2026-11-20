@@ -85,7 +85,7 @@ function build(){
   var src=activeItems(),P={},byId={};
   src.forEach(function(it){byId[it.id]=it});
   textPairs(src).forEach(function(t){var a=byId[t.a],b=byId[t.b];if(a&&b)P[t.a+"|"+t.b]={a:a,b:b,why:t.why.slice(),img:[]}});
-  if(imgPairs)imgPairs.forEach(function(r){var a=byId[r.a.id],b=byId[r.b.id];if(!a||!b)return;var o=addP(P,a,b,"img");if(!o)return;var sw=o.a.id!==r.a.id;o.img.push(sw?{x:r.y,y:r.x,d:r.d}:{x:r.x,y:r.y,d:r.d})});
+  if(imgPairs)imgPairs.forEach(function(r){var a=byId[r.a.id],b=byId[r.b.id];if(!a||!b)return;var o=addP(P,a,b,"img");if(!o)return;var sw=o.a.id!==r.a.id;o.img.push(sw?{x:r.y,y:r.x,d:r.d,k:r.k||""}:{x:r.x,y:r.y,d:r.d,k:r.k||""})});
   var all=Object.keys(P).map(function(k){var o=P[k];o.sc=sc(o);return o}).sort(function(a,b){return(b.img.length>0?1:0)-(a.img.length>0?1:0)||b.sc-a.sc||b.img.length-a.img.length});
   var active=[],ign=[];
   all.forEach(function(p){
@@ -101,7 +101,7 @@ function build(){
     nSkip:items.length-src.length
   }}
 function pc(x){x=x-((x>>>1)&0x55555555);x=(x&0x33333333)+((x>>>2)&0x33333333);return(((x+(x>>>4))&0x0f0f0f0f)*0x01010101)>>>24}
-function simText(d){return d===0?"Giống 100%":"Giống "+Math.round((64-d)/64*100)+"% (lệch "+d+"/64 bit)"}
+function simText(d,k){var tag=k==="m"?"lật ngang · ":k==="c"?"vùng giữa · ":k==="cm"?"lật + vùng giữa · ":"";if(d===0&&!k)return"Giống 100%";return"Giống "+Math.round((64-d)/64*100)+"% ("+tag+"lệch "+d+"/64 bit)"}
 function txtH(v){return v?esc(v):'<span class="dpe">Không có</span>'}
 function linkH(u){var s=su(u);if(s)return'<a href="'+esc(s)+'" target="_blank" rel="noopener noreferrer">'+esc(s)+'</a>';return txtH(u)}
 function paText(it){var a=[];if(it.p!=null)a.push(fmt(it.p)+" tr");if(it.ar)a.push(fmt(it.ar)+" m²");return a.join(" · ")}
@@ -126,7 +126,7 @@ function detailH(o,idx){
   if(o.img.length){
     h+='<div class="dpi"><p class="dpil">Ảnh giống nhau ('+o.img.length+' cặp — bấm vào ảnh để phóng to)</p><div class="dpig">';
     o.img.forEach(function(m,i){
-      h+='<button type="button" class="dpip" data-zoom="'+idx+':'+i+'"><span><img alt="Ảnh căn 1" loading="lazy" src="'+esc(imgSrc(m.x,300))+'"><img alt="Ảnh căn 2" loading="lazy" src="'+esc(imgSrc(m.y,300))+'"></span><small>'+esc(simText(m.d))+'</small></button>';
+      h+='<button type="button" class="dpip" data-zoom="'+idx+':'+i+'"><span><img alt="Ảnh căn 1" loading="lazy" src="'+esc(imgSrc(m.x,300))+'"><img alt="Ảnh căn 2" loading="lazy" src="'+esc(imgSrc(m.y,300))+'"></span><small>'+esc(simText(m.d,m.k))+'</small></button>';
     });
     h+='</div></div>';
   }
@@ -273,19 +273,19 @@ function checkPairImg(el){
     function worker(){
       if(pos>=list.length)return Promise.resolve();
       var s=list[pos++];
-      return hashOf(s).then(function(h){if(h)map[s]=hx2(h);else if(h===null)bad++}).then(worker)}
+      return hashOf(s).then(function(h){if(h){var sg=parseSig(h);if(sg)map[s]=sg}else if(h===null)bad++}).then(worker)}
     return Promise.all([worker(),worker(),worker()]).then(function(){
       saveCache();
-      var found=[],seen={},i,j,sa,sb,ha,hb,d;
+      var found=[],seen={},i,j,sa,sb,ha,hb,m;
       for(i=0;i<aIm.length;i++){
         sa=aIm[i];ha=map[sa];
         for(j=0;j<bIm.length;j++){
           sb=bIm[j];hb=map[sb];
           if(sa!==sb&&(!ha||!hb))continue;
-          d=sa===sb?0:pc(ha[0]^hb[0])+pc(ha[1]^hb[1]);
-          if(d<=TH){
+          m=sa===sb?{d:0,k:""}:cmpSig(ha,hb,TH);
+          if(m){
             var pk=sa+"|"+sb;
-            if(!seen[pk]){seen[pk]=1;found.push({a:o.a,b:o.b,x:sa,y:sb,d:d})}
+            if(!seen[pk]){seen[pk]=1;found.push({a:o.a,b:o.b,x:sa,y:sb,d:m.d,k:m.k})}
           }
         }
       }
@@ -392,7 +392,7 @@ function openZoom(val){
   var c1=G("dupzc1"),c2=G("dupzc2");
   c1.hidden=true;c2.hidden=true;c1.classList.remove("ghost");c2.classList.remove("ghost");
   G("dupzlay").textContent=G("dupzg").classList.contains("stack")?"Cạnh nhau":"Xếp dọc";
-  G("dupzt").textContent=simText(m.d);
+  G("dupzt").textContent=simText(m.d,m.k);
   G("dupz1n").textContent=o.a.n||"Căn 1";
   G("dupz2n").textContent=o.b.n||"Căn 2";
   G("dupz1m").textContent=paText(o.a);
@@ -403,29 +403,64 @@ function openZoom(val){
 function closeZoom(){zoomCmp=null;var z=G("dupz");if(z&&!z.hidden){z.hidden=true;return true}return false}
 function msg(t,bad){var m=G("dupm");m.textContent=t||"";m.className="pm"+(bad?" bad":"")}
 
-/* ---------- Thuật toán quét ảnh 64-bit (có gộp URL trùng + thử lại 3 nấc tránh 429) ---------- */
+/* ---------- Thuật toán quét ảnh thông minh: dHash 64-bit + Lật ngang + Vùng giữa 75% + Tông màu 4 góc ---------- */
+var CACHE_KEY="dhc2";
 function parseCache(raw){try{var o=JSON.parse(raw||"{}");return(o&&typeof o==="object")?o:{}}catch(e){return{}}}
 function loadCache(){
   if(cacheLoaded)return Promise.resolve(cache);
   if(cacheP)return cacheP;
   var idb=N()&&N().idbGet;
-  if(!idb){cacheLoaded=true;cache=parseCache(ls("dhc1"));return Promise.resolve(cache)}
-  cacheP=idb("dhc1").then(function(v){
-    var leg=ls("dhc1");
-    if(typeof v==="string"&&v){cache=parseCache(v);if(leg)ls("dhc1","")}
-    else if(leg){cache=parseCache(leg);if(N().idbSave)N().idbSave("dhc1",leg);ls("dhc1","")}
+  if(!idb){cacheLoaded=true;cache=parseCache(ls(CACHE_KEY));if(ls("dhc1"))ls("dhc1","");return Promise.resolve(cache)}
+  cacheP=idb(CACHE_KEY).then(function(v){
+    var leg=ls(CACHE_KEY);
+    if(typeof v==="string"&&v){cache=parseCache(v);if(leg)ls(CACHE_KEY,"")}
+    else if(leg){cache=parseCache(leg);if(N().idbSave)N().idbSave(CACHE_KEY,leg);ls(CACHE_KEY,"")}
+    if(ls("dhc1"))ls("dhc1","");
+    if(N().idbSave)N().idbSave("dhc1","");
     cacheLoaded=true;cacheP=null;return cache;
-  },function(){cacheLoaded=true;cacheP=null;cache=parseCache(ls("dhc1"));return cache});
+  },function(){cacheLoaded=true;cacheP=null;cache=parseCache(ls(CACHE_KEY));return cache});
   return cacheP}
-function saveCache(){try{var k=Object.keys(cache);if(k.length>10000){var n={};k.slice(-8000).forEach(function(x){n[x]=cache[x]});cache=n}var raw=JSON.stringify(cache);if(N()&&N().idbSave){N().idbSave("dhc1",raw);if(ls("dhc1"))ls("dhc1","")}else ls("dhc1",raw)}catch(e){}}
+function saveCache(){try{var k=Object.keys(cache);if(k.length>10000){var n={};k.slice(-8000).forEach(function(x){n[x]=cache[x]});cache=n}var raw=JSON.stringify(cache);if(N()&&N().idbSave){N().idbSave(CACHE_KEY,raw);if(ls(CACHE_KEY))ls(CACHE_KEY,"")}else ls(CACHE_KEY,raw)}catch(e){}}
+function grid9x8(gray,x0,y0,w,h){
+  var g=[],gy,gx,cw=w/9,ch=h/8,rx0,rx1,ry0,ry1,x,y,sum,cnt;
+  for(gy=0;gy<8;gy++){
+    ry0=Math.round(y0+gy*ch);ry1=Math.min(64,Math.max(ry0+1,Math.round(y0+(gy+1)*ch)));
+    for(gx=0;gx<9;gx++){
+      rx0=Math.round(x0+gx*cw);rx1=Math.min(72,Math.max(rx0+1,Math.round(x0+(gx+1)*cw)));
+      sum=0;cnt=0;
+      for(y=ry0;y<ry1;y++)for(x=rx0;x<rx1;x++){sum+=gray[y*72+x];cnt++}
+      g.push(cnt?sum/cnt:0);
+    }
+  }
+  return g}
+function dhOf(g,mirror){
+  var hx="",bits="",x,y,i,a,b;
+  for(y=0;y<8;y++)for(x=0;x<8;x++){
+    a=mirror?g[y*9+(8-x)]:g[y*9+x];
+    b=mirror?g[y*9+(7-x)]:g[y*9+x+1];
+    bits+=a>b?"1":"0";
+  }
+  for(i=0;i<64;i+=4)hx+=parseInt(bits.substr(i,4),2).toString(16);
+  return{hx:hx,ones:bits.split("1").length-1}}
+function hex2(n){var s=Math.max(0,Math.min(255,Math.round(n))).toString(16);return s.length<2?"0"+s:s}
+function colorHex(px){
+  var qs=[[9,8],[36,8],[9,32],[36,32]],out="",qi,x,y,r,g,b,p;
+  for(qi=0;qi<4;qi++){
+    r=g=b=0;
+    for(y=qs[qi][1];y<qs[qi][1]+24;y++)for(x=qs[qi][0];x<qs[qi][0]+27;x++){
+      p=(y*72+x)*4;r+=px[p];g+=px[p+1];b+=px[p+2];
+    }
+    out+=hex2(r/648)+hex2(g/648)+hex2(b/648);
+  }
+  return out}
 function hashOf(s){
-  if(cache[s])return Promise.resolve(cache[s]);
+  if(cache[s]!==undefined)return Promise.resolve(cache[s]);
   if(inflight[s])return inflight[s];
   var p=new Promise(function(res){
     var s0=imgSrc(s,64),isLh=s0.indexOf("https://lh3.googleusercontent.com/")===0;
     var tries=isLh?[s0+"?dh=1",imgSrc(s,120)+"?dh=2",imgSrc(s,200)]:[s0];
     var step=0,done=false;
-    function fin(h){if(done)return;done=true;if(h&&String(s).indexOf("data:")!==0)cache[s]=h;delete inflight[s];res(h)}
+    function fin(h){if(done)return;done=true;if(h!==null&&String(s).indexOf("data:")!==0)cache[s]=h;delete inflight[s];res(h)}
     function next(){
       if(done)return;
       if(step>=tries.length){fin(null);return}
@@ -439,32 +474,66 @@ function hashOf(s){
         if(settled||done)return;settled=true;clearTimeout(t);
         try{
           if(!(im.naturalWidth||im.width)){dropIm();setTimeout(next,400);return}
-          var cv=document.createElement("canvas");cv.width=9;cv.height=8;var cx=cv.getContext("2d",{willReadFrequently:true});cx.drawImage(im,0,0,9,8);
+          var cv=document.createElement("canvas");cv.width=72;cv.height=64;var cx=cv.getContext("2d",{willReadFrequently:true});cx.drawImage(im,0,0,72,64);
           dropIm();
-          var d=cx.getImageData(0,0,9,8).data,g=[],i,x,y;for(i=0;i<72;i++)g.push(d[i*4]*.299+d[i*4+1]*.587+d[i*4+2]*.114);
-          var hx="",bits="";for(y=0;y<8;y++)for(x=0;x<8;x++)bits+=g[y*9+x]>g[y*9+x+1]?"1":"0";
-          for(i=0;i<64;i+=4)hx+=parseInt(bits.substr(i,4),2).toString(16);
-          if(bits.split("1").length-1<6)return fin("");   /* ảnh gần như một màu: bỏ qua */
-          fin(hx)
+          var px=cx.getImageData(0,0,72,64).data,gray=[],i,sum=0,sum2=0,l,Npx=4608;
+          for(i=0;i<Npx;i++){l=px[i*4]*.299+px[i*4+1]*.587+px[i*4+2]*.114;gray.push(l);sum+=l;sum2+=l*l}
+          var mean=sum/Npx;
+          if(sum2/Npx-mean*mean<64)return fin("");   /* ảnh quá phẳng / tương phản thấp / tường trắng: bỏ qua */
+          var gF=grid9x8(gray,0,0,72,64),f=dhOf(gF,false);
+          if(f.ones<6||f.ones>58)return fin("");       /* ảnh chuyển sắc đơn điệu: bỏ qua */
+          var fm=dhOf(gF,true),gC=grid9x8(gray,9,8,54,48),c=dhOf(gC,false),cm=dhOf(gC,true);
+          fin(f.hx+":"+fm.hx+":"+c.hx+":"+cm.hx+":"+colorHex(px))
         }catch(e){dropIm();setTimeout(next,400)}};
       im.onerror=fail;
       im.src=u}
     next()});
   inflight[s]=p;return p}
 function hx2(h){return[parseInt(h.slice(0,8),16)>>>0,parseInt(h.slice(8,16),16)>>>0]}
+function parseSig(raw){
+  if(!raw||typeof raw!=="string")return null;
+  var p=raw.split(":");if(p.length<5)return null;
+  var col=[],i;for(i=0;i<24;i+=2)col.push(parseInt(p[4].slice(i,i+2),16)||0);
+  return{f:hx2(p[0]),fm:hx2(p[1]),c:hx2(p[2]),cm:hx2(p[3]),col:col}}
+function hd(x,y){return pc(x[0]^y[0])+pc(x[1]^y[1])}
+function colorDiff(c1,c2,mirror){
+  var s1=0,s2=0,i;for(i=0;i<12;i++){s1+=c1[i];s2+=c2[i]}
+  var sh=(s1-s2)/12;if(sh>35)sh=35;else if(sh<-35)sh=-35;
+  var d=0;
+  for(i=0;i<12;i++){
+    var j=mirror?(i<6?(i<3?i+3:i-3):(i<9?i+3:i-3)):i;
+    d+=Math.abs((c1[i]-sh)-c2[j]);
+  }
+  return d/12}
+function cmpSig(a,b,th){
+  var best=null,ct=Math.max(4,Math.floor(th*0.75)),cmt=Math.max(3,Math.floor(th*0.7));
+  function tryM(d,lim,mirror,clim,k){
+    if(d>lim)return;
+    if(d>3&&colorDiff(a.col,b.col,mirror)>clim)return;
+    if(!best||d<best.d||(d===best.d&&k===""))best={d:d,k:k};
+  }
+  tryM(hd(a.f,b.f),th,false,44,"");
+  tryM(hd(a.f,b.fm),Math.max(4,th-1),true,40,"m");
+  tryM(hd(a.c,b.c),ct,false,38,"c");
+  tryM(hd(a.c,b.f),ct,false,42,"c");
+  tryM(hd(a.f,b.c),ct,false,42,"c");
+  tryM(hd(a.c,b.cm),cmt,true,36,"cm");
+  tryM(hd(a.c,b.fm),cmt,true,38,"cm");
+  tryM(hd(a.f,b.cm),cmt,true,38,"cm");
+  return best}
 function matchJobs(jobs,Hm){
-  var out=[],seen={},i,j,A=jobs.map(function(x){return Hm[x.s]}),d,k;
+  var out=[],seen={},i,j,A=jobs.map(function(x){return Hm[x.s]}),m,k;
   for(i=0;i<jobs.length;i++)for(j=i+1;j<jobs.length;j++){
     if(jobs[i].it.id===jobs[j].it.id)continue;
-    if(jobs[i].s===jobs[j].s)d=0;
-    else if(A[i]&&A[j])d=pc(A[i][0]^A[j][0])+pc(A[i][1]^A[j][1]);else continue;
-    if(d<=TH){k=jobs[i].it.id+"|"+jobs[j].it.id+"|"+jobs[i].s+"|"+jobs[j].s;if(!seen[k]){seen[k]=1;out.push({a:jobs[i].it,b:jobs[j].it,x:jobs[i].s,y:jobs[j].s,d:d})}}}
+    if(jobs[i].s===jobs[j].s)m={d:0,k:""};
+    else if(A[i]&&A[j])m=cmpSig(A[i],A[j],TH);else continue;
+    if(m){k=jobs[i].it.id+"|"+jobs[j].it.id+"|"+jobs[i].s+"|"+jobs[j].s;if(!seen[k]){seen[k]=1;out.push({a:jobs[i].it,b:jobs[j].it,x:jobs[i].s,y:jobs[j].s,d:m.d,k:m.k})}}}
   return out}
 function rescanFromCache(){
   if(scanning||imgPairs===null)return;
   loadCache().then(function(){
     var jobs=[],Hm={},src=activeItems();
-    src.forEach(function(it){(it.im||[]).forEach(function(s){if(s){jobs.push({it:it,s:s});if(cache[s]&&!Hm[s])Hm[s]=hx2(cache[s])}})});
+    src.forEach(function(it){(it.im||[]).forEach(function(s){if(s){jobs.push({it:it,s:s});if(cache[s]&&!Hm[s]){var sg=parseSig(cache[s]);if(sg)Hm[s]=sg}}})});
     imgPairs=matchJobs(jobs,Hm);pairImgMsg={};
     msg("Đã cập nhật theo độ nhạy mới (lệch ≤ "+TH+"/64 bit): tìm thấy "+imgPairs.length+" cặp ảnh giống nhau.");
     render()})}
@@ -480,7 +549,7 @@ function scan(){
   function worker(){
     if(stopFlag||idx>=urls.length)return Promise.resolve();
     var u=urls[idx++];
-    return hashOf(u).then(function(h){if(h)Hm[u]=hx2(h);else if(h===null)bad++;done++;if(done%50===0)saveCache();if(done%5===0||done===urls.length)upd()}).then(worker)}
+    return hashOf(u).then(function(h){if(h){var sg=parseSig(h);if(sg)Hm[u]=sg}else if(h===null)bad++;done++;if(done%50===0)saveCache();if(done%5===0||done===urls.length)upd()}).then(worker)}
   upd();
   loadCache().then(function(){
     return Promise.all([worker(),worker(),worker()]).then(function(){
