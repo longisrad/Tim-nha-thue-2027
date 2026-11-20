@@ -41,7 +41,7 @@ jobs:
         run: |
           RES=android/app/src/main/res
           mkdir -p "$RES/drawable-nodpi"
-          cp android-res/splash_icon.png "$RES/drawable-nodpi/splash_icon.png"
+          cp android-res/splash.png "$RES/drawable-nodpi/splash.png"
           python3 - <<'PY'
           import re, sys
           p = 'android/app/src/main/res/values/styles.xml'
