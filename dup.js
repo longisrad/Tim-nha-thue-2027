@@ -1,11 +1,12 @@
 /* dup.js: công cụ "Kiểm tra trùng" (trùng thông tin và trùng ảnh) cho app Tìm nhà thuê.
-   Tự gắn nút, hộp thoại và CSS vào trang; index.html chỉ cần <script src="dup.js" defer></script>.
-   Dùng các hàm của app qua window.NT (index.html khai báo khi app khởi động xong).
+   Tự gắn nút, hộp thoại và CSS vào trang; index.html chỉ cần khai báo window.NT và <script src="dup.js" defer></script>.
+   (Tuỳ chọn: index.html có thể gọi thêm Dup.sync(), Dup.close(), Dup.closeZoom() qua window.Dup).
    Quy tắc: báo cặp trùng từ 2 điều kiện trở lên, hoặc cặp có trùng ảnh. */
 (function(){
 "use strict";
 var G=function(i){return document.getElementById(i)};
-function N(){return window.NT}
+var NT=null,inited=false;
+function N(){return NT||window.NT}
 function esc(s){return N().esc(s)}
 function su(u){return N().su(u)}
 function imgSrc(s,w){return N().imgSrc(s,w)}
@@ -46,6 +47,16 @@ function cmp(x,y){var w=[];
   if(x.p!=null&&y.p!=null&&x.ar&&y.ar&&Math.abs(x.p-y.p)<=0.05&&Math.abs(x.ar-y.ar)<=1&&sameArea(x,y))w.push("Giá + diện tích giống nhau");
   return w}
 function addP(P,a,b,why){if(a.id===b.id)return;var lo=a.id<b.id?a:b,hi=a.id<b.id?b:a,k=lo.id+"|"+hi.id,o=P[k]||(P[k]={a:lo,b:hi,why:[],img:[]});if(why&&o.why.indexOf(why)<0)o.why.push(why);return o}
+function cleanImgPairs(){
+  if(!imgPairs)return;
+  var byId={};items.forEach(function(it){byId[it.id]=it});
+  imgPairs=imgPairs.filter(function(r){
+    var a=byId[r.a.id],b=byId[r.b.id];
+    if(!a||!b)return false;
+    if((a.im||[]).indexOf(r.x)<0||(b.im||[]).indexOf(r.y)<0)return false;
+    r.a=a;r.b=b;return true;
+  });
+}
 function build(){
   var P={},F=items.map(feat),i,j,w,o;
   for(i=0;i<F.length;i++)for(j=i+1;j<F.length;j++){w=cmp(F[i],F[j]);if(w.length){o=addP(P,F[i].it,F[j].it);o.why=w}}
@@ -120,6 +131,7 @@ function openZoom(val){
   G("dupz1").src=imgSrc(m.x,800);
   G("dupz2").src=imgSrc(m.y,800);
   G("dupz").hidden=false}
+function closeZoom(){var z=G("dupz");if(z&&!z.hidden){z.hidden=true;return true}return false}
 function msg(t,bad){var m=G("dupm");m.textContent=t||"";m.className="pm"+(bad?" bad":"")}
 function loadCache(){if(cacheLoaded)return;cacheLoaded=true;try{cache=JSON.parse(ls("dhc1")||"{}")||{}}catch(e){cache={}}}
 function saveCache(){try{var k=Object.keys(cache);if(k.length>6000){var n={};k.slice(-4000).forEach(function(x){n[x]=cache[x]});cache=n}ls("dhc1",JSON.stringify(cache))}catch(e){}}
@@ -168,20 +180,24 @@ function scan(){
     else msg("Đã so "+ok+" ảnh"+(bad?", "+bad+" ảnh không đọc được":"")+", tìm thấy "+out.length+" cặp ảnh giống nhau. Ảnh chụp lại cùng một căn từ góc khác có thể không bị bắt.");
     render()})}
 
-function open(){
-  if(!N()){alert("Ứng dụng đang tải, thử lại sau vài giây.");return}
-  items=N().items();imgPairs=imgPairs||null;openSet={};msg("");G("dupbar").hidden=true;G("dupstop").hidden=true;G("dupz").hidden=true;render();G("dupd").showModal()}
-function init(){
+function init(nt){
+  if(nt)NT=nt;
+  if(inited)return;
+  inited=true;
   var st=document.createElement("style");st.textContent=CSS;document.head.appendChild(st);
   var box=document.createElement("div");box.innerHTML=DLG;document.body.appendChild(box.firstChild);
-  var tools=document.querySelector(".tools"),b=document.createElement("button");
-  b.className="link";b.id="dupb";b.textContent="Kiểm tra trùng";
-  if(tools)tools.insertBefore(b,tools.children[1]||null);else document.body.appendChild(b);
-  b.onclick=open;
-  G("dupx").onclick=function(){stopFlag=true;G("dupz").hidden=true;G("dupd").close()};
-  G("dupzx").onclick=function(){G("dupz").hidden=true};
-  G("dupz").onclick=function(e){if(e.target===this)this.hidden=true};
-  G("dupd").addEventListener("cancel",function(e){var z=G("dupz");if(z&&!z.hidden){e.preventDefault();z.hidden=true}});
+  var b=G("dupb");
+  if(!b){
+    var tools=document.querySelector(".tools");
+    b=document.createElement("button");
+    b.className="link";b.id="dupb";b.type="button";b.textContent="Kiểm tra trùng";
+    if(tools)tools.insertBefore(b,tools.children[1]||null);else document.body.appendChild(b);
+  }
+  if(!b.onclick)b.onclick=function(){open()};
+  G("dupx").onclick=close;
+  G("dupzx").onclick=closeZoom;
+  G("dupz").onclick=function(e){if(e.target===this)closeZoom()};
+  G("dupd").addEventListener("cancel",function(e){if(closeZoom())e.preventDefault()});
   G("dupimg").onclick=function(){items=N().items();scan()};
   G("dupstop").onclick=function(){stopFlag=true};
   G("duptog").onclick=function(){showOne=!showOne;render()};
@@ -189,5 +205,22 @@ function init(){
     var z=e.target.closest("[data-zoom]");if(z){openZoom(z.dataset.zoom);return}
     var t=e.target.closest("[data-tog]");if(t){togglePair(t);return}
     var r=e.target.closest("[data-open]");if(r)N().openDv(r.dataset.open)}}
-if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
+function open(nt){
+  if(nt)NT=nt;
+  if(!N()){alert("Ứng dụng đang tải, thử lại sau vài giây.");return}
+  init(N());
+  items=N().items();cleanImgPairs();openSet={};msg("");G("dupbar").hidden=true;G("dupstop").hidden=true;G("dupz").hidden=true;render();
+  if(!G("dupd").open)G("dupd").showModal()}
+function close(){
+  stopFlag=true;
+  var z=G("dupz"),d=G("dupd");
+  if(z)z.hidden=true;
+  if(d&&d.open)d.close()}
+function sync(){
+  var d=G("dupd");
+  if(d&&d.open&&N()){items=N().items();cleanImgPairs();render()}}
+
+window.Dup={init:init,open:open,close:close,sync:sync,closeZoom:closeZoom};
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",function(){init()});
+else init();
 })();
