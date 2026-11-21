@@ -3,7 +3,7 @@
    - PWA (mặc định): cache vỏ app + font/icon + ảnh Drive.
    - APK Capacitor (đăng ký với ?app=1): file app đã nằm sẵn trong APK nên KHÔNG cache vỏ app, chỉ cache ảnh Drive.
    Đổi VERSION khi đổi font/icon/manifest. Sửa index.html thì không cần đổi (tự cập nhật mỗi lần mở). */
-const VERSION = 'v22';
+const VERSION = 'v23';
 const SHELL = 'shell-' + VERSION;
 const RUNTIME = 'runtime-' + VERSION;
 const NEXT = 'next-' + VERSION;   // bản mới tải về, chờ lần mở trang kế tiếp mới áp dụng (tránh lệch index.html cũ + ck.js mới)
@@ -13,12 +13,14 @@ const INDEX = './index.html';
 const DUP = './dup.js';
 const IMGJS = './img.js';
 const CKJS = './ck.js';
+const DBGJS = './dbg.js';
 const SHELL_FILES = [
   './',
   INDEX,
   DUP,
   IMGJS,
   CKJS,
+  DBGJS,
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -115,7 +117,7 @@ function pick(c, base, list) {
 /* ---------- PWA: trang chính mở ngay từ bản đã lưu, tải bản mới ngầm (index.html, dup.js, img.js và ck.js) ----------
    Bản mới được tải đủ cả 4 file rồi mới đưa vào NEXT; lần mở trang kế tiếp mới chuyển sang SHELL cùng lúc.
    Nhờ vậy trang đang chạy không bao giờ nhận index.html cũ ghép với ck.js/img.js/dup.js mới (cầu nối NK/NI sẽ lệch). */
-var APP_FILES = [INDEX, DUP, IMGJS, CKJS];
+var APP_FILES = [INDEX, DUP, IMGJS, CKJS, DBGJS];
 function clean(res) {   // phản hồi đã bị chuyển hướng không dùng được cho điều hướng trang
   return res.redirected ? res.blob().then(function (b) {
     return new Response(b, { status: res.status, statusText: res.statusText, headers: res.headers });
@@ -124,8 +126,12 @@ function clean(res) {   // phản hồi đã bị chuyển hướng không dùng
 function differs(a, b) {
   return Promise.all([a.text(), b.text()]).then(function (t) { return t[0] !== t[1]; }, function () { return true; });
 }
+// null = lỗi mạng/máy chủ (bỏ cả đợt); 'none' = máy chủ không có tệp này (404, bỏ qua tệp đó, không chặn cập nhật)
 function fetchFile(path) {
-  return fetch(path, { cache: 'no-cache' }).then(clean).then(function (res) { return res && res.ok ? res : null; }, function () { return null; });
+  return fetch(path, { cache: 'no-cache' }).then(function (res) {
+    if (res && res.status === 404) return 'none';
+    return clean(res).then(function (r) { return r && r.ok ? r : null; });
+  }, function () { return null; });
 }
 // Đưa bản đã chờ trong NEXT vào SHELL (chạy trước khi phục vụ trang)
 function promote() {
@@ -149,6 +155,7 @@ function syncNext() {
     return Promise.all(APP_FILES.map(fetchFile)).then(function (rs) {
       if (rs.some(function (r) { return !r; })) return false;
       return Promise.all(rs.map(function (r, i) {
+        if (r === 'none') return false;
         return s.match(APP_FILES[i]).then(function (old) {
           if (!old) return s.put(APP_FILES[i], r.clone()).then(function () { return false; });   // lần cài đầu: ghi thẳng
           return differs(old, r.clone()).then(function (d) { return d ? n.put(APP_FILES[i], r.clone()).then(function () { return true; }) : false; });
@@ -172,6 +179,10 @@ function tellPages() {
   });
 }
 self.addEventListener('message', function (e) {
+  if (e.data && e.data.type === 'ping' && e.source) {   // dbg.js: đọc phiên bản/chế độ/hạn mức cache
+    e.source.postMessage({ type: 'pong', v: VERSION, app: APP_MODE, lim: { s: IMG_MAX_S, l: IMG_MAX_L, w: SMALL_W } });
+    return;
+  }
   if (APP_MODE || !e.data || e.data.type !== 'status' || !e.source) return;
   e.waitUntil(caches.open(NEXT).then(function (c) { return c.keys(); }).then(function (ks) {
     if (ks.length) e.source.postMessage({ type: 'update' });
