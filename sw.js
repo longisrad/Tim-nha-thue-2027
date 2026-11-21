@@ -3,7 +3,7 @@
    - PWA (mặc định): cache vỏ app + font/icon + ảnh Drive.
    - APK Capacitor (đăng ký với ?app=1): file app đã nằm sẵn trong APK nên KHÔNG cache vỏ app, chỉ cache ảnh Drive.
    Đổi VERSION khi đổi font/icon/manifest. Sửa index.html thì không cần đổi (tự cập nhật mỗi lần mở). */
-const VERSION = 'v18';
+const VERSION = 'v19';
 const SHELL = 'shell-' + VERSION;
 const RUNTIME = 'runtime-' + VERSION;
 const IMG = 'img-v1';            // KHÔNG gắn VERSION: đổi VERSION không làm mất ảnh đã tải
