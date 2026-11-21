@@ -491,9 +491,11 @@ function bigU(s){return imgSrc(s,(N()&&N().VW)||VW)}
 var zDone={},zWait={},zQ=[],zRun=0,zT=0,zt={},zShown={},zLoW=300;
 function netOk(){var c=navigator.connection||{};return !(document.hidden||navigator.onLine===false||c.saveData||/2g/.test(c.effectiveType||""))}
 function swCtl(){return !!(navigator.serviceWorker&&navigator.serviceWorker.controller)}
+var zC=null;
+function zCache(){return zC||(zC=caches.open("img-v1").catch(function(e){zC=null;throw e}))}
 function zHas(u){var m=/^(.*=w)(\d+)$/.exec(u);if(!m||!window.caches)return Promise.resolve(false);
   var w=+m[2],ws=[w].concat([200,300,360,640,900,1280].filter(function(x){return x>w&&x<=w*2}));
-  return caches.open("img-v1").then(function(c){return Promise.all(ws.map(function(x){return c.match(m[1]+x)}))}).then(function(r){return r.some(Boolean)},function(){return false})}
+  return zCache().then(function(c){return Promise.all(ws.map(function(x){return c.match(m[1]+x)}))}).then(function(r){return r.some(Boolean)},function(){return false})}
 function zFetch(u,bg,n,done){
   var im=new Image();im.decoding="async";
   if(bg){try{im.fetchPriority="low"}catch(e){}}
@@ -659,7 +661,7 @@ function loadCache(){
     cacheLoaded=true;cacheP=null;return cache;
   },function(){cacheLoaded=true;cacheP=null;cache=parseCache(ls(CACHE_KEY));return cache});
   return cacheP}
-function saveCache(){try{var k=Object.keys(cache);if(k.length>10000){var n={};k.slice(-8000).forEach(function(x){n[x]=cache[x]});cache=n}var raw=JSON.stringify(cache);if(N()&&N().idbSave){N().idbSave(CACHE_KEY,raw);if(ls(CACHE_KEY))ls(CACHE_KEY,"")}else ls(CACHE_KEY,raw)}catch(e){}}
+function saveCache(){try{var k=Object.keys(cache);if(k.length>30000){var n={},keepN=24000;k.slice(-keepN).forEach(function(x){n[x]=cache[x]});if(pm&&pm.done)k.slice(0,k.length-keepN).forEach(function(x){delete pm.done[x]});cache=n}var raw=JSON.stringify(cache);if(N()&&N().idbSave){N().idbSave(CACHE_KEY,raw);if(ls(CACHE_KEY))ls(CACHE_KEY,"")}else ls(CACHE_KEY,raw)}catch(e){}}
 function grid9x8(gray,gw,gh,x0,y0,w,h){
   var g=[],gy,gx,cw=w/9,ch=h/8,rx0,rx1,ry0,ry1,x,y,sum,cnt;
   for(gy=0;gy<8;gy++){
@@ -877,7 +879,11 @@ function loadPm(){
 function savePm(){try{var raw=JSON.stringify(pm);if(N()&&N().idbSave)N().idbSave(PM_KEY,raw);else ls(PM_KEY,raw)}catch(e){}}
 function pairsFromPm(){
   var byId={};items.forEach(function(it){byId[it.id]=it});
-  imgPairs=pm.pairs.map(function(r){return{a:byId[r.a],b:byId[r.b],x:r.x,y:r.y,d:r.d,k:r.k||"",o:r.o||""}}).filter(function(r){return r.a&&r.b});
+  var seenP={};
+  imgPairs=pm.pairs.map(function(r){return{a:byId[r.a],b:byId[r.b],x:r.x,y:r.y,d:r.d,k:r.k||"",o:r.o||""}}).filter(function(r){
+    if(!r.a||!r.b)return false;
+    var pk=[r.a.id+"\u0001"+r.x,r.b.id+"\u0001"+r.y].sort().join("|");   // cùng cặp ảnh (kể cả đảo chiều) chỉ giữ một
+    if(seenP[pk])return false;seenP[pk]=1;return true});
   cleanImgPairs();
   pm.pairs=imgPairs.map(function(r){return{a:r.a.id,b:r.b.id,x:r.x,y:r.y,d:r.d,k:r.k,o:r.o}});
   return imgPairs}
