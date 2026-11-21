@@ -2001,8 +2001,9 @@ document.addEventListener("focusin",function(e){var t=e.target;if(!t||!t.closest
     if(rb.classList.contains("spin"))return;
     rb.classList.add("spin");
     var fin=function(){rb.classList.remove("spin")};
-    if(tab==="ck"&&ckDirty){ckFlush();ckQ.then(function(){return refresh(false)}).then(fin,fin)}
-    else refresh(false).then(fin,fin);
+    var dp=function(){try{return window.Dup&&Dup.pull?Dup.pull():0}catch(e){return 0}};
+    if(tab==="ck"&&ckDirty){ckFlush();ckQ.then(function(){return refresh(false)}).then(dp).then(fin,fin)}
+    else refresh(false).then(dp).then(fin,fin);
   };
   var ua=navigator.userAgent||"",isIos=/iPad|iPhone|iPod/i.test(ua)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
   var standalone=!!(navigator.standalone||(window.matchMedia&&matchMedia("(display-mode: standalone)").matches));

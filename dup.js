@@ -34,9 +34,9 @@ function pushIgnored(){
   dsBusy=true;var snap=JSON.parse(JSON.stringify(ignored));
   N().apiPost("dupSet",{add:add,del:del},30000).then(function(){synced=snap;try{ls("dign1s",JSON.stringify(snap))}catch(e){}},function(){}).then(function(){dsBusy=false;if(dsAgain){dsAgain=false;pushIgnored()}})}
 function pullIgnored(){
-  if(!(N()&&N().apiGet))return;
+  if(!(N()&&N().apiGet))return Promise.resolve();
   loadIgnored();
-  N().apiGet("&action=dup",20000).then(function(d){
+  return N().apiGet("&action=dup",20000).then(function(d){
     if(!d||!d.ok)return;
     var R={},base=synced||{},nw={},byId=null,its=N().items();
     (d.pairs||[]).forEach(function(p){R[p.k]=p.t||1});
@@ -836,7 +836,7 @@ function sync(){
     render()
   },120)}
 
-window.Dup={init:init,open:open,close:close,sync:sync,closeZoom:closeZoom};
+window.Dup={pull:pullIgnored,init:init,open:open,close:close,sync:sync,closeZoom:closeZoom};
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",function(){init()});
 else init();
 })();
