@@ -20,8 +20,35 @@ var DLG="<dialog id=\"dupd\"><div class=\"form\" id=\"dupmain\">\n  <h2>Kiểm t
 var TH=14,MIN=2,imgPairs=null,scanning=false,stopFlag=false,cache={},cacheLoaded=false,cacheP=null,inflight={},LIMIT=50,limMain=50,limIgn=50,memo=null,syncT=0,showOne=false,showIgn=false,skipOut=true,skipLoaded=false,imgAutoMode="manual",imgModeLoaded=false,viewList=[],openSet={},openImgSet={},pairImgMode={},ignored={},ignLoaded=false,pairImgMsg={},zoomCmp=null;
 
 /* ---------- Lưu danh sách "không phải trùng" vào localStorage ---------- */
-function loadIgnored(){if(ignLoaded)return;ignLoaded=true;try{ignored=JSON.parse(ls("dign1")||"{}")||{}}catch(e){ignored={}}}
-function saveIgnored(){try{ls("dign1",JSON.stringify(ignored))}catch(e){}}
+var synced=null,dsBusy=false,dsAgain=false,dsT=0;
+function loadIgnored(){if(ignLoaded)return;ignLoaded=true;try{ignored=JSON.parse(ls("dign1")||"{}")||{}}catch(e){ignored={}}try{synced=JSON.parse(ls("dign1s")||"null")}catch(e){synced=null}if(!synced||typeof synced!=="object")synced=null}
+function saveIgnored(){try{ls("dign1",JSON.stringify(ignored))}catch(e){}clearTimeout(dsT);dsT=setTimeout(pushIgnored,600)}
+/* Đồng bộ cặp "Không trùng" lên tab "Trùng" của Sheet: chỉ gửi phần thay đổi so với lần đồng bộ trước (synced) */
+function pushIgnored(){
+  if(!(N()&&N().apiPost&&canWrite()))return;
+  if(dsBusy){dsAgain=true;return}
+  var base=synced||{},add=[],del=[];
+  Object.keys(ignored).forEach(function(k){if(!(k in base))add.push({k:k,t:ignored[k]})});
+  Object.keys(base).forEach(function(k){if(!(k in ignored))del.push(k)});
+  if(!add.length&&!del.length)return;
+  dsBusy=true;var snap=JSON.parse(JSON.stringify(ignored));
+  N().apiPost("dupSet",{add:add,del:del},30000).then(function(){synced=snap;try{ls("dign1s",JSON.stringify(snap))}catch(e){}},function(){}).then(function(){dsBusy=false;if(dsAgain){dsAgain=false;pushIgnored()}})}
+function pullIgnored(){
+  if(!(N()&&N().apiGet))return;
+  loadIgnored();
+  N().apiGet("&action=dup",20000).then(function(d){
+    if(!d||!d.ok)return;
+    var R={},base=synced||{},nw={},byId=null,its=N().items();
+    (d.pairs||[]).forEach(function(p){R[p.k]=p.t||1});
+    if(its&&its.length){byId={};its.forEach(function(it){byId[it.id]=1})}
+    Object.keys(R).forEach(function(k){if(!(k in base)||(k in ignored))nw[k]=R[k]});
+    Object.keys(ignored).forEach(function(k){if(!(k in base))nw[k]=ignored[k]});
+    if(byId)Object.keys(nw).forEach(function(k){var ids=k.split("|");if(!byId[ids[0]]||!byId[ids[1]])delete nw[k]});
+    ignored=nw;synced=R;
+    try{ls("dign1",JSON.stringify(ignored));ls("dign1s",JSON.stringify(R))}catch(e){}
+    pushIgnored();
+    var dd=G("dupd");if(dd&&dd.open)render()
+  },function(){})}
 function canWrite(){if(N()&&N().canW)return !!N().canW();var b=G("bnow");return b?!b.hidden:true}
 
 /* ---------- Chuẩn hoá ---------- */
@@ -792,7 +819,8 @@ function open(nt){
   G("dupnoout").checked=skipOut;
   items=N().items();cleanImgPairs();limMain=limIgn=LIMIT;openSet={};openImgSet={};pairImgMode={};pairImgMsg={};zoomCmp=null;showIgn=false;msg(imgPairs&&imgPairs.length?"Đang hiện "+imgPairs.length+" cặp ảnh giống nhau (lệch ≤ "+TH+"/64 bit).":"");G("dupbar").hidden=true;G("dupstop").hidden=true;G("dupz").hidden=true;render();
   if(!G("dupd").open)G("dupd").showModal();G("dupd").scrollTop=0;
-  loadCache().then(function(){if(G("dupd").open&&!scanning&&imgPairs===null)applyCachedPairs()})}
+  loadCache().then(function(){if(G("dupd").open&&!scanning&&imgPairs===null)applyCachedPairs()});
+  pullIgnored()}
 function close(){
   stopFlag=true;zoomCmp=null;
   var z=G("dupz"),d=G("dupd");
