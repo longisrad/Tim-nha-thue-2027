@@ -675,58 +675,127 @@ function ignImgNote(r){
   if(!r||!r.ign||!r.ign.length)return"";
   var n=0;r.ign.forEach(function(o){if(o.img&&o.img.length)n++});
   return n?" ("+n+" cặp đang ở mục “Không phải trùng”).":""}
+/* ===== So khớp ảnh theo từng lượt BATCH căn, lưu kết quả để lần sau chỉ so ảnh mới ===== */
+var BATCH=20,PM_KEY="dpm1",pm=null,pmLoaded=false,pmP=null,sigMemo={};
+function sigOf(s){var v=sigMemo[s];if(v!==undefined)return v;var c=cache[s];v=c?parseSig(c):null;if(c!==undefined)sigMemo[s]=v;return v}
+function pmEmpty(){return{th:TH,done:{},pairs:[]}}
+function loadPm(){
+  if(pmLoaded)return Promise.resolve(pm);
+  if(pmP)return pmP;
+  function fin(raw){var o=null;try{o=JSON.parse(raw||"null")}catch(e){}if(!o||typeof o!=="object"||!o.done||!o.pairs)o=pmEmpty();pm=o;pmLoaded=true;pmP=null;return pm}
+  var idb=N()&&N().idbGet;
+  if(!idb)return Promise.resolve(fin(ls(PM_KEY)));
+  pmP=idb(PM_KEY).then(function(v){return fin(typeof v==="string"?v:"")},function(){return fin(ls(PM_KEY))});
+  return pmP}
+function savePm(){try{var raw=JSON.stringify(pm);if(N()&&N().idbSave)N().idbSave(PM_KEY,raw);else ls(PM_KEY,raw)}catch(e){}}
+function pairsFromPm(){
+  var byId={};items.forEach(function(it){byId[it.id]=it});
+  imgPairs=pm.pairs.map(function(r){return{a:byId[r.a],b:byId[r.b],x:r.x,y:r.y,d:r.d,k:r.k||"",o:r.o||""}}).filter(function(r){return r.a&&r.b});
+  cleanImgPairs();
+  pm.pairs=imgPairs.map(function(r){return{a:r.a.id,b:r.b.id,x:r.x,y:r.y,d:r.d,k:r.k,o:r.o}});
+  return imgPairs}
+function pendingItems(skip){
+  return activeItems().filter(function(it){return(it.im||[]).some(function(s){return s&&!pm.done[s]&&!(skip&&skip[s])&&!(pm.fail&&pm.fail[s]>=2)})})}
+function matchInc(newJ,oldJ){
+  var allJ=oldJ.concat(newJ),A=allJ.map(function(x){return sigOf(x.s)}),out=[],seen={},p=oldJ.length;
+  function step(){
+    var end=Math.min(p+25,allJ.length),j,m,k,a,b;
+    for(;p<end;p++){
+      b=allJ[p];
+      for(j=0;j<p;j++){
+        a=allJ[j];
+        if(a.it.id===b.it.id)continue;
+        if(a.s===b.s)m={d:0,k:"",o:(A[j]||A[p])?(A[j]||A[p]).ori:""};
+        else if(A[j]&&A[p])m=cmpSig(A[j],A[p],TH);else continue;
+        if(m){k=a.it.id+"|"+b.it.id+"|"+a.s+"|"+b.s;if(!seen[k]){seen[k]=1;out.push({a:a.it,b:b.it,x:a.s,y:b.s,d:m.d,k:m.k,o:m.o||""})}}
+      }
+    }
+    if(p<allJ.length)return new Promise(function(r){setTimeout(r,0)}).then(step);
+    return out}
+  return Promise.resolve().then(step)}
 function applyCachedPairs(){
   if(scanning||!cacheLoaded)return;
-  var jobs=[],Hm={},src=activeItems(),hc=0,nL=0,nP=0;
-  src.forEach(function(it){(it.im||[]).forEach(function(s){if(s){jobs.push({it:it,s:s});if(cache[s]&&!Hm[s]){var sg=parseSig(cache[s]);if(sg){Hm[s]=sg;hc++;if(sg.ori==="L")nL++;else nP++}}}})});
-  if(hc<2||jobs.length<2)return;
-  imgPairs=matchJobs(jobs,Hm);pairImgMsg={};
-  var missed=0,seenM={};
-  jobs.forEach(function(j){if(cache[j.s]===undefined&&!seenM[j.s]){seenM[j.s]=1;missed++}});
-  var r=render(),note=ignImgNote(r),oriTxt=" ("+nL+" ngang, "+nP+" dọc)";
-  if(imgPairs.length||!missed){
-    if(missed)msg("Đã đối chiếu từ bộ nhớ đệm: tìm thấy "+imgPairs.length+" cặp trùng ảnh (còn "+missed+" ảnh chưa quét — bấm “Quét ảnh trùng” để quét đủ)."+note);
-    else msg("Đã đối chiếu "+hc+" ảnh đã lưu"+oriTxt+": tìm thấy "+imgPairs.length+" cặp ảnh giống nhau (lệch ≤ "+TH+"/64 bit)."+note);
-  }}
+  loadPm().then(function(){
+    if(scanning||imgPairs!==null)return;
+    if(pm.th!==TH||(!pm.pairs.length&&!Object.keys(pm.done).length)){
+      var n=0;activeItems().forEach(function(it){(it.im||[]).forEach(function(s){if(s&&cache[s])n++})});
+      if(n>=2)msg("Có "+n+" ảnh đã lưu nhưng chưa so khớp. Bấm “Quét ảnh trùng” (mỗi lượt "+BATCH+" căn, ảnh đã lưu nên khá nhanh).");
+      return}
+    pairsFromPm();
+    var r=render(),note=ignImgNote(r),np=pendingItems().length;
+    msg("Đã nạp "+imgPairs.length+" cặp ảnh giống nhau từ lần quét trước (lệch ≤ "+TH+"/64 bit)."+(np?" Còn "+np+" căn mới chưa so — bấm “Quét ảnh trùng”.":"")+note)})}
+function autoScan(){
+  if(scanning||!cacheLoaded)return;
+  loadPm().then(function(){
+    var d=G("dupd");
+    if(scanning||!d||!d.open)return;
+    if(pm.th!==TH||!Object.keys(pm.done).length)return;   /* chỉ tự chạy sau khi đã quét thủ công một lần */
+    if(pendingItems().length>=BATCH)scan(true)})}
 function rescanFromCache(){
   if(scanning||imgPairs===null)return;
-  loadCache().then(function(){
-    var jobs=[],Hm={},src=activeItems();
-    src.forEach(function(it){(it.im||[]).forEach(function(s){if(s){jobs.push({it:it,s:s});if(cache[s]&&!Hm[s]){var sg=parseSig(cache[s]);if(sg)Hm[s]=sg}}})});
-    imgPairs=matchJobs(jobs,Hm);pairImgMsg={};
-    var r=render(),note=ignImgNote(r);
-    msg("Đã cập nhật theo độ nhạy mới (lệch ≤ "+TH+"/64 bit): tìm thấy "+imgPairs.length+" cặp ảnh giống nhau."+note)})}
-function scan(){
+  Promise.all([loadCache(),loadPm()]).then(function(){
+    if(pm.th!==TH){scan();return}
+    pairsFromPm();
+    var r=render(),note=ignImgNote(r),np=pendingItems().length;
+    msg("Đã cập nhật: "+imgPairs.length+" cặp ảnh giống nhau (lệch ≤ "+TH+"/64 bit)."+(np?" Còn "+np+" căn chưa so — bấm “Quét ảnh trùng”.":"")+note)})}
+function scan(auto){
   if(scanning)return;
-  var src=activeItems(),sk=items.length-src.length,jobs=[];
-  src.forEach(function(it){(it.im||[]).forEach(function(s){if(s)jobs.push({it:it,s:s})})});
-  if(jobs.length<2){msg("Chưa đủ ảnh để so sánh"+(sk?" (đang bỏ qua "+sk+" căn Loại).":"."));return}
-  var urls=[],seenU={};jobs.forEach(function(j){if(!seenU[j.s]){seenU[j.s]=1;urls.push(j.s)}});
+  var cnt=0;activeItems().forEach(function(it){(it.im||[]).forEach(function(s){if(s)cnt++})});
+  if(cnt<2){msg("Chưa đủ ảnh để so sánh"+(items.length-activeItems().length?" (đang bỏ qua "+(items.length-activeItems().length)+" căn Loại).":"."));return}
   scanning=true;stopFlag=false;G("dupimg").disabled=true;G("dupstop").hidden=false;G("dupbar").hidden=false;
-  var done=0,bad=0,skipFlat=0,nL=0,nP=0,idx=0,Hm={},bar=G("dupbar").firstChild;
-  function upd(){bar.style.width=(done/urls.length*100)+"%";msg("Đang đọc ảnh "+done+"/"+urls.length+(bad?" ("+bad+" ảnh không đọc được)":"")+"…")}
-  function worker(){
-    if(stopFlag||idx>=urls.length)return Promise.resolve();
-    var u=urls[idx++];
-    return hashOf(u).then(function(h){if(h){var sg=parseSig(h);if(sg){Hm[u]=sg;if(sg.ori==="L")nL++;else nP++}}else if(h===null)bad++;else skipFlat++;done++;if(done%50===0)saveCache();if(done%5===0||done===urls.length)upd()}).then(worker)}
-  upd();
-  loadCache().then(function(){
+  var bar=G("dupbar").firstChild,badSet={},t={ok:0,bad:0,flat:0,nL:0,nP:0,newPairs:0,căn:0};
+  function end(){
+    savePm();saveCache();
+    scanning=false;G("dupimg").disabled=false;G("dupstop").hidden=true;G("dupbar").hidden=true;
+    pairsFromPm();
+    var r=render(),note=ignImgNote(r),extra=[],np=pendingItems().length;
+    if(np&&!stopFlag)note+=" Còn "+np+" căn chưa so"+(auto?" (chưa đủ "+BATCH+" căn — bấm “Quét ảnh trùng” để so ngay).":".");
+    if(t.nL||t.nP)extra.push(t.nL+" ngang, "+t.nP+" dọc");
+    if(t.bad)extra.push(t.bad+" ảnh không đọc được");
+    if(t.flat)extra.push(t.flat+" ảnh trơn ít chi tiết");
+    var exTxt=extra.length?" ("+extra.join(" · ")+")":"";
+    if(stopFlag)msg("Đã dừng. Đã so "+t["căn"]+" căn; hiện có "+imgPairs.length+" cặp ảnh giống nhau. Bấm “Quét ảnh trùng” để làm tiếp."+note);
+    else if(t.bad&&t.ok===0)msg("Hầu hết ảnh không đọc được (trình duyệt chặn đọc ảnh Drive hoặc mất mạng), nên chưa so sánh ảnh được. Kết quả bên dưới chỉ theo thông tin và mã ảnh.",1);
+    else if(!t["căn"])msg("Không có căn mới cần so. Hiện có "+imgPairs.length+" cặp ảnh giống nhau (lệch ≤ "+TH+"/64 bit)."+note);
+    else msg("Đã so "+t["căn"]+" căn mới ("+t.ok+" ảnh"+exTxt+"): hiện có "+imgPairs.length+" cặp ảnh giống nhau (lệch ≤ "+TH+"/64 bit). Ảnh chụp lại cùng một căn từ góc khác có thể không bị bắt."+note)}
+  function batch(total){
+    if(stopFlag)return Promise.resolve(false);
+    var pend=pendingItems(badSet);
+    if(!pend.length||(auto&&pend.length<BATCH))return Promise.resolve(false);
+    var B=pend.slice(0,BATCH),newJ=[],urls=[],seenU={},Bid={};
+    B.forEach(function(it){Bid[it.id]=1;(it.im||[]).forEach(function(s){if(s&&!pm.done[s]&&!badSet[s]){newJ.push({it:it,s:s});if(!seenU[s]){seenU[s]=1;urls.push(s)}}})});
+    var idx=0,got={},flat={};
+    function worker(){
+      if(stopFlag||idx>=urls.length)return Promise.resolve();
+      var u=urls[idx++];
+      return hashOf(u).then(function(h){
+        if(h){var sg=sigOf(u)||parseSig(h);if(sg){got[u]=1;t.ok++;if(sg.ori==="L")t.nL++;else t.nP++}}
+        else if(h===null){badSet[u]=1;t.bad++;pm.fail=pm.fail||{};pm.fail[u]=(pm.fail[u]||0)+1}
+        else{flat[u]=1;t.flat++}
+        msg("Đang so ảnh: "+t["căn"]+"/"+total+" căn (đọc ảnh "+Math.min(idx,urls.length)+"/"+urls.length+")…")
+      }).then(worker)}
     return Promise.all([worker(),worker(),worker()]).then(function(){
+      if(stopFlag)return false;
       saveCache();
-      var out=matchJobs(jobs,Hm);
-      imgPairs=out;pairImgMsg={};
-      scanning=false;G("dupimg").disabled=false;G("dupstop").hidden=true;G("dupbar").hidden=true;
-      var r=render(),note=ignImgNote(r);
-      var ok=urls.length-bad,extra=[];
-      if(nL||nP)extra.push(nL+" ngang, "+nP+" dọc");
-      if(bad)extra.push(bad+" ảnh không đọc được");
-      if(skipFlat)extra.push(skipFlat+" ảnh trơn ít chi tiết");
-      var exTxt=extra.length?" ("+extra.join(" · ")+")":"";
-      if(stopFlag)msg("Đã dừng. Kết quả tính trên "+ok+" ảnh đã đọc.");
-      else if(bad&&bad>=urls.length*0.8)msg("Hầu hết ảnh không đọc được (trình duyệt chặn đọc ảnh Drive hoặc mất mạng), nên chưa so sánh ảnh được. Kết quả bên dưới chỉ theo thông tin và mã ảnh.",1);
-      else if(!out.length)msg("Đã so "+ok+" ảnh"+exTxt+": không tìm thấy ảnh nào trùng nhau (ngưỡng giống nhau: lệch ≤ "+TH+"/64 bit). Ảnh chụp lại cùng một căn từ góc khác có thể không bị bắt.");
-      else msg("Đã so "+ok+" ảnh"+exTxt+", tìm thấy "+out.length+" cặp ảnh giống nhau. Ảnh chụp lại cùng một căn từ góc khác có thể không bị bắt."+note)})})}
-
+      var oldJ=[];
+      activeItems().forEach(function(it){if(Bid[it.id])return;(it.im||[]).forEach(function(s){if(s&&pm.done[s])oldJ.push({it:it,s:s})})});
+      var nj=newJ.filter(function(j){return got[j.s]||flat[j.s]});
+      return matchInc(nj,oldJ).then(function(out){
+        out.forEach(function(r){pm.pairs.push({a:r.a.id,b:r.b.id,x:r.x,y:r.y,d:r.d,k:r.k,o:r.o})});
+        nj.forEach(function(j){pm.done[j.s]=1});
+        pm.th=TH;t.newPairs+=out.length;t["căn"]+=B.length;
+        savePm();
+        bar.style.width=Math.min(100,t["căn"]/total*100)+"%";
+        return true})})}
+  function run(total){return batch(total).then(function(more){if(more&&!stopFlag)return run(total)})}
+  Promise.all([loadCache(),loadPm()]).then(function(){
+    if(pm.th!==TH){pm=pmEmpty();savePm()}
+    if(!auto)pm.fail={};
+    var total=pendingItems().length;if(auto)total=Math.floor(total/BATCH)*BATCH;
+    if(!total){return}
+    msg("Đang so ảnh: 0/"+total+" căn…");
+    return run(total)
+  }).then(end,function(){end()})}
 function onPairClick(e){
   var mo=e.target.closest("[data-more]");if(mo){if(mo.dataset.more==="ign")limIgn+=LIMIT;else limMain+=LIMIT;render();return}
   var cz=e.target.closest("[data-cmpzoom]");if(cz){openCmpZoom(cz.dataset.cmpzoom);return}
@@ -829,7 +898,7 @@ function open(nt){
   G("dupnoout").checked=skipOut;
   items=N().items();cleanImgPairs();limMain=limIgn=LIMIT;openSet={};openImgSet={};pairImgMode={};pairImgMsg={};zoomCmp=null;showIgn=false;msg(imgPairs&&imgPairs.length?"Đang hiện "+imgPairs.length+" cặp ảnh giống nhau (lệch ≤ "+TH+"/64 bit).":"");G("dupbar").hidden=true;G("dupstop").hidden=true;G("dupz").hidden=true;render();
   if(!G("dupd").open)G("dupd").showModal();G("dupd").scrollTop=0;
-  loadCache().then(function(){if(G("dupd").open&&!scanning&&imgPairs===null)applyCachedPairs()});
+  loadCache().then(function(){if(G("dupd").open&&!scanning&&imgPairs===null)applyCachedPairs();autoScan()});
   pullIgnored()}
 function close(){
   stopFlag=true;zoomCmp=null;undoSt=[];undoUi();
