@@ -714,7 +714,7 @@ function saveCache(){try{var k=Object.keys(cache);if(k.length>30000){var n={},ke
 /* ===== Đồng bộ hash ảnh qua tab "Hash" của Sheet =====
    Mỗi ảnh chỉ có một hash trên máy chủ (ai ghi trước thì giữ). Mọi bản cài (PWA, APK) kéo hash về dùng, không tự tính lại ảnh đã có,
    nên cùng danh sách căn + cùng cài đặt thì kết quả quét giống nhau. dhs1 lưu mốc đã kéo (n) và các mã ảnh đã có trên máy chủ (k). */
-var HS_KEY="dhs1",hs=null,hsP=null,hsBusy=false,hsAgain=false,hsPullP=null,hsT=0,hsPendR=null;
+var HS_KEY="dhs1",hs=null,hsP=null,hsPhase=null,hsBusy=false,hsAgain=false,hsPullP=null,hsT=0,hsPendR=null;
 function hsLoad(){
   if(hs)return Promise.resolve(hs);
   if(hsP)return hsP;
@@ -752,7 +752,7 @@ function hsRefresh(r){
 function hsPull(){
   if(!(N()&&N().apiGet))return Promise.resolve();
   if(hsPullP)return hsPullP;
-  hsPullP=Promise.all([loadCache(),hsLoad()]).then(function(){
+  hsPhase=Promise.all([loadCache(),hsLoad()]).then(function(){
     if(hs.n>0&&!Object.keys(cache).length)hs={n:0,k:{}};   // hash trên máy đã bị xóa: kéo lại từ đầu
     var tot={add:0,chg:0};
     function page(){
@@ -762,8 +762,9 @@ function hsPull(){
         var a=hsApply(d.rows);tot.add+=a.add;tot.chg+=a.chg;
         hs.n=d.next;hsSave();
         if(d.more)return page()})}
-    return page().then(function(){hsRefresh(tot);return hsPush()})
-  }).then(function(){hsPullP=null},function(){hsPullP=null});
+    return page().then(function(){hsRefresh(tot)})
+  }).then(function(){hsPhase=null},function(){hsPhase=null});
+  hsPullP=hsPhase.then(function(){return hsPush()}).then(function(){hsPullP=null},function(){hsPullP=null});
   return hsPullP}
 function hsPush(){
   if(!(N()&&N().apiPost&&canWrite()))return Promise.resolve();
@@ -781,6 +782,7 @@ function hsPush(){
         return send()})}
     return send()
   }).then(function(){},function(){}).then(function(){hsBusy=false;if(hsAgain){hsAgain=false;hsPush()}})}
+function hsWait(){return hsPhase?Promise.race([hsPhase,new Promise(function(r){setTimeout(r,15000)})]):Promise.resolve()}
 function hsPushSoon(){clearTimeout(hsT);hsT=setTimeout(function(){hsT=0;hsPush()},3000)}
 function hsFlush(){if(hsT){clearTimeout(hsT);hsT=0}hsPush()}
 function grid9x8(gray,gw,gh,x0,y0,w,h){
@@ -859,7 +861,7 @@ function hashOf(s){
     var s0=imgSrc(s,64),isLh=s0.indexOf("https://lh3.googleusercontent.com/")===0;
     var tries=isLh?[s0+"?dh=1",imgSrc(s,120)+"?dh=2",imgSrc(s,200)]:[s0];
     var step=0,done=false;
-    function fin(h){if(done)return;done=true;if(h!==null&&String(s).indexOf("data:")!==0)cache[s]=h;delete inflight[s];res(h)}
+    function fin(h){if(done)return;done=true;if(h!==null&&String(s).indexOf("data:")!==0){if(hs&&hs.k[s]&&cache[s]!==undefined)h=cache[s];else cache[s]=h}delete inflight[s];res(h)}
     function next(){
       if(done)return;
       if(step>=tries.length){fin(null);return}
@@ -1130,7 +1132,9 @@ function scan(auto){
         bar.style.width=Math.min(100,t["căn"]/total*100)+"%";
         return true})})}
   function run(total){return batch(total).then(function(more){if(more&&!stopFlag)return run(total)})}
-  Promise.all([loadCache(),loadPm()]).then(function(){
+  if(hsPhase)msg("Đang đồng bộ hash từ máy chủ…");
+  Promise.all([loadCache(),loadPm(),hsWait()]).then(function(){
+    if(hsPendR){if(hsPendR.chg){pm=pmEmpty();savePm()}hsPendR=null}   // hash vừa đổi theo máy chủ: quét lại từ hash mới
     if(pm.th!==TH){pm=pmEmpty();savePm()}
     if(!auto)pm.fail={};
     var total=pendingItems().length;
@@ -1281,7 +1285,7 @@ function sync(){
     if(cacheLoaded&&!scanning)autoScan()
   },120)}
 
-window.Dup={pull:pullIgnored,init:init,open:open,close:close,sync:sync,closeZoom:closeZoom};
+window.Dup={pull:function(f){var p=pullIgnored(f);if(f)hsPull();return p},init:init,open:open,close:close,sync:sync,closeZoom:closeZoom};
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",function(){init()});
 else init();
 })();
