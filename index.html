@@ -390,6 +390,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .ckt{margin:2px 0 var(--sp-2);font-size:var(--fs-h);font-weight:800;line-height:1.25;overflow-wrap:anywhere}
 .ckx{flex:none;display:inline-flex;align-items:center;gap:5px;min-height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:var(--fs-m);font-weight:700;cursor:pointer}
 .ckx.bt{width:100%;justify-content:center;margin:14px 0 6px;min-height:46px;background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.ckx:disabled{opacity:.62;cursor:wait}
 .hint{font-size:var(--fs-s);color:var(--mute);margin:var(--sp-2) 0 10px}
 .prog{position:sticky;top:calc(var(--top) + var(--tabh));z-index:4;background:var(--bg);padding:8px 0;margin-bottom:6px;contain:layout style}
 .pt{display:flex;justify-content:space-between;gap:8px;font-size:var(--fs-b)}
@@ -677,7 +678,7 @@ function netMsg(e){var m=e&&e.message?String(e.message):"";return /failed to fet
 var wl=null,wlN=0;
 function wlOn(){if(wlN<1||wl||!navigator.wakeLock||document.visibilityState!=="visible")return;navigator.wakeLock.request("screen").then(function(l){wl=l;l.addEventListener("release",function(){wl=null})},function(){})}
 function upBusy(d){wlN=Math.max(0,wlN+d);if(wlN>0)wlOn();else if(wl){try{wl.release()}catch(e){}wl=null}}
-window.addEventListener("beforeunload",function(e){if(upl>0||ckUpQ.length>0){e.preventDefault();e.returnValue=""}});
+window.addEventListener("beforeunload",function(e){if(upl>0||ckUpN>0||ckUpQ.length>0||ckSaveN>0||ckDirty){e.preventDefault();e.returnValue=""}});
 function upSafe(p){
   var started=0,fails=0,cuts=0;
   function find(){return apiPost("find",{name:p.name,folder:p.folder,area:p.area,ward:p.ward,addr:p.addr,kind:p.kind,hid:p.hid,fid:p.fid},20000).then(function(d){return d&&d.id?d:null},function(){return null})}
@@ -766,7 +767,7 @@ function refresh(silent){
     if(!r0)enterAnim();
     var next=nrm(d.items||[]),mg=items.length?mergeItems(items,next):{list:next,changed:true};
     dataVer=d.ver;
-    if(mg.changed||r0!==role){items=mg.list;dataRev++;applyRole();render();if(tab==="ck"&&!ckDirty&&ckId)ckLoad(ckId)}
+    if(mg.changed||r0!==role){items=mg.list;dataRev++;applyRole();render();if(tab==="ck"&&!ckDirty&&!ckUpN&&!ckSaveN&&ckId)ckLoad(ckId)}
     else applyRole();
     lcSave();schedWarm();if(!silent||mg.changed||($("dupd")&&$("dupd").open))dupPullBg(false);
   }).catch(function(){banner("Không kết nối được tới Google Sheets. Kiểm tra mạng hoặc link Web app.")}).then(function(){if(silent)rfT=0});
@@ -1355,7 +1356,7 @@ var CK=[
 ];
 var TIPS=["Chụp hình + quay video mọi lỗi nhỏ","Ghi rõ vào biên bản bàn giao","Không cọc nếu hợp đồng mập mờ"];
 var TOT=0,CKIDS={};CK.forEach(function(s){TOT+=(s.i||[]).length;(s.i||[]).forEach(function(x){CKIDS[x[0]]=1})});
-var tab="list",ckId="",ckCur=null,ckDirty=false,ckT=null,ckQ=Promise.resolve();
+var tab="list",ckId="",ckCur=null,ckDirty=false,ckT=null,ckQ=Promise.resolve(),ckUpN=0,ckSaveN=0,ckErr=false,ckExitFn=null,ckWarnT=0;
 function ckCopy(c){var o=c?JSON.parse(JSON.stringify(c)):{};o.c=o.c||{};o.v=o.v||{};o.nt=o.nt||"";o.im=o.im||[];o.vi=o.vi||[];return o}
 function ckHas(it){var c=it&&it.ck;if(!c)return false;var s=ckStat(c);return s.d+s.b>0||!!(c.nt&&String(c.nt).trim())||!!(c.vi&&c.vi.length)||!!(c.im&&c.im.length)}
 function ckStat(c){
@@ -1408,7 +1409,7 @@ function ckLoad(id){
   var t=++ckTok,it=id&&findItem(id);
   if(!it){renderCk(null);return}
   var l=it.ck,e=ckC[id],el=$("ckb");
-  if(l&&!(e&&e.h===(l.h||""))){ckCur=null;ckDirty=false;el.className="";el.innerHTML='<div class="empty"><p>Đang tải checklist…</p></div>'}
+  if(l&&!(e&&e.h===(l.h||""))){ckCur=null;ckDirty=false;ckErr=false;ckExitFn=null;el.className="";el.innerHTML='<div class="empty"><p>Đang tải checklist…</p></div>'}
   ckGet(id).then(function(full){if(t===ckTok&&ckId===id&&tab==="ck")renderCk(full)},function(er){
     if(t===ckTok)el.innerHTML='<div class="empty"><p>Không tải được checklist: '+esc(er&&er.message?er.message:"lỗi kết nối")+'</p><button type="button" class="btn" data-ckretry>Thử lại</button></div>'})}
 function renderCk(full){if(window.Ck)Ck.renderCk(full)}
@@ -1438,6 +1439,38 @@ function layerClose(){
   var d=document.querySelectorAll("dialog[open]");
   if(d.length){d[d.length-1].close();return true}
   return false}
+function ckSyncUi(){if(window.Ck&&Ck.syncUi)Ck.syncUi()}
+function ckWarn(msg){
+  var s=$("cks");if(s){s.textContent=msg;s.style.color="var(--danger)"}
+  banner(msg);clearTimeout(ckWarnT);ckWarnT=setTimeout(function(){if(s){s.style.color="";ckSyncUi()}applyRole()},3000);
+}
+function ckWaitExit(){
+  if(tab!=="ck"||!ckExitFn)return;
+  if(ckUpN>0||ckUpQ.length>0){ckExitFn=null;ckSyncUi();return}
+  if(ckDirty)ckFlush();
+  if(ckSaveN>0||ckDirty){ckQ.then(ckWaitExit,ckWaitExit);return}
+  if(ckErr){ckExitFn=null;ckSyncUi();return}
+  var fn=ckExitFn;ckExitFn=null;ckSyncUi();fn();
+}
+function ckLeave(fn){
+  if(tab!=="ck"||!ckCur||!canW){fn();return true}
+  if(ckUpN>0||ckUpQ.length>0){
+    ckExitFn=null;ckSyncUi();
+    ckWarn("Đang tải "+Math.max(ckUpN,ckUpQ.length)+" ảnh checklist lên Drive, vui lòng đợi xong rồi đóng.");
+    return false;
+  }
+  if(ckDirty||ckSaveN>0){
+    ckExitFn=fn;
+    ckFlush();
+    if(ckSaveN>0||ckDirty){ckSyncUi();ckQ.then(ckWaitExit,ckWaitExit);return false}
+    ckExitFn=null;
+  }
+  if(ckErr){
+    if(!confirm("Dữ liệu checklist vừa rồi chưa lưu được lên Sheet do lỗi kết nối. Bạn vẫn muốn đóng (có thể mất thay đổi chưa lưu)?"))return false;
+    ckErr=false;
+  }
+  fn();return true;
+}
 window.addEventListener("popstate",function(e){
   var st=!!(e.state&&e.state.ck);
   if(!st&&leaveBack>0){leaveBack--;return}
@@ -1447,12 +1480,13 @@ window.addEventListener("popstate",function(e){
     setTimeout(function(){if(tab==="ck"&&!(history.state&&history.state.ck)){try{history.pushState({ck:1},"")}catch(x){}}},300);
     return}
   ckHist=false;
-  closeCk()
+  if(!ckLeave(function(){ckHist=false;closeCkNow()}))ckHistOn();
 });
-function setTab(t,keep){
+function setTab(t,keep,force){
   var same=t===tab;
   closeMenus();
   if(same&&!keep){jumpTop();return}
+  if(!force&&tab==="ck"&&t!=="ck"){ckLeave(function(){setTab(t,keep,true)});return}
   if(t==="ck"&&tab!=="ck")ckHistOn();
   if(tab==="ck"&&t!=="ck")ckHistOff();
   if(t==="ck"&&tab!=="ck"){ckPrev=tab;ckY=window.pageYOffset||0}
@@ -1469,7 +1503,7 @@ function setTab(t,keep){
   if(!keep&&!same)pageIn()
 }
 function ckSaveOff(id,cur){var it=findItem(id);if(!it||!canW)return;var x=ckSnap(cur);
-  ckQ=ckQ.then(function(){var curIt=findItem(id);if(!curIt)return null;return ckPersist(id,curIt,x)}).catch(fail)}
+  ckSaveN++;ckQ=ckQ.then(function(){var curIt=findItem(id);if(!curIt)return null;return ckPersist(id,curIt,x)}).then(function(d){ckSaveN=Math.max(0,ckSaveN-1);ckSyncUi();return d},function(e){ckSaveN=Math.max(0,ckSaveN-1);ckSyncUi();fail(e)})}
 var ckPrev="list";
 var ckY=null,hlT=0,hlOn=null,hlSel="",hlAct=false,hlTk=0;
 function hlEnd(){if(hlOn)hlOn.classList.remove("hl");hlOn=null;hlSel="";hlAct=false}
@@ -1479,10 +1513,10 @@ function hlEl(c,sel){
     if(tk!==hlTk||!hlOn)return;hlAct=true;hlOn.classList.add("hl");hlT=setTimeout(hlEnd,2200)})})
 }
 function hlRe(){if(!hlOn||document.contains(hlOn))return;var n=hlSel&&document.querySelector(hlSel);if(n){hlOn=n;if(hlAct)n.classList.add("hl")}else hlEnd()}
-function closeCk(){
-  var id=ckId;ckFlush();noSmooth();ckFresh=false;
+function closeCkNow(){
+  var id=ckId;ckExitFn=null;noSmooth();ckFresh=false;
   noMoreUntil=Date.now()+900;
-  setTab(ckPrev||"list",true);
+  setTab(ckPrev||"list",true,true);
   if(!id)return;
   var sum=tab==="sum",sel=sum?'#pgSum .sx[data-id="'+id+'"]':'#list .card[data-id="'+id+'"]';
   var f=function(){return document.querySelector(sel)},c=f(),n=0;
@@ -1490,9 +1524,11 @@ function closeCk(){
   if(c){if(ckY!=null)instant(function(){window.scrollTo(0,ckY)});else jumpTo(c);hlEl(c,sel)}else jumpTop();
   pageIn("pg-back")
 }
+function closeCk(){ckLeave(closeCkNow)}
 var nsT=0,ckFresh=false;
 function noSmooth(){var h=document.documentElement;h.classList.add("nosm");clearTimeout(nsT);nsT=setTimeout(function(){h.classList.remove("nosm");ckFresh=false},450)}
-function openCk(id){if(tab==="ck")ckFlush();noSmooth();ckFresh=true;ckId=id;setTab("ck",true);jumpTop();pageIn("pg-fwd")}
+function openCkNow(id){noSmooth();ckFresh=true;ckId=id;ckErr=false;ckExitFn=null;setTab("ck",true,true);jumpTop();pageIn("pg-fwd")}
+function openCk(id){if(tab==="ck"&&ckId!==id){ckLeave(function(){openCkNow(id)});return}openCkNow(id)}
 document.querySelector(".tabs").onclick=function(e){var b=e.target.closest(".tab");if(b)setTab(b.dataset.tab)};
 
 /* ===== Tab Tổng hợp (giống sheet "Tổng hợp") ===== */
@@ -1703,11 +1739,11 @@ $("sf").addEventListener("submit",function(e){
     if(!d||!d.ok){setSm((d&&d.error)||"Sai mã truy cập hoặc không có quyền.",1);return}
     if(!API_URL)ls(UK,u);
     ls(KK,k);
-    if(lcKey()!==oldK){ckC={};ckP={};knownIds=null;listChunks=null;listRenderedKey="";SUB_DOM={list:null,fav:null,real:null};activeListTab=(tab==="list"||tab==="fav"||tab==="real")?tab:"list";if($("list"))$("list").innerHTML="";lastSumTop="";lastMdlH="";mdlState=null;sumTopRev=-1;sumDetKey="";sumDistRev=-1;sumWardKey="";tabCntRev=-1;galOpen={};realSeg={};sxOpen={};gOpen={};ckId="";ckCur=null;ckDirty=false}
+    if(lcKey()!==oldK){ckC={};ckP={};knownIds=null;listChunks=null;listRenderedKey="";SUB_DOM={list:null,fav:null,real:null};activeListTab=(tab==="list"||tab==="fav"||tab==="real")?tab:"list";if($("list"))$("list").innerHTML="";lastSumTop="";lastMdlH="";mdlState=null;sumTopRev=-1;sumDetKey="";sumDistRev=-1;sumWardKey="";tabCntRev=-1;galOpen={};realSeg={};sxOpen={};gOpen={};ckId="";ckCur=null;ckDirty=false;ckUpN=0;ckSaveN=0;ckErr=false;ckExitFn=null}
     role=d.role;canW=role==="edit";items=nrm(d.items||[]);dataVer=d.ver||"";dataRev++;
     setSm("");$("sd").close();
     enterAnim();applyRole();render();
-    if(tab==="ck"&&!ckDirty&&ckId)ckLoad(ckId);
+    if(tab==="ck"&&!ckDirty&&!ckUpN&&!ckSaveN&&ckId)ckLoad(ckId);
     lcSave();schedWarm();
   }).catch(function(){
     if(tok!==sfTok)return;
@@ -1786,7 +1822,8 @@ document.addEventListener("focusin",function(e){var t=e.target;if(!t||!t.closest
     rb.classList.add("spin");
     var fin=function(){rb.classList.remove("spin")};
     var dp=function(){try{return window.Dup&&Dup.pull?Dup.pull(true):0}catch(e){return 0}};
-    if(tab==="ck"&&ckDirty){ckFlush();ckQ.then(function(){return refresh(false)}).then(dp).then(fin,fin)}
+    if(tab==="ck"&&(ckUpN>0||ckUpQ.length>0)){ckWarn("Đang tải ảnh checklist lên Drive, đợi xong rồi làm mới.");fin();return}
+    if(tab==="ck"&&(ckDirty||ckSaveN>0)){ckFlush();ckQ.then(function(){return refresh(false)}).then(dp).then(fin,fin)}
     else refresh(false).then(dp).then(fin,fin);
   };
   var ua=navigator.userAgent||"",isIos=/iPad|iPhone|iPod/i.test(ua)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
@@ -1798,7 +1835,7 @@ document.addEventListener("focusin",function(e){var t=e.target;if(!t||!t.closest
   }
 })();
 window.NT={apiGet:apiGet,apiPost:apiPost,items:function(){return items},esc:esc,su:su,imgSrc:imgSrc,addrOf:addrOf,stName:stName,fmt:fmt,ls:ls,openDv:openDv,openEdit:openForm,canW:function(){return canW},idbGet:function(k){return IDBM.get(k)},idbSave:function(k,v){return IDBM.save(k,v)},del:function(id){return removeItem(id).catch(function(e){fail(e);refresh(true);throw e})}};
-window.NK={get tab(){return tab},$:$,CK:CK,LP:LP,PARTS:PARTS,TIPS:TIPS,VW:VW,get canW(){return canW},set canW(v){canW=v},ckA:ckA,get ckC(){return ckC},set ckC(v){ckC=v},ckCopy:ckCopy,get ckCur(){return ckCur},set ckCur(v){ckCur=v},get ckDirty(){return ckDirty},set ckDirty(v){ckDirty=v},get ckFresh(){return ckFresh},set ckFresh(v){ckFresh=v},get ckId(){return ckId},set ckId(v){ckId=v},ckLiteOf:ckLiteOf,ckLoad:ckLoad,get ckQ(){return ckQ},set ckQ(v){ckQ=v},ckSaveOff:ckSaveOff,ckSnap:ckSnap,ckStat:ckStat,get ckT(){return ckT},set ckT(v){ckT=v},get ckTrashQ(){return ckTrashQ},set ckTrashQ(v){ckTrashQ=v},ckUpQ:ckUpQ,ckcSave:ckcSave,closeCk:closeCk,esc:esc,get fail(){return fail},set fail(v){fail=v},findItem:findItem,imgSrc:imgSrc,get items(){return items},set items(v){items=v;dataRev++},jumpTop:jumpTop,openLb:openLb,persist:persist,rtgH:rtgH,runPool:runPool,shrink:shrink,trashIds:trashIds,uname:uname,upBusy:upBusy,upMon:upMon,upSafe:upSafe};
+window.NK={get tab(){return tab},$:$,CK:CK,LP:LP,PARTS:PARTS,TIPS:TIPS,VW:VW,get canW(){return canW},set canW(v){canW=v},ckA:ckA,get ckC(){return ckC},set ckC(v){ckC=v},ckCopy:ckCopy,get ckCur(){return ckCur},set ckCur(v){ckCur=v},get ckDirty(){return ckDirty},set ckDirty(v){ckDirty=v},get ckErr(){return ckErr},set ckErr(v){ckErr=v},get ckFresh(){return ckFresh},set ckFresh(v){ckFresh=v},get ckId(){return ckId},set ckId(v){ckId=v},ckLiteOf:ckLiteOf,ckLoad:ckLoad,get ckQ(){return ckQ},set ckQ(v){ckQ=v},get ckSaveN(){return ckSaveN},set ckSaveN(v){ckSaveN=v},ckSaveOff:ckSaveOff,ckSnap:ckSnap,ckStat:ckStat,ckSyncUi:ckSyncUi,get ckT(){return ckT},set ckT(v){ckT=v},get ckTrashQ(){return ckTrashQ},set ckTrashQ(v){ckTrashQ=v},get ckUpN(){return ckUpN},set ckUpN(v){ckUpN=v},ckUpQ:ckUpQ,ckcSave:ckcSave,closeCk:closeCk,esc:esc,get fail(){return fail},set fail(v){fail=v},findItem:findItem,imgSrc:imgSrc,get items(){return items},set items(v){items=v;dataRev++},jumpTop:jumpTop,openLb:openLb,persist:persist,rtgH:rtgH,runPool:runPool,shrink:shrink,trashIds:trashIds,uname:uname,upBusy:upBusy,upMon:upMon,upSafe:upSafe};
 if(window.Ck)Ck.init(window.NK);
 window.NB={$:$,IDBM:IDBM,apiGet:apiGet,apiPost:apiPost,apiUrl:apiUrl,capP:capP,hs:hs,netMsg:netMsg,nrm:nrm,refresh:refresh,get items(){return items},get canW(){return canW},pendAdd:function(n){pend+=n},bumpVer:function(){wver++;dataVer="";dataRev++}};
 if(window.Bk)Bk.init(window.NB);
