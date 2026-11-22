@@ -1160,148 +1160,9 @@ function listClick(e){
 }
 $("list").onclick=listClick;
 $("rsel").onchange=render;
-/* ===== Sao lưu / khôi phục =====
-   Sao lưu: lên Drive (server, giữ 30 bản) hoặc tải file. Khôi phục: chọn bản → xem trước số căn thêm/khác → tự sao lưu bản hiện tại → ghi từng đợt nhỏ, không xóa gì. */
-var bkItems=null,bkMeta="",bkBusy=false;
-function stab(v){if(Array.isArray(v))return"["+v.map(stab).join(",")+"]";if(v&&typeof v==="object")return"{"+Object.keys(v).sort().map(function(k){return JSON.stringify(k)+":"+stab(v[k])}).join(",")+"}";return JSON.stringify(v===undefined?null:v)}
-/* So sánh căn trong app (bản nhẹ) với căn trong bản sao lưu (đầy đủ): bỏ trường rỗng, checklist so bằng mã h */
-function cmpKey(x){var o={};Object.keys(x).forEach(function(k){var v=x[k];
-  if(k==="ck"){if(v&&typeof v==="object")o.ck=v.h||hs(JSON.stringify(v))}
-  else if(!(v==null||v===""||(k==="t"&&!v)||(typeof v==="number"&&isNaN(v))||(Array.isArray(v)&&!v.length)))o[k]=v});return stab(o)}
-function bmsg(t,bad){var e=$("bm");e.textContent=t||"";e.className="pm"+(bad?" bad":"")}
-function bfmt(iso){var d=new Date(iso);return isNaN(d)?"":d.toLocaleString("vi-VN",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"})}
-function bmode(){var r=document.querySelector('input[name="bmode"]:checked');return r?r.value:"missing"}
-function parseBk(text){
-  var d=JSON.parse(text),a=Array.isArray(d)?d:(d&&Array.isArray(d.items)?d.items:null);
-  if(!a)throw new Error("không phải file sao lưu");
-  a=nrm(a.filter(function(x){return x&&x.n}));
-  if(!a.length)throw new Error("không có căn nào trong bản sao lưu");
-  a.forEach(function(x,k){if(!x.id)x.id="h"+Date.now().toString(36)+k});
-  return a}
-/* Điền giá trị mặc định khi ghi (mã dán kiểu cũ có thể thiếu); không dùng khi so sánh để căn giống hệt không bị tính là khác */
-function bFill(x){var y=Object.assign({},x);if(!y.t)y.t=Date.now();if(!Array.isArray(y.im))y.im=[];return y}
-function bTodo(){
-  var cur={},mode=bmode(),add=[],ov=[],same=0;
-  items.forEach(function(x){cur[x.id]=x});
-  (bkItems||[]).forEach(function(x){var c=cur[x.id];if(!c)add.push(x);else if(cmpKey(c)===cmpKey(x))same++;else ov.push(x)});
-  return{add:add,ov:ov,same:same,run:mode==="all"?add.concat(ov):add}}
-function bPlan(){
-  var el=$("bplan"),btn=$("bim");
-  if(!bkItems){el.textContent="";btn.disabled=true;return}
-  var t=bTodo();
-  el.textContent=bkMeta+bkItems.length+" căn: "+t.add.length+" căn chưa có, "+t.ov.length+" căn đã có nhưng khác, "+t.same+" căn giống hệt."+(bmode()==="missing"&&t.ov.length?" Các căn khác nhau sẽ được giữ nguyên.":"");
-  btn.disabled=!canW||bkBusy||!t.run.length}
-var BKL={"thu-cong":"thủ công","tu-dong":"tự động","truoc-khoi-phuc":"trước khi khôi phục"};
-function bLoad(){
-  var sel=$("bsel"),keep=sel.value;sel.innerHTML='<option value="">Chọn bản sao lưu trên Drive…</option>';
-  if(!canW||!apiUrl())return;
-  apiPost("backups",{},20000).then(function(d){
-    (d.list||[]).forEach(function(b){var o=document.createElement("option");o.value=b.id;o.textContent=bfmt(b.at)+" · "+b.count+" căn"+(b.label?" · "+(BKL[b.label]||b.label):"");sel.appendChild(o)});
-    if(keep)sel.value=keep;
-    if(!(d.list||[]).length)bmsg("Chưa có bản sao lưu nào trên Drive. Bấm “Sao lưu lên Drive” để tạo.")
-  },function(e){bmsg("Không đọc được danh sách sao lưu: "+e.message,1)})}
-$("bk").onclick=function(){
-  bkItems=null;bkMeta="";$("bsel").value="";$("bt").value="";$("bplan").textContent="";$("bim").disabled=true;bmsg("");
-  if(!$("bd").open)$("bd").showModal();
-  dirInit();refresh(true);bLoad()};
-$("bcl").onclick=function(){$("bd").close()};
-$("bnow").onclick=function(){
-  if(bkBusy)return;bkBusy=true;bmsg("Đang sao lưu lên Drive…");
-  apiPost("backup",{label:"thu-cong"},60000).then(function(d){bmsg("Đã sao lưu "+d.backup.count+" căn: "+d.backup.name);bLoad()},function(e){bmsg("Chưa sao lưu được: "+e.message,1)}).then(function(){bkBusy=false;bPlan()})};
-/* App Android: WebView không tải được link blob, nên ghi file vào bộ nhớ tạm rồi mở hộp chia sẻ để người dùng chọn nơi lưu (Drive, Tệp...) */
-function capSave(name,txt,n){
-  return capP("Filesystem").writeFile({path:name,data:txt,directory:"CACHE",encoding:"utf8"}).then(function(r){
-    return capP("Share").share({title:"Sao lưu nhà thuê",text:name,url:r.uri,dialogTitle:"Lưu bản sao lưu"})
-  }).then(function(){bmsg("Đã tạo "+name+" ("+n+" căn). Chọn nơi lưu trong hộp chia sẻ.")},function(e){
-    if(e&&/cancel/i.test(e.message||""))bmsg("");else bmsg("Chưa lưu được: "+(e&&e.message?e.message:e),1)})}
-$("bdl").onclick=function(){
-  bmsg("Đang chuẩn bị file…");
-  apiGet("&action=export",45000).then(function(d){
-    if(!d.ok)throw new Error(d.error||"Lỗi máy chủ");
-    var arr=d.items||[];
-    if(!arr.length){bmsg("Chưa có dữ liệu để sao lưu.",1);return}
-    var at=new Date(),pd=function(n){return(n<10?"0":"")+n},
-        name="nha-thue_"+at.getFullYear()+"-"+pd(at.getMonth()+1)+"-"+pd(at.getDate())+"_"+pd(at.getHours())+"-"+pd(at.getMinutes())+".json",
-        txt=JSON.stringify({app:"nha-thue",v:2,at:at.toISOString(),count:arr.length,items:arr}),
-        blob=new Blob([txt],{type:"application/json"}),
-        a=document.createElement("a");
-    if(capP("Filesystem")&&capP("Share"))return capSave(name,txt,arr.length);
-    a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();
-    setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},60000);
-    bmsg("Đã tải "+name+" ("+arr.length+" căn).")
-  }).catch(function(e){bmsg("Chưa tải được: "+netMsg(e),1)})};
-/* Thư mục trên máy (File System Access API, Chrome/Edge máy tính): ghi bản sao dữ liệu ra file thật */
-var dirH=null,dirT=0,dirBusy=false;
-function dirMsg(t,bad){var e=$("bdirm");e.textContent=t||"";e.className="pm"+(bad?" bad":"")}
-function dirUi(){var on=!!dirH;$("bdirnow").disabled=!on||dirBusy;$("bdiroff").disabled=!on;if(on&&!$("bdirm").textContent)dirMsg("Đang dùng thư mục: "+dirH.name)}
-function dirLoad(){if(!window.showDirectoryPicker||dirH)return Promise.resolve();return IDBM.get("dir").then(function(h){if(h&&h.kind==="directory")dirH=h},function(){})}
-function dirInit(){if(!window.showDirectoryPicker)return;$("bdirbox").hidden=false;dirLoad().then(dirUi)}
-function dirPerm(ask){
-  if(!dirH)return Promise.resolve(false);var o={mode:"readwrite"};
-  return dirH.queryPermission(o).then(function(p){if(p==="granted")return true;if(!ask)return false;return dirH.requestPermission(o).then(function(q){return q==="granted"})}).catch(function(){return false})}
-function dirFile(name,txt){return dirH.getFileHandle(name,{create:true}).then(function(f){return f.createWritable()}).then(function(w){return w.write(txt).then(function(){return w.close()})})}
-async function dirPrune(){try{var ds=[];for await(var e of dirH.values()){if(e.kind==="file"&&/^nha-thue_\d{4}-\d\d-\d\d\.json$/.test(e.name))ds.push(e.name)}ds.sort().reverse();for(var i=14;i<ds.length;i++)await dirH.removeEntry(ds[i])}catch(e){}}
-function dirSave(ask){
-  if(dirBusy||!dirH)return Promise.resolve(false);
-  dirBusy=true;dirUi();
-  return dirPerm(ask).then(function(ok){
-    if(!ok)throw new Error("chưa được phép ghi vào thư mục (bấm “Ghi ngay” rồi chọn Cho phép)");
-    return apiGet("&action=export",45000)}).then(function(d){
-    if(!d.ok)throw new Error(d.error||"Lỗi máy chủ");
-    var arr=d.items||[];if(!arr.length)throw new Error("chưa có dữ liệu");
-    var at=new Date(),pd=function(n){return(n<10?"0":"")+n},day=at.getFullYear()+"-"+pd(at.getMonth()+1)+"-"+pd(at.getDate());
-    var txt=JSON.stringify({app:"nha-thue",v:2,at:at.toISOString(),count:arr.length,items:arr});
-    return dirFile("nha-thue_moi-nhat.json",txt).then(function(){return dirFile("nha-thue_"+day+".json",txt)}).then(dirPrune).then(function(){return arr.length})
-  }).then(function(n){dirBusy=false;dirUi();dirMsg("Đã ghi "+n+" căn vào thư mục “"+dirH.name+"” lúc "+bfmt(new Date().toISOString()));return true},function(e){dirBusy=false;dirUi();dirMsg("Chưa ghi được: "+(e&&e.message?e.message:e),1);return false})}
-function dirAuto(){if(dirH&&!dirBusy&&Date.now()-dirT>600000){dirT=Date.now();dirSave(false)}}
-$("bdir").onclick=function(){
-  window.showDirectoryPicker({mode:"readwrite"}).then(function(h){dirH=h;return IDBM.set("dir",h)}).then(function(){dirMsg("");dirUi();return dirSave(true)}).catch(function(e){if(!e||e.name!=="AbortError")dirMsg("Không chọn được thư mục: "+(e&&e.message||e),1)})};
-$("bdirnow").onclick=function(){dirSave(true)};
-$("bdiroff").onclick=function(){dirH=null;IDBM.set("dir","").catch(function(){});dirMsg("Đã tắt ghi vào thư mục.");dirUi()};
-$("bsel").onchange=function(){
-  var id=this.value;bkItems=null;bPlan();if(!id)return;
-  bmsg("Đang đọc bản sao lưu…");
-  apiPost("backupGet",{id:id},60000).then(function(d){
-    bkItems=parseBk(JSON.stringify(d.items));bkMeta="Bản "+bfmt(d.at)+": ";bmsg("");bPlan()
-  },function(e){bkItems=null;bPlan();bmsg("Không đọc được bản sao lưu: "+e.message,1)})};
-$("bpick").onclick=function(){$("bfile").click()};
-$("bfile").onchange=function(){
-  var f=this.files&&this.files[0];this.value="";if(!f)return;
-  $("bsel").value="";bkItems=null;bPlan();bmsg("Đang đọc file…");
-  var r=new FileReader();
-  r.onload=function(){try{bkItems=parseBk(String(r.result));bkMeta="File "+f.name+": ";bmsg("");bPlan()}catch(e){bkItems=null;bPlan();bmsg("File không hợp lệ: "+e.message,1)}};
-  r.onerror=function(){bmsg("Không đọc được file.",1)};
-  r.readAsText(f)};
-$("bpar").onclick=function(){
-  $("bsel").value="";
-  try{bkItems=parseBk($("bt").value);bkMeta="Mã dán vào: ";bmsg("");bPlan()}catch(e){bkItems=null;bPlan();bmsg("Mã không hợp lệ.",1)}};
-Array.prototype.forEach.call(document.querySelectorAll('input[name="bmode"]'),function(r){r.onchange=bPlan});
-function bSend(part,mode,left){
-  return apiPost("restoreItems",{items:part,mode:mode},60000).catch(function(e){
-    if(left<=0)throw e;
-    return new Promise(function(z){setTimeout(z,1500)}).then(function(){return bSend(part,mode,left-1)})})}
-$("bim").onclick=function(){
-  if(!bkItems||bkBusy||!canW)return;
-  var mode=bmode(),t=bTodo(),run=t.run;
-  if(!run.length)return;
-  var nOv=mode==="all"?t.ov.length:0;
-  if(!confirm("Khôi phục "+run.length+" căn ("+t.add.length+" thêm mới"+(nOv?", "+nOv+" ghi đè":"")+")?\nHệ thống sẽ tự sao lưu dữ liệu hiện tại lên Drive trước khi ghi. Không có căn nào bị xóa."))return;
-  bkBusy=true;pend++;$("bim").disabled=true;bmsg("Đang sao lưu dữ liệu hiện tại…");
-  var n=0,CH=15,tot=run.length;
-  function step(){
-    if(n>=tot)return Promise.resolve();
-    var part=run.slice(n,n+CH).map(bFill);
-    return bSend(part,mode,2).then(function(){n+=part.length;bmsg("Đang khôi phục "+n+"/"+tot+"…");return step()})}
-  apiPost("backup",{label:"truoc-khoi-phuc"},60000).then(function(){return step()},function(e){
-    throw new Error("chưa tạo được bản sao lưu an toàn ("+e.message+"), chưa ghi gì")
-  }).then(function(){
-    bmsg("Đã khôi phục "+tot+" căn.")
-  },function(e){
-    bmsg(n?"Dừng ở "+n+"/"+tot+" căn: "+e.message+". Phần đã ghi vẫn giữ nguyên, bấm Khôi phục lại để làm tiếp.":"Chưa khôi phục: "+e.message,1)
-  }).then(function(){
-    bkBusy=false;pend--;wver++;dataVer="";
-    return refresh(true)
-  }).then(function(){bPlan();bLoad()})};
+/* Sao lưu / khôi phục: xem bk.js (index.html chỉ giữ hộp thoại #bd, hàm mỏng dirAuto và cầu nối NB) */
+function dirAuto(){if(window.Bk)Bk.dirAuto()}
+$("bk").onclick=function(){alert("Chưa nạp được bk.js (chức năng sao lưu). Hãy tải lại trang; nếu vẫn lỗi, mở bảng kiểm tra bằng cách chạm 7 lần vào tiêu đề.")};
 $("im").onchange=function(){
   var fn=$("n").value.trim(),hid=editId||newId;
   if(!fn){this.value="";alert("Nhập Tên / mã căn trước khi tải ảnh để ảnh vào đúng thư mục của căn.");return}
@@ -1758,7 +1619,7 @@ window.NI={IW:IW,VW:VW,imgSrc:imgSrc,findItem:findItem,segArr:segArr,curSeg:curS
 if(window.Img)Img.init(window.NI);
 $("add").hidden=true;
 enterAnim();var lc0=lcLoad();if(lc0){items=nrm(lc0.t);role=lc0.r;canW=role==="edit";dataVer=lc0.v||"";applyRole()}
-render();if(!apiUrl()||(!ls(KK)&&!lc0))openSetup();else refresh();dirLoad();
+render();if(!apiUrl()||(!ls(KK)&&!lc0))openSetup();else refresh();
 (function(){
   function ok(im,quick){if(im.tagName!=="IMG"||im.classList.contains("ld"))return;im.classList.add("ld");if(quick)im.classList.add("ld0")}
   document.addEventListener("load",function(e){ok(e.target,false)},true);
@@ -1806,11 +1667,14 @@ document.addEventListener("focusin",function(e){var t=e.target;if(!t||!t.closest
 window.NT={apiGet:apiGet,apiPost:apiPost,items:function(){return items},esc:esc,su:su,imgSrc:imgSrc,addrOf:addrOf,stName:stName,fmt:fmt,ls:ls,openDv:openDv,openEdit:openForm,canW:function(){return canW},idbGet:function(k){return IDBM.get(k)},idbSave:function(k,v){return IDBM.save(k,v)},del:function(id){return removeItem(id).catch(function(e){fail(e);refresh(true);throw e})}};
 window.NK={get tab(){return tab},$:$,CK:CK,LP:LP,PARTS:PARTS,TIPS:TIPS,VW:VW,get canW(){return canW},set canW(v){canW=v},ckA:ckA,get ckC(){return ckC},set ckC(v){ckC=v},ckCopy:ckCopy,get ckCur(){return ckCur},set ckCur(v){ckCur=v},get ckDirty(){return ckDirty},set ckDirty(v){ckDirty=v},get ckFresh(){return ckFresh},set ckFresh(v){ckFresh=v},get ckId(){return ckId},set ckId(v){ckId=v},ckLiteOf:ckLiteOf,ckLoad:ckLoad,get ckQ(){return ckQ},set ckQ(v){ckQ=v},ckSaveOff:ckSaveOff,ckSnap:ckSnap,ckStat:ckStat,get ckT(){return ckT},set ckT(v){ckT=v},get ckTrashQ(){return ckTrashQ},set ckTrashQ(v){ckTrashQ=v},ckUpQ:ckUpQ,ckcSave:ckcSave,closeCk:closeCk,esc:esc,get fail(){return fail},set fail(v){fail=v},findItem:findItem,imgSrc:imgSrc,get items(){return items},set items(v){items=v},jumpTop:jumpTop,openLb:openLb,persist:persist,rtgH:rtgH,runPool:runPool,shrink:shrink,trashIds:trashIds,uname:uname,upBusy:upBusy,upMon:upMon,upSafe:upSafe};
 if(window.Ck)Ck.init(window.NK);
+window.NB={$:$,IDBM:IDBM,apiGet:apiGet,apiPost:apiPost,apiUrl:apiUrl,capP:capP,hs:hs,netMsg:netMsg,nrm:nrm,refresh:refresh,get items(){return items},get canW(){return canW},pendAdd:function(n){pend+=n},bumpVer:function(){wver++;dataVer=""}};
+if(window.Bk)Bk.init(window.NB);
 });
 </script>
 <script src="ck.js" defer></script>
 <script src="img.js" defer></script>
 <script src="dup.js" defer></script>
+<script src="bk.js" defer></script>
 <script src="dbg.js" defer></script>
 </body>
 </html>

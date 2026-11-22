@@ -3,7 +3,7 @@
    - PWA (mặc định): cache vỏ app + font/icon + ảnh Drive.
    - APK Capacitor (đăng ký với ?app=1): file app đã nằm sẵn trong APK nên KHÔNG cache vỏ app, chỉ cache ảnh Drive.
    Đổi VERSION khi đổi font/icon/manifest. Sửa index.html thì không cần đổi (tự cập nhật mỗi lần mở). */
-const VERSION = 'v24';
+const VERSION = 'v25';
 const SHELL = 'shell-' + VERSION;
 const RUNTIME = 'runtime-' + VERSION;
 const NEXT = 'next-' + VERSION;   // bản mới tải về, chờ lần mở trang kế tiếp mới áp dụng (tránh lệch index.html cũ + ck.js mới)
@@ -13,6 +13,7 @@ const INDEX = './index.html';
 const DUP = './dup.js';
 const IMGJS = './img.js';
 const CKJS = './ck.js';
+const BKJS = './bk.js';
 const DBGJS = './dbg.js';
 const SHELL_FILES = [
   './',
@@ -20,6 +21,7 @@ const SHELL_FILES = [
   DUP,
   IMGJS,
   CKJS,
+  BKJS,
   DBGJS,
   './manifest.webmanifest',
   './icons/icon-192.png',
@@ -117,7 +119,7 @@ function pick(c, base, list) {
 /* ---------- PWA: trang chính mở ngay từ bản đã lưu, tải bản mới ngầm (index.html, dup.js, img.js và ck.js) ----------
    Bản mới được tải đủ cả 4 file rồi mới đưa vào NEXT; lần mở trang kế tiếp mới chuyển sang SHELL cùng lúc.
    Nhờ vậy trang đang chạy không bao giờ nhận index.html cũ ghép với ck.js/img.js/dup.js mới (cầu nối NK/NI sẽ lệch). */
-var APP_FILES = [INDEX, DUP, IMGJS, CKJS, DBGJS];
+var APP_FILES = [INDEX, DUP, IMGJS, CKJS, BKJS, DBGJS];
 function clean(res) {   // phản hồi đã bị chuyển hướng không dùng được cho điều hướng trang
   return res.redirected ? res.blob().then(function (b) {
     return new Response(b, { status: res.status, statusText: res.statusText, headers: res.headers });

@@ -9,14 +9,16 @@
 var G=function(i){return document.getElementById(i)};
 var B=window.__dbg||(window.__dbg={e:[],lt:0,ltn:0,lts:[],t:Date.now()});
 var R=null,running=false,taps=0,tapT=0;
-var FILES=["ck.js","img.js","dup.js","dbg.js"];
+var FILES=["ck.js","img.js","dup.js","bk.js","dbg.js"];
 var NK_KEYS=["tab","$","CK","LP","PARTS","TIPS","VW","canW","ckA","ckC","ckCopy","ckCur","ckDirty","ckFresh","ckId","ckLiteOf","ckLoad","ckQ","ckSaveOff","ckSnap","ckStat","ckT","ckTrashQ","ckUpQ","ckcSave","closeCk","esc","fail","findItem","imgSrc","items","jumpTop","openLb","persist","rtgH","runPool","shrink","trashIds","uname","upBusy","upMon","upSafe"];
 var NK_FN=["$","ckCopy","ckLiteOf","ckLoad","ckSaveOff","ckSnap","ckStat","ckcSave","closeCk","esc","fail","findItem","imgSrc","jumpTop","openLb","persist","rtgH","runPool","shrink","trashIds","uname","upBusy","upMon","upSafe"];
 var NI_KEYS=["IW","VW","imgSrc","findItem","segArr","curSeg","ckWarm","tab","items"];
 var NI_FN=["imgSrc","findItem","segArr","curSeg","ckWarm","tab","items"];
+var NB_KEYS=["$","IDBM","apiGet","apiPost","apiUrl","capP","hs","netMsg","nrm","refresh","items","canW","pendAdd","bumpVer"];
+var NB_FN=["$","apiGet","apiPost","apiUrl","capP","hs","netMsg","nrm","refresh","pendAdd","bumpVer"];
 var NT_KEYS=["apiGet","apiPost","items","esc","su","imgSrc","addrOf","stName","fmt","ls","openDv","openEdit","canW","idbGet","idbSave","del"];
-var MOD={Ck:["init","renderCk","ckFlush","ckPersist"],Img:["init","openLb","iwGal","iwNow","iwIntent","iwCkNow"],Dup:["pull","init","open","close","sync","closeZoom"]};
-var IDS=["list","ckb","lb","lbi","lbc","lbn","lbp","upd","pgCk"];
+var MOD={Ck:["init","renderCk","ckFlush","ckPersist"],Img:["init","openLb","iwGal","iwNow","iwIntent","iwCkNow"],Dup:["pull","init","open","close","sync","closeZoom"],Bk:["init","dirAuto","dirLoad"]};
+var IDS=["list","ckb","lb","lbi","lbc","lbn","lbp","upd","pgCk","bk","bd","bsel","bim","bm"];
 var NET=/failed to fetch|load failed|networkerror|network request|internet connection|mất kết nối|aborted/i;
 var LIM={s:3000,l:700,w:360};   // mặc định; sw.js mới trả đúng số đang dùng
 
@@ -24,7 +26,7 @@ function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return
 function kb(n){return n>=1048576?(n/1048576).toFixed(1)+" MB":Math.round(n/1024)+" KB"}
 
 /* ---------- Chờ các thành phần nạp xong (tối đa 10 giây) ---------- */
-function ready(){return !!(window.NK&&window.NI&&window.NT&&window.Ck&&window.Img&&window.Dup)}
+function ready(){return !!(window.NK&&window.NI&&window.NT&&window.NB&&window.Ck&&window.Img&&window.Dup&&window.Bk)}
 function wait(){
   return new Promise(function(res){
     var t0=Date.now();
@@ -45,14 +47,15 @@ function whyNoPersist(){
 function chkComponents(add,w){
   var g="Thành phần";
   if(!w.ok){
-    ["NK","NI","NT","Ck","Img","Dup"].forEach(function(k){if(!window[k])add("bad",g,k+" chưa sẵn sàng sau 10 giây (tệp liên quan không nạp được hoặc index.html chạy lỗi)")});
-  }else add("ok",g,"Đủ NK, NI, NT, Ck, Img, Dup (sẵn sàng sau "+w.ms+" ms kể từ lúc kiểm tra)");
+    ["NK","NI","NT","NB","Ck","Img","Dup","Bk"].forEach(function(k){if(!window[k])add("bad",g,k+" chưa sẵn sàng sau 10 giây (tệp liên quan không nạp được hoặc index.html chạy lỗi)")});
+  }else add("ok",g,"Đủ NK, NI, NT, NB, Ck, Img, Dup, Bk (sẵn sàng sau "+w.ms+" ms kể từ lúc kiểm tra)");
   Object.keys(MOD).forEach(function(m){
     if(!window[m])return;
     var miss=MOD[m].filter(function(k){return typeof window[m][k]!=="function"});
     if(miss.length)add("bad",g,m+" thiếu hàm: "+miss.join(", ")+" (có thể lệch phiên bản giữa các tệp)")});
   if(window.Ck&&!(G("ckb")&&typeof G("ckb").onclick==="function"))add("bad",g,"ck.js đã nạp nhưng chưa khởi tạo (Ck.init chưa chạy)");
   if(window.Img&&!(G("lb")&&typeof G("lb").onclick==="function"))add("bad",g,"img.js đã nạp nhưng chưa khởi tạo (Img.init chưa chạy)");
+  if(window.Bk&&!(G("bk")&&G("bk").dataset.ready==="1"))add("bad",g,"bk.js đã nạp nhưng chưa khởi tạo (Bk.init chưa chạy, nút Sao lưu/khôi phục sẽ không hoạt động)");
   if(window.Dup&&!(G("dupd")&&G("dupb")))add("bad",g,"dup.js đã nạp nhưng chưa dựng giao diện Kiểm tra trùng");
   var noId=IDS.filter(function(i){return !G(i)});
   if(noId.length)add("bad",g,"Thiếu phần tử trong trang: "+noId.join(", "))}
@@ -65,7 +68,8 @@ function bridge(add,obj,name,keys,fns){
 function chkBridges(add){
   bridge(add,window.NK,"NK (ck.js)",NK_KEYS,NK_FN);
   bridge(add,window.NI,"NI (img.js)",NI_KEYS,NI_FN);
-  bridge(add,window.NT,"NT (dup.js)",NT_KEYS,NT_KEYS)}
+  bridge(add,window.NT,"NT (dup.js)",NT_KEYS,NT_KEYS);
+  bridge(add,window.NB,"NB (bk.js)",NB_KEYS,NB_FN)}
 function chkRes(add){
   var rs=[];try{rs=performance.getEntriesByType("resource")||[]}catch(e){}
   FILES.forEach(function(f){
