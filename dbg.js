@@ -1,8 +1,10 @@
 /* dbg.js: tự kiểm tra sau khi các thành phần đã nạp xong + công cụ gỡ lỗi.
    - Chạy ngầm ~3 giây sau khi trang tải xong, không hiện gì khi mọi thứ ổn (chỉ có nút ⚠ nhỏ khi có lỗi nghiêm trọng).
    - Mở bảng báo cáo: chạm 7 lần liên tiếp vào tiêu đề trang, hoặc thêm ?debug=1 vào địa chỉ (PWA), hoặc gọi Dbg.show() trong console.
+   - Bảng gồm: tóm tắt trạng thái cố định ở trên, lọc "Cần xử lý"/"Tất cả", nhóm thu gọn (tự mở nhóm có lỗi), nút "Kiểm tra toàn bộ" (thiết bị + máy chủ), nút Dừng.
    - Chỉ ĐỌC dữ liệu (ngoại lệ: mỗi phiên xin trình duyệt lưu trữ bền một lần, không hiện hộp thoại, không áp dụng cho APK; và nút "Thử gửi (POST)" do bạn tự bấm, có hỏi xác nhận).
-   - Nút "Kiểm tra kết nối máy chủ" chỉ chạy khi bạn bấm (không chạy ngầm): thử cấu hình, đường truyền tới Google, tải danh sách, làm mới nhanh và tải checklist, toàn bộ chỉ đọc. Báo cáo không chứa link Web app, mã truy cập hay tên căn (chỉ số lượng).
+   - Kiểm tra máy chủ chỉ chạy khi bạn bấm (không chạy ngầm): cấu hình, đường truyền tới Google và trang app (tự thử lại 1 lần để tránh báo lỗi oan), tải danh sách, làm mới nhanh 3 lần (đo độ dao động), tải checklist, tải thử 1 ảnh Drive. Toàn bộ chỉ đọc. Báo cáo không chứa link Web app, mã truy cập hay tên căn (chỉ số lượng).
+   - Theo dõi thụ động số lần mất/có mạng từ lúc mở trang; kiểm tra đọc được kho IndexedDB của app.
    - Các nút sửa lỗi đều hỏi xác nhận, không động tới dữ liệu trên Sheet/Drive, và từ chối khi đang có thay đổi chưa lưu hoặc ảnh đang tải lên.
    Cần đoạn bắt lỗi sớm (window.__dbg) trong <head> của index.html; thiếu đoạn đó thì dbg.js vẫn chạy nhưng chỉ thấy lỗi xảy ra sau khi nó nạp. */
 (function(){
@@ -185,7 +187,7 @@ function chkStorage(add){
   if(navigator.storage&&navigator.storage.persisted)p.push(navigator.storage.persisted().then(function(v){
     if(v)add("ok",g,"Lưu trữ bền: đã bật (trình duyệt không tự xóa khi thiếu chỗ)");
     else if(isApk())add("ok",g,whyNoPersist());
-    else{add("info",g,"Lưu trữ bền: chưa bật. "+whyNoPersist());if(R)R.canPersist=true}},function(){}));
+    else{add("info",g,"Lưu trữ bền: chưa bật. "+whyNoPersist());CAN=true}},function(){}));
   try{
     var n=0,i,k;
     for(i=0;i<localStorage.length;i++){k=localStorage.key(i);n+=(k.length+(localStorage.getItem(k)||"").length)*2}
@@ -273,24 +275,66 @@ function chkErrors(add){
     var where=x.s?" ("+x.s.split("/").pop()+(x.l?":"+x.l:"")+")":"";
     add(lv,g,"["+x.k+" +"+(x.t/1000).toFixed(1)+"s] "+x.m+where)})}
 
+/* ---------- Theo dõi mạng thụ động (không gửi yêu cầu nào) + kiểm tra IndexedDB (chỉ đọc) ---------- */
+var NL=B.nl||(B.nl={off:0,on:0,t:0,ev:[]});
+function nlog(k){NL[k]++;NL.t=Date.now();if(NL.ev.length<30)NL.ev.push({k:k,t:Date.now()-B.t})}
+window.addEventListener("offline",function(){nlog("off")});
+window.addEventListener("online",function(){nlog("on")});
+function chkLink(add){
+  var g="Thiết bị & mạng";
+  if(!NL.off&&!NL.on){add("ok",g,"Từ lúc mở trang chưa có lần mất/có mạng nào");return}
+  var n=NL.off,last=Math.round((Date.now()-NL.t)/1000);
+  add(n>=3?"warn":"info",g,"Từ lúc mở trang: mất mạng "+n+" lần, có lại "+NL.on+" lần (gần nhất "+(last>=120?Math.round(last/60)+" phút":last+" giây")+" trước)"+(n>=3?" — kết nối chập chờn, ảnh và lưu dữ liệu dễ bị gián đoạn":""))}
+function chkIdb(add){
+  var g="Dung lượng";
+  if(!window.indexedDB||!indexedDB.databases)return Promise.resolve();
+  return indexedDB.databases().then(function(ds){
+    if(!ds.some(function(d){return d.name==="nha-thue-kv"})){add("info",g,"IndexedDB: chưa có kho dữ liệu của app (sẽ tạo khi có dữ liệu)");return}
+    return new Promise(function(res){
+      var done=false,tm=setTimeout(function(){fin(function(){add("warn",g,"IndexedDB: mở kho dữ liệu quá 4 giây (bị khóa bởi cửa sổ khác?)")})},4000);
+      function fin(f){if(done)return;done=true;clearTimeout(tm);try{f()}catch(e){}res()}
+      var r;try{r=indexedDB.open("nha-thue-kv")}catch(e){fin(function(){add("bad",g,"IndexedDB: không mở được ("+(e&&e.message||e)+")")});return}
+      r.onerror=function(){fin(function(){add("bad",g,"IndexedDB: không mở được ("+(r.error&&r.error.message||"lỗi")+"), dữ liệu bền của app có thể không lưu được")})};
+      r.onblocked=function(){};
+      r.onsuccess=function(){
+        var db=r.result;
+        if(!db.objectStoreNames.contains("kv")){db.close();fin(function(){add("bad",g,"IndexedDB: thiếu kho \"kv\" (kho dữ liệu bị tạo dở, hãy dùng \"Làm mới bản cài app\")")});return}
+        try{
+          var q=db.transaction("kv","readonly").objectStore("kv").count();
+          q.onsuccess=function(){var n=q.result;db.close();fin(function(){add("ok",g,"IndexedDB: đọc được, "+n+" mục")})};
+          q.onerror=function(){db.close();fin(function(){add("warn",g,"IndexedDB: mở được nhưng không đọc được")})}
+        }catch(e){try{db.close()}catch(x){}fin(function(){add("warn",g,"IndexedDB: lỗi khi đọc ("+(e&&e.message||e)+")")})}}})
+  },function(){})}
+
 /* ---------- Kiểm tra kết nối máy chủ (Google Apps Script). Chỉ chạy khi bấm nút, toàn bộ là yêu cầu ĐỌC ---------- */
-var S=null,srvBusy=false;
+var S=null,srvBusy=false,stopped=false,ACT=[],PROG=null;
 function sfg(){
   var u="",k="";
   try{u=(window.NB&&window.NB.apiUrl&&window.NB.apiUrl())||""}catch(e){}
   try{k=(window.NT&&window.NT.ls&&window.NT.ls("nha-thue-key"))||""}catch(e){}
   return{u:u,k:k}}
+function pg(t){if(PROG)PROG(t)}
+function stopSrv(){stopped=true;ACT.slice().forEach(function(c){try{c.abort()}catch(e){}})}
 function tfetch(url,opt,ms){
   var c=window.AbortController?new AbortController():null,t0=performance.now(),tm=0;
-  opt=opt||{};if(c){opt.signal=c.signal;tm=setTimeout(function(){c.abort()},ms)}
+  opt=opt||{};
+  if(c){opt.signal=c.signal;tm=setTimeout(function(){c.abort()},ms);ACT.push(c)}
   function el(){return Math.round(performance.now()-t0)}
+  function done(){clearTimeout(tm);if(c){var i=ACT.indexOf(c);if(i>=0)ACT.splice(i,1)}}
   return fetch(url,opt).then(function(r){
-    if(opt.mode==="no-cors"){clearTimeout(tm);return{r:r,tx:"",ms:el()}}
-    return r.text().then(function(tx){clearTimeout(tm);return{r:r,tx:tx,ms:el()}})
+    if(opt.mode==="no-cors"){done();return{r:r,tx:"",ms:el()}}
+    return r.text().then(function(tx){done();return{r:r,tx:tx,ms:el()}})
   }).catch(function(e){
-    clearTimeout(tm);
-    var ab=!!(e&&e.name==="AbortError"),er=new Error(ab?"quá thời gian chờ "+Math.round(ms/1000)+" giây":(e&&e.message)||"lỗi mạng");
-    er.ms=el();er.abort=ab;throw er})}
+    done();
+    var ab=!!(e&&e.name==="AbortError"),er=new Error(stopped?"đã dừng":ab?"quá thời gian chờ "+Math.round(ms/1000)+" giây":(e&&e.message)||"lỗi mạng");
+    er.ms=el();er.abort=ab&&!stopped;er.stopped=stopped;throw er})}
+/* Thử lại 1 lần sau 0,8 giây khi lỗi mạng hoặc quá giờ (Apps Script khởi động nguội, sóng chập chờn), tránh báo lỗi oan. Thử lại thành công vẫn ghi nhận (v.retried) để thấy kết nối không ổn định */
+function tget(url,opt,ms,ms2){
+  return tfetch(url,Object.assign({},opt),ms).then(function(v){return v},function(e){
+    if(e.stopped)throw e;
+    return new Promise(function(r){setTimeout(r,800)}).then(function(){
+      if(stopped){var s=new Error("đã dừng");s.stopped=true;throw s}
+      return tfetch(url,Object.assign({},opt),ms2||ms).then(function(v){v.retried=e.message;return v},function(e2){e2.first=e.message;throw e2})})})}
 function parseSrv(res,add,g,what){
   var r=res.r,d=null,host="";
   try{host=new URL(r.url).hostname}catch(e){}
@@ -305,12 +349,38 @@ function parseSrv(res,add,g,what){
   add("bad",g,what+": "+why+" · HTTP "+r.status+" · "+res.ms+" ms");
   return null}
 function srvFail(add,g,what,e){
+  if(e&&e.stopped){add("info",g,what+": đã dừng theo yêu cầu");return}
   var hint=e&&e.abort?" (Apps Script khởi động nguội đôi khi mất hơn 20 giây, thử lại lần nữa)":". Đường truyền tới Google bình thường nên thường do: Web app chưa cho \"Bất kỳ ai\" truy cập, link sai, hoặc chưa triển khai lại phiên bản mới sau khi sửa mã";
-  add("bad",g,what+" thất bại: "+(e&&e.message||e)+hint)}
+  add("bad",g,what+" thất bại"+(e&&e.first?" 2 lần (lần 1: "+e.first+")":"")+": "+(e&&e.message||e)+hint)}
+function imgLoad(u,ms){
+  return new Promise(function(res){
+    var t0=performance.now(),im=new Image(),d=false,tm;
+    function fin(ok){if(d)return;d=true;clearTimeout(tm);im.onload=im.onerror=null;res({ok:ok,ms:Math.round(performance.now()-t0)})}
+    tm=setTimeout(function(){fin(false)},ms);im.onload=function(){fin(true)};im.onerror=function(){fin(false)};im.src=u})}
+function chkImg(add,g,T){
+  var id="",items=[];
+  try{items=(T&&T.items&&T.items())||[]}catch(e){}
+  items.some(function(it){return (it.im||[]).some(function(s){if(s&&String(s).indexOf("data:")!==0){id=s;return true}})});
+  if(!id){add("info",g,"Chưa có căn nào có ảnh trên Drive để thử tải");return Promise.resolve()}
+  var e=encodeURIComponent(id),ts=Date.now();
+  var src=[["lh3.googleusercontent.com (nguồn chính)","https://lh3.googleusercontent.com/d/"+e+"=w64?r="+ts],["drive.google.com/thumbnail (dự phòng)","https://drive.google.com/thumbnail?id="+e+"&sz=w64&r="+ts],["drive.google.com/uc (dự phòng)","https://drive.google.com/uc?export=view&id="+e+"&r="+ts]];
+  var bad=[];
+  function next(i){
+    if(stopped){add("info",g,"Thử tải ảnh: đã dừng theo yêu cầu");return}
+    if(i>=src.length){add("bad",g,"Không tải được ảnh Drive nào ("+bad.join(", ")+"). Ảnh có thể đã bị xóa, chưa chia sẻ \"Bất kỳ ai có link\", hoặc mạng đang chặn Google");return}
+    return imgLoad(src[i][1],10000).then(function(v){
+      if(v.ok){
+        if(i===0)add(v.ms>4000?"warn":"ok",g,"Tải thử 1 ảnh nhỏ từ "+src[0][0]+": "+v.ms+" ms"+(v.ms>4000?" (chậm)":""));
+        else add("warn",g,"Nguồn chính không tải được ảnh, nhưng "+src[i][0]+" chạy ("+v.ms+" ms). App sẽ tự chuyển nguồn khi ảnh lỗi, có thể thấy ảnh hiện chậm");
+        return}
+      bad.push(src[i][0].split(" ")[0]);return next(i+1)})}
+  return next(0)}
 function chkServer(){
   var L=[];function add(s,g,t){L.push({s:s,g:g,t:t})}
-  var X={at:Date.now(),L:L},g1="Máy chủ · Cấu hình",g2="Máy chủ · Đường truyền",g3="Máy chủ · Phản hồi";
+  var X={at:Date.now(),L:L},g1="Máy chủ · Cấu hình",g2="Máy chủ · Đường truyền",g3="Máy chủ · Phản hồi",g4="Máy chủ · Ảnh Drive";
+  stopped=false;
   var cf=sfg(),u=cf.u,k=cf.k,host="",okCfg=true;
+  pg("1/5 · Kiểm tra cấu hình");
   if(!u){add("bad",g1,"Chưa có link Web app (app đang ở màn hình nhập link)");okCfg=false}
   else{
     try{host=new URL(u).hostname}catch(e){}
@@ -321,126 +391,224 @@ function chkServer(){
       if(!/\/exec\/?$/.test(u.split("?")[0]))add("warn",g1,"Link không kết thúc bằng /exec (link /dev chỉ chạy cho chủ tài khoản, link bị cắt cũng báo lỗi)")}}
   if(!k){add("bad",g1,"Chưa có mã truy cập");okCfg=false}else add("ok",g1,"Đã có mã truy cập");
   var off=navigator.onLine===false;
-  var tg=[["script.google.com","https://script.google.com/"],["script.googleusercontent.com (nơi Apps Script trả dữ liệu)","https://script.googleusercontent.com/"],["lh3.googleusercontent.com (ảnh Drive)","https://lh3.googleusercontent.com/"]];
+  var tg=[["script.google.com","https://script.google.com/","nc"],["script.googleusercontent.com (nơi Apps Script trả dữ liệu)","https://script.googleusercontent.com/","nc"],["lh3.googleusercontent.com (ảnh Drive)","https://lh3.googleusercontent.com/","nc"]];
+  if(/^https?:$/i.test(location.protocol)&&!isApk())tg.push(["trang app ("+location.host+")",location.href.split("#")[0],"origin"]);
+  pg("2/5 · Đường truyền");
   return Promise.all(tg.map(function(x){
-    return tfetch(x[1],{mode:"no-cors",cache:"no-store"},8000).then(function(v){return{x:x,ok:true,ms:v.ms}},function(e){return{x:x,ok:false,m:e.message}})
+    var opt=x[2]==="origin"?{method:"HEAD",cache:"no-store"}:{mode:"no-cors",cache:"no-store"};
+    return tget(x[1],opt,8000,8000).then(function(v){
+      var st=x[2]==="origin"?v.r.status:200;
+      return{x:x,ok:st>=200&&st<400,ms:v.ms,st:st,re:v.retried}},function(e){return{x:x,ok:false,m:e.message,stop:e.stopped}})
   })).then(function(rs){
-    var okN=0;
+    var okN=0,gg=false;
     rs.forEach(function(v){
-      if(v.ok){okN++;add(v.ms>3000?"warn":"ok",g2,"Tới được "+v.x[0]+" · "+v.ms+" ms")}
+      if(v.stop)return;
+      if(v.ok){
+        okN++;if(/^script\.google\.com/.test(v.x[0]))gg=true;
+        add(v.re?"warn":v.ms>3000?"warn":"ok",g2,"Tới được "+v.x[0]+" · "+v.ms+" ms"+(v.re?" (lần đầu lỗi: "+v.re+", thử lại mới được: kết nối chập chờn)":""))}
+      else if(v.st)add("bad",g2,"Tới "+v.x[0]+" nhưng trả HTTP "+v.st+" (tệp trang chưa được đăng lên hoặc sai đường dẫn)");
       else add(off?"info":"bad",g2,"Không tới được "+v.x[0]+": "+v.m)});
+    if(stopped){add("info",g2,"Đã dừng theo yêu cầu");return X}
     if(!okN){add("info",g2,"Không ra được internet nên bỏ qua các bước sau. Kiểm tra Wi-Fi/dữ liệu di động, rồi bấm lại.");return X}
+    if(!gg){add("info",g3,"Bỏ qua vì không tới được script.google.com");return X}
     if(!okCfg){add("info",g3,"Bỏ qua vì cấu hình chưa đủ");return X}
     var base=u+"?key="+encodeURIComponent(k)+"&app="+encodeURIComponent(u);
-    return tfetch(base+"&since=",{cache:"no-store"},25000).then(function(res){
+    pg("3/5 · Tải danh sách");
+    return tget(base+"&since=",{cache:"no-store"},25000,20000).then(function(res){
       var d=parseSrv(res,add,g3,"Tải danh sách");if(!d)return X;
       if(!d.ok){add("bad",g3,"Máy chủ từ chối: "+(d.error||"không rõ lý do")+" · "+res.ms+" ms");return X}
       var sz=0;try{sz=new Blob([res.tx]).size}catch(e){sz=res.tx.length}
       var n=(d.items||[]).length;
-      add(res.ms>8000?"warn":"ok",g3,"Tải danh sách: "+res.ms+" ms · "+kb(sz)+(res.ms>8000?" (chậm; Apps Script khởi động nguội hoặc danh sách quá nặng)":""));
+      add(res.retried||res.ms>8000?"warn":"ok",g3,"Tải danh sách: "+res.ms+" ms · "+kb(sz)+(res.retried?" (lần đầu lỗi: "+res.retried+", thử lại mới được)":res.ms>8000?" (chậm; Apps Script khởi động nguội hoặc danh sách quá nặng)":""));
       add("ok",g3,"Quyền: "+(d.role==="edit"?"sửa":d.role==="view"?"chỉ xem":String(d.role))+" · máy chủ có "+n+" căn");
       var T=window.NT,K=window.NK,local=-1;
       try{local=T&&T.items?T.items().length:-1}catch(e){}
       if(local>=0&&local!==n)add("warn",g3,"Lệch số căn: máy chủ "+n+", trên máy "+local+" (nếu vừa thêm/xóa thì bình thường, bấm Kiểm tra lại; nếu vẫn lệch hãy kéo làm mới danh sách)");
       try{if(K&&typeof K.canW==="boolean"&&K.canW!==(d.role==="edit"))add("warn",g3,"Quyền trên máy ("+(K.canW?"sửa":"xem")+") khác máy chủ ("+(d.role==="edit"?"sửa":"xem")+"), hãy tải lại app")}catch(e){}
       if(!d.ver)add("warn",g3,"Máy chủ không trả số phiên bản dữ liệu (ver): app sẽ tải lại cả danh sách mỗi lần làm mới");
-      var nx=Promise.resolve();
-      if(d.ver)nx=tfetch(base+"&since="+encodeURIComponent(d.ver),{cache:"no-store"},25000).then(function(r2){
-        var d2=parseSrv(r2,add,g3,"Làm mới nhanh");if(!d2)return;
-        if(d2.ok&&d2.same)add(r2.ms>6000?"warn":"ok",g3,"Làm mới nhanh: "+r2.ms+" ms, dữ liệu không đổi (cách app kiểm tra định kỳ)");
-        else if(d2.ok)add("info",g3,"Làm mới nhanh: dữ liệu vừa thay đổi trong lúc kiểm tra · "+r2.ms+" ms");
-        else add("bad",g3,"Làm mới nhanh bị từ chối: "+(d2.error||"không rõ lý do"))
-      },function(e){srvFail(add,g3,"Làm mới nhanh",e)});
-      return nx.then(function(){
+      /* Làm mới nhanh 3 lần liên tiếp: đo độ ổn định (nhanh nhất / chậm nhất) thay vì chỉ 1 mẫu */
+      var q=Promise.resolve();
+      if(d.ver)q=(function(){
+        var ms=[],chg=0,stop=false;
+        function one(i){
+          if(i>=3||stop)return Promise.resolve();
+          pg("4/5 · Làm mới nhanh "+(i+1)+"/3");
+          return tget(base+"&since="+encodeURIComponent(d.ver),{cache:"no-store"},25000,15000).then(function(r2){
+            var d2=parseSrv(r2,add,g3,"Làm mới nhanh");if(!d2){stop=true;return}
+            if(!d2.ok){add("bad",g3,"Làm mới nhanh bị từ chối: "+(d2.error||"không rõ lý do"));stop=true;return}
+            if(!d2.same)chg++;ms.push(r2.ms);
+            return new Promise(function(r){setTimeout(r,300)}).then(function(){return one(i+1)})
+          },function(e){srvFail(add,g3,"Làm mới nhanh lần "+(i+1),e);stop=true})}
+        return one(0).then(function(){
+          if(!ms.length)return;
+          var mn=Math.min.apply(null,ms),mx=Math.max.apply(null,ms),jit=ms.length>1&&mx>4000&&mx>=3*mn;
+          add(mx>6000||jit?"warn":"ok",g3,"Làm mới nhanh "+ms.length+" lần: "+ms.join(" / ")+" ms"+(chg?" · dữ liệu vừa thay đổi trong lúc kiểm tra":" · dữ liệu không đổi (cách app kiểm tra định kỳ)")+(jit?" — dao động lớn, đường truyền không ổn định":mx>6000?" (chậm)":""))})})();
+      return q.then(function(){
+        if(stopped){add("info",g3,"Đã dừng theo yêu cầu");return X}
         var it=null;try{(T.items()||[]).some(function(x){if(x.ck){it=x;return true}})}catch(e){}
-        if(!it){add("info",g3,"Chưa có căn nào có checklist để thử tải");return X}
-        return tfetch(base+"&action=ck&id="+encodeURIComponent(it.id),{cache:"no-store"},25000).then(function(r3){
-          var d3=parseSrv(r3,add,g3,"Tải checklist");if(!d3)return X;
+        pg("5/5 · Tải checklist và ảnh");
+        var p=it?tget(base+"&action=ck&id="+encodeURIComponent(it.id),{cache:"no-store"},25000,15000).then(function(r3){
+          var d3=parseSrv(r3,add,g3,"Tải checklist");if(!d3)return;
           if(!d3.ok)add("bad",g3,"Tải checklist bị từ chối: "+(d3.error||"không rõ lý do")+" · "+r3.ms+" ms");
-          else add(r3.ms>6000?"warn":"ok",g3,"Tải checklist 1 căn: "+r3.ms+" ms"+(d3.ck?"":" (căn này chưa có nội dung checklist)"));
-          return X},function(e){srvFail(add,g3,"Tải checklist",e);return X})})
+          else add(r3.retried||r3.ms>6000?"warn":"ok",g3,"Tải checklist 1 căn: "+r3.ms+" ms"+(d3.ck?"":" (căn này chưa có nội dung checklist)")+(r3.retried?" (lần đầu lỗi, thử lại mới được)":""))
+        },function(e){srvFail(add,g3,"Tải checklist",e)}):(add("info",g3,"Chưa có căn nào có checklist để thử tải"),Promise.resolve());
+        return p.then(function(){return chkImg(add,g4,T)}).then(function(){return X})})
     },function(e){srvFail(add,g3,"Tải danh sách",e);return X})})}
 function chkPost(){
   var L=[],g="Máy chủ · Gửi dữ liệu (POST)",cf=sfg();
   function add(s,t){L.push({s:s,g:g,t:t})}
+  stopped=false;
   if(!cf.u||!cf.k){add("bad","Thiếu link Web app hoặc mã truy cập");return Promise.resolve(L)}
-  var f=function(m,e){add("bad",m+": "+(e&&e.message||e)+". Kiểm tra link /exec đã triển khai và quyền \"Bất kỳ ai\"")};
+  var f=function(m,e){if(e&&e.stopped){add("info",m.replace(/ thất bại$/,"")+": đã dừng theo yêu cầu");return}add("bad",m+": "+(e&&e.first?"2 lần (lần 1: "+e.first+") · ":"")+(e&&e.message||e)+". Kiểm tra link /exec đã triển khai và quyền \"Bất kỳ ai\"")};
+  /* Không thử lại tự động: POST có thể đã tới máy chủ dù phản hồi bị mất */
   return tfetch(cf.u,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({key:cf.k,action:"dbg-ping"}),cache:"no-store"},25000).then(function(res){
     var d=parseSrv(res,function(s,gg,t){add(s,t)},g,"Gửi thử");if(!d)return L;
     if(d.ok===true)add("warn","Máy chủ chấp nhận lệnh lạ \"dbg-ping\" (mã máy chủ không kiểm tra tên lệnh) · "+res.ms+" ms");
-    else add("ok","Đường gửi (POST) hoạt động: máy chủ đã nhận và trả lời"+(d.error?" \""+d.error+"\"":"")+" · "+res.ms+" ms. Lệnh thử bị từ chối là bình thường");
+    else add(res.ms>8000?"warn":"ok","Đường gửi (POST) hoạt động: máy chủ đã nhận và trả lời"+(d.error?" \""+d.error+"\"":"")+" · "+res.ms+" ms. Lệnh thử bị từ chối là bình thường");
     return L},function(e){f("Gửi thử thất bại",e);return L})}
 
-/* ---------- Chạy toàn bộ ---------- */
+/* ---------- Chạy kiểm tra thiết bị ---------- */
+var CAN=false;
 function run(){
   if(running)return Promise.resolve(R);
-  running=true;
+  running=true;CAN=false;
   var L=[];
   function add(s,g,t){L.push({s:s,g:g,t:t})}
-  R={at:Date.now(),L:L};
+  function fin(){R={at:Date.now(),L:L,can:CAN};running=false;badge();var d=G("dbgd");if(d&&d.open)draw();return R}
   return wait().then(function(w){
     chkComponents(add,w);chkBridges(add);chkRes(add);
-    return chkSw(add).then(function(){return chkAssets(add)}).then(function(){return chkCaches(add)}).then(function(){return chkStorage(add)}).then(function(){
-      chkData(add);chkPerf(add);chkEnv(add);chkErrors(add)})
-  }).then(function(){running=false;badge();return R},function(e){running=false;add("bad","Kiểm tra","Chính bộ kiểm tra bị lỗi: "+(e&&e.message||e));badge();return R})}
-function count(s){return R?R.L.filter(function(x){return x.s===s}).length:0}
+    return chkSw(add).then(function(){return chkAssets(add)}).then(function(){return chkCaches(add)}).then(function(){return chkStorage(add)}).then(function(){return chkIdb(add)}).then(function(){
+      chkData(add);chkPerf(add);chkLink(add);chkEnv(add);chkErrors(add)})
+  }).then(fin,function(e){add("bad","Kiểm tra","Chính bộ kiểm tra bị lỗi: "+(e&&e.message||e));return fin()})}
+function allL(){return (S?S.L:[]).concat(R?R.L:[])}
+function cnt(s){return allL().filter(function(x){return x.s===s}).length}
 
 /* ---------- Giao diện ---------- */
-var CSS="#dbgd .dbgr{display:flex;gap:8px;padding:5px 0;border-top:1px dashed var(--line);font-size:var(--fs-s);align-items:flex-start}"+
+var CSS="#dbgd .form{gap:10px}"+
+"#dbgd .dbgst{position:sticky;top:0;z-index:3;margin:calc(-1*var(--sp-4)) calc(-1*var(--sp-4)) 0;padding:var(--sp-4) var(--sp-4) 10px;background:var(--bg);border-bottom:1px solid var(--line)}"+
+"#dbgd .dbgh{display:flex;align-items:center;justify-content:space-between;gap:8px}#dbgd .dbgh h2{margin:0}"+
+"#dbgd .dbgxb{flex:none;width:36px;height:36px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:20px;line-height:1;cursor:pointer;padding:0}"+
+"#dbgd .dbgv{display:flex;align-items:center;gap:10px;margin:10px 0 0}"+
+"#dbgd .big{flex:none;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:#fff;background:var(--mute)}"+
+"#dbgd .big.ok{background:var(--s-won)}#dbgd .big.warn{background:#b45309}#dbgd .big.bad{background:var(--danger)}"+
+"#dbgd .dbgv div{min-width:0}#dbgd .dbgv b{display:block;font-size:var(--fs-b);overflow-wrap:anywhere}#dbgd .dbgv small{display:block;color:var(--mute);font-size:var(--fs-xs);overflow-wrap:anywhere}"+
+"#dbgd .dbgbar{height:3px;border-radius:2px;background:var(--line);overflow:hidden;margin-top:8px}#dbgd .dbgbar[hidden]{display:none}"+
+"#dbgd .dbgbar::after{content:\"\";display:block;height:100%;width:35%;background:var(--accent);animation:dbgbar 1.1s ease-in-out infinite}"+
+"@keyframes dbgbar{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}"+
+"@media (prefers-reduced-motion:reduce){#dbgd .dbgbar::after{animation:none;width:100%}}"+
+"#dbgd .dbgfl{display:flex;gap:6px;margin-top:10px}#dbgd .dbgfl .chip{min-height:32px;padding:2px 12px;font-size:var(--fs-s)}"+
+"#dbgd #dbgl{display:grid;gap:8px}"+
+"#dbgd details.dbgg{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:0 10px}"+
+"#dbgd details.dbgg>summary{display:flex;align-items:center;gap:8px;min-height:42px;cursor:pointer;list-style:none;font-weight:700;font-size:var(--fs-m)}"+
+"#dbgd summary::-webkit-details-marker{display:none}"+
+"#dbgd summary::after{content:\"▾\";color:var(--mute);transition:transform .15s}#dbgd details[open]>summary::after{transform:rotate(180deg)}"+
+"#dbgd summary span{min-width:0;overflow-wrap:anywhere}"+
+"#dbgd summary em{margin-left:auto;font-style:normal;font-weight:500;color:var(--mute);font-size:var(--fs-xs);white-space:nowrap}"+
+"#dbgd .st{flex:none;font-style:normal;width:18px;text-align:center;font-weight:800}"+
+"#dbgd .st.ok,#dbgd .dbgr.ok i{color:var(--s-won)}#dbgd .st.warn,#dbgd .dbgr.warn i{color:var(--s-contact)}#dbgd .st.bad{color:var(--danger)}#dbgd .st.info{color:var(--mute)}"+
+"#dbgd .dbgr{display:flex;gap:8px;padding:6px 0;border-top:1px dashed var(--line);font-size:var(--fs-s);align-items:flex-start}"+
 "#dbgd .dbgr i{flex:none;font-style:normal;width:18px;text-align:center}"+
 "#dbgd .dbgr span{min-width:0;overflow-wrap:anywhere}"+
-"#dbgd .dbgr.bad span{color:var(--danger);font-weight:700}"+
-"#dbgd .dbgr.warn i{color:#b45309}#dbgd .dbgr.info span{color:var(--mute)}"+
-"#dbgd h3{margin:12px 0 2px;font-size:var(--fs-b)}"+
-"#dbgd .dbga{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 4px}"+
+"#dbgd .dbgr.bad i,#dbgd .dbgr.bad span{color:var(--danger)}#dbgd .dbgr.bad span{font-weight:700}#dbgd .dbgr.info span{color:var(--mute)}"+
+"#dbgd .dbgem{text-align:center;color:var(--mute);font-size:var(--fs-m);padding:18px 0}"+
+"#dbgd details.dbgt>summary{cursor:pointer;color:var(--mute);font-size:var(--fs-m);font-weight:600;min-height:36px;display:flex;align-items:center}"+
+"#dbgd .dbga{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}"+
+"#dbgd button:disabled{opacity:.5;cursor:default}"+
 "#dbgb{position:fixed;left:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:25;border:0;border-radius:999px;padding:6px 12px;min-height:34px;background:var(--danger);color:#fff;font-weight:700;font-size:var(--fs-s);box-shadow:0 3px 10px rgba(0,0,0,.3);cursor:pointer}";
 var ICON={ok:"✓",warn:"⚠",bad:"✕",info:"•"};
+var FLT="issues",OPEN={},MSG="",LH="",busy=false;
 function style(){if(G("dbgcss"))return;var st=document.createElement("style");st.id="dbgcss";st.textContent=CSS;document.head.appendChild(st)}
 function panel(){
   var d=G("dbgd");if(d)return d;
   style();
   d=document.createElement("dialog");d.id="dbgd";
-  d.innerHTML='<div class="form"><h2>Kiểm tra hệ thống</h2><p class="pm" id="dbgs" role="status"></p><div id="dbgl"></div><div id="dbgsv"></div><div class="dbga" id="dbga"></div><div class="foot"><button class="btn p" type="button" id="dbgx">Đóng</button></div></div>';
+  d.innerHTML='<div class="form"><div class="dbgst"><div class="dbgh"><h2>Kiểm tra hệ thống</h2><button type="button" class="dbgxb" id="dbgx" aria-label="Đóng">×</button></div>'+
+  '<div class="dbgv"><span class="big" id="dbgbig" aria-hidden="true">•</span><div role="status" aria-live="polite"><b id="dbgt1"></b><small id="dbgt2"></small></div></div>'+
+  '<div class="dbgbar" id="dbgbar" hidden></div><div class="dbgfl" id="dbgfl"></div></div>'+
+  '<div id="dbgl"></div>'+
+  '<details class="dbgt"><summary>Kiểm tra riêng lẻ</summary><div class="dbga" id="dbgq"></div></details>'+
+  '<details class="dbgt"><summary>Công cụ sửa lỗi</summary><div class="dbga" id="dbgtl"></div></details>'+
+  '<div class="foot" id="dbga"></div></div>';
   document.body.appendChild(d);
   d.addEventListener("click",onClick);
+  d.addEventListener("toggle",function(e){var t=e.target;if(t&&t.dataset&&t.dataset.g!==undefined)OPEN[t.dataset.g]=t.open},true);
   G("dbgx").onclick=function(){d.close()};
   return d}
-function say(t){var s=G("dbgs");if(s)s.textContent=t||""}
-function rowsH(L){
-  var g="",h="";
-  L.forEach(function(x){
-    if(x.g!==g){g=x.g;h+="<h3>"+esc(g)+"</h3>"}
-    h+='<div class="dbgr '+x.s+'"><i>'+ICON[x.s]+"</i><span>"+esc(x.t)+"</span></div>"});
-  return h}
+function say(t){MSG=t||"";var e=G("dbgt2");if(e)e.textContent=MSG||sub()}
+function hm(t){return new Date(t).toLocaleTimeString("vi-VN")}
+function sub(){
+  var t=Math.max(R?R.at:0,S?S.at:0);
+  var p=[];if(t)p.push("Cập nhật "+hm(t));
+  var s=srvSum();if(s)p.push(s);
+  return p.join(" · ")}
 function srvSum(){
   if(!S)return "";
   var b=S.L.filter(function(x){return x.s==="bad"}).length,w=S.L.filter(function(x){return x.s==="warn"}).length;
-  return b?"Máy chủ: "+b+" lỗi, "+w+" cảnh báo.":w?"Máy chủ: kết nối được, "+w+" cảnh báo.":"Máy chủ: kết nối bình thường."}
+  return b?"Máy chủ: "+b+" lỗi, "+w+" cảnh báo":w?"Máy chủ: kết nối được, "+w+" cảnh báo":"Máy chủ: kết nối bình thường"}
+function groupsH(L){
+  var ord=[],map={};
+  L.forEach(function(x){if(!map[x.g]){map[x.g]={g:x.g,L:[],b:0,w:0};ord.push(map[x.g])}var o=map[x.g];o.L.push(x);if(x.s==="bad")o.b++;else if(x.s==="warn")o.w++});
+  var h="",shown=0;
+  ord.forEach(function(o){
+    var iss=o.b+o.w;
+    if(FLT==="issues"&&!iss)return;
+    shown++;
+    var rows=FLT==="issues"?o.L.filter(function(x){return x.s==="bad"||x.s==="warn"}):o.L;
+    var lv=o.b?"bad":o.w?"warn":"ok";
+    var op=OPEN[o.g]!==undefined?OPEN[o.g]:iss>0;
+    var em=o.b?"✕ "+o.b+(o.w?" · ⚠ "+o.w:""):o.w?"⚠ "+o.w:o.L.length+" mục";
+    h+='<details class="dbgg" data-g="'+esc(o.g)+'"'+(op?" open":"")+'><summary><i class="st '+lv+'">'+ICON[lv]+'</i><span>'+esc(o.g)+'</span><em>'+em+'</em></summary>';
+    rows.forEach(function(x){h+='<div class="dbgr '+x.s+'"><i>'+ICON[x.s]+'</i><span>'+esc(x.t)+'</span></div>'});
+    h+='</details>'});
+  if(!shown)h=!L.length?'<div class="dbgem">Chưa có kết quả</div>':'<div class="dbgem">Không có vấn đề nào. Chọn "Tất cả" để xem chi tiết.</div>';
+  return h}
+function btn(a,t,cls,extra){return '<button type="button" class="btn'+(cls?" "+cls:"")+'" data-act="'+a+'"'+(extra||"")+'>'+t+'</button>'}
 function draw(){
   panel();
-  var b=count("bad"),w=count("warn");
-  say(!R?"Đang kiểm tra…":b?b+" vấn đề nghiêm trọng, "+w+" cảnh báo.":w?"Không có lỗi nghiêm trọng, "+w+" cảnh báo.":"Mọi thứ hoạt động bình thường.");
-  G("dbgl").innerHTML=R?rowsH(R.L):"";
-  G("dbgsv").innerHTML=S?rowsH(S.L):"";
-  var a='<button type="button" class="btn" data-act="run">Kiểm tra lại</button><button type="button" class="btn" data-act="copy">Sao chép báo cáo</button><button type="button" class="btn" data-act="srv">Kiểm tra kết nối máy chủ</button><button type="button" class="btn" data-act="srvpost">Thử gửi (POST)</button>';
-  if(R&&R.canPersist&&navigator.storage&&navigator.storage.persist)a+='<button type="button" class="btn" data-act="persist">Bật lưu trữ bền</button>';
-  a+='<button type="button" class="btn" data-act="reset">Làm mới bản cài app</button><button type="button" class="btn" data-act="img">Xóa cache ảnh</button><button type="button" class="btn" data-act="ck">Xóa checklist đã nhớ</button><button type="button" class="btn" data-act="dup">Đặt lại dữ liệu quét trùng</button>';
-  G("dbga").innerHTML=a}
+  var b=cnt("bad"),w=cnt("warn"),o=cnt("ok"),bs=busy||running||srvBusy,has=!!(R||S);
+  var lv=!has?"":b?"bad":w?"warn":"ok";
+  var big=G("dbgbig");big.className="big "+lv;big.textContent=bs&&!has?"…":ICON[lv||"info"];
+  G("dbgt1").textContent=bs?"Đang kiểm tra…":!has?"Chưa có kết quả":b?b+" vấn đề nghiêm trọng"+(w?", "+w+" cảnh báo":""):w?w+" cảnh báo, không có lỗi nghiêm trọng":"Mọi thứ hoạt động bình thường";
+  G("dbgbar").hidden=!bs;
+  G("dbgfl").innerHTML='<button type="button" class="chip" data-act="flt" data-v="issues" aria-pressed="'+(FLT==="issues")+'">Cần xử lý ('+(b+w)+')</button><button type="button" class="chip" data-act="flt" data-v="all" aria-pressed="'+(FLT==="all")+'">Tất cả ('+(b+w+o+cnt("info"))+')</button>';
+  var h=groupsH(allL());
+  if(h!==LH){G("dbgl").innerHTML=h;LH=h}
+  G("dbgq").innerHTML=btn("run","Thiết bị")+btn("srv","Máy chủ")+btn("srvpost","Thử gửi (POST)");
+  var t=btn("hide","Ẩn nút ⚠ phiên này");
+  if(R&&R.can&&navigator.storage&&navigator.storage.persist)t+=btn("persist","Bật lưu trữ bền");
+  t+=btn("reset","Làm mới bản cài app")+btn("img","Xóa cache ảnh")+btn("ck","Xóa checklist đã nhớ")+btn("dup","Đặt lại dữ liệu quét trùng");
+  G("dbgtl").innerHTML=t;
+  G("dbga").innerHTML=btn("all","Kiểm tra toàn bộ","p")+(srvBusy?btn("stop","Dừng"):"")+btn("copy","Sao chép báo cáo");
+  Array.prototype.forEach.call(G("dbgd").querySelectorAll("[data-act]"),function(x){var a=x.dataset.act;if(a==="copy"||a==="stop"||a==="flt")return;x.disabled=bs});
+  say(MSG)}
 function show(){
   var d=panel();draw();
   if(!d.open)d.showModal();
   if(!R||Date.now()-R.at>30000)rerun()}
-function rerun(){say("Đang kiểm tra…");return run().then(draw)}
+function rerun(){
+  if(busy)return Promise.resolve();
+  busy=true;say("Đang kiểm tra thiết bị…");draw();
+  return run().then(function(){busy=false;say("");draw()})}
+function srvRun(){
+  if(srvBusy)return Promise.resolve();
+  srvBusy=true;PROG=function(t){say("Máy chủ "+t)};say("Máy chủ 1/5 · Kiểm tra cấu hình");draw();
+  return chkServer().then(function(x){S=x},function(er){S={at:Date.now(),L:[{s:"bad",g:"Máy chủ",t:"Bộ kiểm tra bị lỗi: "+(er&&er.message||er)}]}}).then(function(){srvBusy=false;PROG=null;say("");draw()})}
+function allRun(){
+  if(busy||srvBusy)return Promise.resolve();
+  busy=true;say("Đang kiểm tra thiết bị…");draw();
+  return run().then(function(){busy=false;return srvRun()}).then(function(){busy=false;draw()})}
 function badge(){
-  var b=G("dbgb"),n=count("bad"),hide=false;
+  var b=G("dbgb"),n=cnt("bad"),hide=false;
   try{hide=sessionStorage.getItem("dbg-hide")==="1"}catch(e){}
   if(!n||hide){if(b)b.hidden=true;return}
   if(!b){style();b=document.createElement("button");b.id="dbgb";b.type="button";b.onclick=function(){show()};document.body.appendChild(b)}
   b.hidden=false;b.textContent="⚠ "+n+" lỗi"}
 function report(){
-  var c=navigator.connection||{},t="Báo cáo kiểm tra · "+new Date(R.at).toLocaleString("vi-VN")+"\n"+(navigator.userAgent||"")+"\n"+(window.Capacitor?"APK (Capacitor)":"Trình duyệt/PWA")+"\n",g="";
-  R.L.forEach(function(x){if(x.g!==g){g=x.g;t+="\n["+g+"]\n"}t+=ICON[x.s]+" "+x.t+"\n"});
-  if(S){t+="\n=== Kết nối máy chủ · "+new Date(S.at).toLocaleString("vi-VN")+" ===\n";g="";S.L.forEach(function(x){if(x.g!==g){g=x.g;t+="\n["+g+"]\n"}t+=ICON[x.s]+" "+x.t+"\n"})}
+  var t0=Math.max(R?R.at:0,S?S.at:0);
+  var t="Báo cáo kiểm tra · "+new Date(t0||Date.now()).toLocaleString("vi-VN")+"\n"+(navigator.userAgent||"")+"\n"+(window.Capacitor?"APK (Capacitor)":"Trình duyệt/PWA")+"\nTổng: "+cnt("bad")+" lỗi · "+cnt("warn")+" cảnh báo · "+cnt("ok")+" ổn\n",g="";
+  function sec(L){g="";L.forEach(function(x){if(x.g!==g){g=x.g;t+="\n["+g+"]\n"}t+=ICON[x.s]+" "+x.t+"\n"})}
+  if(S){t+="\n=== Kết nối máy chủ · "+new Date(S.at).toLocaleString("vi-VN")+" ===";sec(S.L)}
+  if(R){t+="\n=== Thiết bị ==="+"";sec(R.L)}
   return t}
 function copy(t){
   if(navigator.clipboard&&navigator.clipboard.writeText)return navigator.clipboard.writeText(t);
@@ -456,25 +624,27 @@ function guard(){
   return ""}
 function reload(){setTimeout(function(){location.reload()},400)}
 function onClick(e){
-  var b=e.target.closest("[data-act]");if(!b)return;
-  var a=b.dataset.act,gd;
+  var b=e.target.closest("[data-act]");if(!b||b.disabled)return;
+  var a=b.dataset.act,gd,bs=busy||running||srvBusy;
+  if(a==="flt"){FLT=b.dataset.v;draw();return}
+  if(a==="stop"){stopSrv();say("Đang dừng…");return}
+  if(a==="copy"){if(R||S)copy(report()).then(function(){say("Đã sao chép báo cáo")},function(){say("Không sao chép được, hãy thử lại")});return}
+  if(bs)return;
+  if(a==="all"){allRun();return}
   if(a==="run"){rerun();return}
-  if(a==="copy"){if(R)copy(report()).then(function(){say("Đã sao chép báo cáo.")},function(){say("Không sao chép được, hãy thử lại.")});return}
+  if(a==="hide"){try{sessionStorage.setItem("dbg-hide","1")}catch(x){}badge();say("Đã ẩn nút ⚠ cho đến khi mở lại app");return}
   if(a==="persist"){
     navigator.storage.persist().then(function(v){
       var m=v?"Đã bật lưu trữ bền.":"Chưa được cấp. "+whyNoPersist();
-      rerun().then(function(){say(m)})},function(){say("Không gửi được yêu cầu lưu trữ bền.")});return}
-  if(a==="srv"){
-    if(srvBusy)return;srvBusy=true;say("Đang kiểm tra máy chủ… (có thể mất vài chục giây)");
-    chkServer().then(function(x){S=x},function(er){S={at:Date.now(),L:[{s:"bad",g:"Máy chủ",t:"Bộ kiểm tra bị lỗi: "+(er&&er.message||er)}]}}).then(function(){srvBusy=false;draw();say(srvSum())});return}
+      rerun().then(function(){say(m)})},function(){say("Không gửi được yêu cầu lưu trữ bền")});return}
+  if(a==="srv"){srvRun();return}
   if(a==="srvpost"){
-    if(srvBusy)return;
     if(!confirm("Gửi 1 lệnh thử không có thật (dbg-ping) tới máy chủ bằng đường POST, đúng cách app vẫn dùng để lưu. Máy chủ chỉ nên trả lời \"lệnh không hợp lệ\" và không ghi gì vào Sheet/Drive. Tiếp tục?"))return;
-    srvBusy=true;say("Đang gửi lệnh thử…");
+    srvBusy=true;PROG=null;say("Đang gửi lệnh thử…");draw();
     chkPost().then(function(L){
       if(!S)S={at:Date.now(),L:[]};
       S.L=S.L.filter(function(x){return x.g!==L[0].g}).concat(L);S.at=Date.now()
-    }).then(function(){srvBusy=false;draw();say(srvSum())});return}
+    }).then(function(){srvBusy=false;say("");draw()});return}
   gd=guard();if(gd){say(gd);return}
   if(a==="reset"){
     if(!confirm("Xóa vỏ app đã lưu (không xóa ảnh, dữ liệu Sheet hay cài đặt) và tải lại bản mới nhất?"))return;
@@ -514,5 +684,5 @@ function start(){
   var go=function(){run().then(function(){if(/[?&]debug=1/.test(location.search))show()})};
   setTimeout(function(){if(window.requestIdleCallback)requestIdleCallback(go,{timeout:4000});else go()},3000)}
 if(document.readyState==="complete")start();else window.addEventListener("load",start);
-window.Dbg={run:run,show:show,report:function(){return R?report():""}};
+window.Dbg={run:run,show:show,all:allRun,report:function(){return R||S?report():""}};
 })();
