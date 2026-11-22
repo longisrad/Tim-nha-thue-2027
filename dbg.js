@@ -1,12 +1,14 @@
 /* dbg.js: tự kiểm tra sau khi các thành phần đã nạp xong + công cụ gỡ lỗi.
    - Chạy ngầm ~3 giây sau khi trang tải xong, không hiện gì khi mọi thứ ổn (chỉ có nút ⚠ nhỏ khi có lỗi nghiêm trọng).
    - Mở bảng báo cáo: chạm 7 lần liên tiếp vào tiêu đề trang, hoặc thêm ?debug=1 vào địa chỉ (PWA), hoặc gọi Dbg.show() trong console.
-   - Chỉ ĐỌC dữ liệu (ngoại lệ duy nhất: mỗi phiên xin trình duyệt lưu trữ bền một lần, không hiện hộp thoại; không áp dụng cho APK). Báo cáo không chứa link Web app, mã truy cập hay tên căn (chỉ số lượng).
+   - Chỉ ĐỌC dữ liệu (ngoại lệ: mỗi phiên xin trình duyệt lưu trữ bền một lần, không hiện hộp thoại, không áp dụng cho APK; và nút "Thử gửi (POST)" do bạn tự bấm, có hỏi xác nhận).
+   - Nút "Kiểm tra kết nối máy chủ" chỉ chạy khi bạn bấm (không chạy ngầm): thử cấu hình, đường truyền tới Google, tải danh sách, làm mới nhanh và tải checklist, toàn bộ chỉ đọc. Báo cáo không chứa link Web app, mã truy cập hay tên căn (chỉ số lượng).
    - Các nút sửa lỗi đều hỏi xác nhận, không động tới dữ liệu trên Sheet/Drive, và từ chối khi đang có thay đổi chưa lưu hoặc ảnh đang tải lên.
    Cần đoạn bắt lỗi sớm (window.__dbg) trong <head> của index.html; thiếu đoạn đó thì dbg.js vẫn chạy nhưng chỉ thấy lỗi xảy ra sau khi nó nạp. */
 (function(){
 "use strict";
 var G=function(i){return document.getElementById(i)};
+var NOTRAP=!window.__dbg;
 var B=window.__dbg||(window.__dbg={e:[],lt:0,ltn:0,lts:[],t:Date.now()});
 var R=null,running=false,taps=0,tapT=0;
 var FILES=["ck.js","img.js","dup.js","bk.js","dbg.js"];
@@ -57,6 +59,7 @@ function chkComponents(add,w){
   if(window.Img&&!(G("lb")&&typeof G("lb").onclick==="function"))add("bad",g,"img.js đã nạp nhưng chưa khởi tạo (Img.init chưa chạy)");
   if(window.Bk&&!(G("bk")&&G("bk").dataset.ready==="1"))add("bad",g,"bk.js đã nạp nhưng chưa khởi tạo (Bk.init chưa chạy, nút Sao lưu/khôi phục sẽ không hoạt động)");
   if(window.Dup&&!(G("dupd")&&G("dupb")))add("bad",g,"dup.js đã nạp nhưng chưa dựng giao diện Kiểm tra trùng");
+  if(NOTRAP)add("warn",g,"Thiếu đoạn bắt lỗi sớm (window.__dbg) trong <head> của index.html: lỗi và tác vụ treo xảy ra trước khi dbg.js nạp sẽ không được ghi lại");
   var noId=IDS.filter(function(i){return !G(i)});
   if(noId.length)add("bad",g,"Thiếu phần tử trong trang: "+noId.join(", "))}
 function bridge(add,obj,name,keys,fns){
@@ -109,6 +112,56 @@ function chkSw(add){
       add("ok",g,"Phiên bản "+p.v+" · chế độ "+(p.app?"APK/App (không lưu vỏ app)":"PWA"));
       if(window.Capacitor&&!p.app)add("warn",g,"Đang chạy trong APK nhưng service worker ở chế độ PWA");
       if(!window.Capacitor&&p.app)add("warn",g,"Service worker ở chế độ APK nhưng trang không chạy trong APK")})})}
+function headOk(u){return fetch(u,{method:"HEAD",cache:"no-store"}).then(function(r){return r.status},function(){return 0})}
+function swFiles(tx){   // đọc danh sách SHELL_FILES và VERSION từ sw.js
+  var o={v:"",list:[]},m=/const\s+VERSION\s*=\s*'([^']+)'/.exec(tx);if(m)o.v=m[1];
+  var map={},re=/const\s+(\w+)\s*=\s*'(\.\/[^']+)'/g,x;
+  while((x=re.exec(tx)))map[x[1]]=x[2];
+  var l=/SHELL_FILES\s*=\s*\[([\s\S]*?)\]\s*;/.exec(tx);
+  if(l)l[1].split(",").forEach(function(t){t=t.replace(/\/\/.*$/gm,"").trim();var q=/^'([^']+)'$/.exec(t);var f=q?q[1]:map[t];if(f&&f!=="./")o.list.push(f)});
+  return o}
+function chkAssets(add){
+  var g="Tệp cài đặt";
+  if(!/^https?:$/i.test(location.protocol))return Promise.resolve();
+  var sw={v:"",list:[]};
+  return fetch("sw.js",{cache:"no-store"}).then(function(r){
+    if(!r.ok){add("bad",g,"sw.js: HTTP "+r.status);return}
+    return r.text().then(function(tx){sw=swFiles(tx)})
+  },function(){}).then(function(){
+    return fetch("manifest.webmanifest",{cache:"no-store"}).then(function(r){
+      if(!r.ok){add("bad",g,"manifest.webmanifest: HTTP "+r.status+" (không cài được ra màn hình chính)");return null}
+      return r.json().then(function(m){return m},function(){add("bad",g,"manifest.webmanifest không phải JSON hợp lệ");return null})
+    },function(){add("warn",g,"Không tải được manifest.webmanifest (đang offline?)");return null})
+  }).then(function(m){
+    var urls=[],seen={};
+    sw.list.forEach(function(f){urls.push(new URL(f,location.href).href)});
+    if(m){
+      var ic=m.icons||[],has={},mask=false;
+      ic.forEach(function(x){
+        String(x.sizes||"").split(/\s+/).forEach(function(z){has[z]=1});
+        if(/maskable/.test(x.purpose||""))mask=true;
+        if(x.src)urls.push(new URL(x.src,location.href).href)});
+      if(!m.name&&!m.short_name)add("warn",g,"manifest thiếu name/short_name");
+      if(!m.start_url)add("warn",g,"manifest thiếu start_url");
+      if(!/^(standalone|fullscreen|minimal-ui)$/.test(m.display||""))add("warn",g,"manifest display=\""+(m.display||"không có")+"\": app sẽ mở như tab trình duyệt thay vì app riêng");
+      if(!has["192x192"]||!has["512x512"])add("warn",g,"manifest thiếu icon 192x192 hoặc 512x512 (Chrome cần đủ cả hai để cho cài)");
+      if(!mask)add("warn",g,"manifest chưa có icon maskable: Android tự thu nhỏ icon vào ô tròn nên logo có thể nhỏ và có viền trắng");
+      else add("ok",g,"manifest: có icon maskable, "+ic.length+" icon, display="+m.display)}
+    Array.prototype.forEach.call(document.querySelectorAll('link[rel~="icon"],link[rel="apple-touch-icon"],link[rel="manifest"]'),function(l){if(l.href)urls.push(l.href)});
+    urls=urls.filter(function(u){if(seen[u])return false;return seen[u]=1}).slice(0,40);
+    return Promise.all(urls.map(function(u){return headOk(u).then(function(c){return{u:u,c:c,ok:c>=200&&c<400}})})).then(function(rs){
+      var bad=rs.filter(function(x){return !x.ok});
+      bad.forEach(function(x){
+        var font=/\/fonts\//.test(x.u);   // sw.js bỏ qua tệp thiếu khi cài, nên font thiếu chỉ là cảnh báo
+        add(font?"warn":"bad",g,x.u.replace(location.origin,"")+": "+(x.c?"HTTP "+x.c:"không tải được")+(font?" (sw.js liệt kê nhưng không có: không lưu offline được, chữ có thể đổi font)":/icon/.test(x.u)?" (thiếu tệp icon hoặc sai đường dẫn)":""))});
+      if(!bad.length)add("ok",g,"Đủ "+rs.length+" tệp (sw.js"+(sw.v?" "+sw.v:"")+", manifest, icon, font, mã nguồn)");
+      // PWA: tệp nào có trên máy chủ mà chưa nằm trong bộ nhớ đệm vỏ app thì offline sẽ thiếu
+      if(isApk()||!window.caches||!sw.v||!navigator.serviceWorker||!navigator.serviceWorker.controller)return;
+      return caches.open("shell-"+sw.v).then(function(c){
+        return Promise.all(rs.filter(function(x){return x.ok&&sw.list.some(function(f){return new URL(f,location.href).href===x.u})}).map(function(x){return c.match(x.u).then(function(h){return h?null:x.u})}))
+      }).then(function(miss){
+        miss=miss.filter(Boolean);
+        if(miss.length)add("warn",g,miss.length+" tệp chưa lưu để dùng offline: "+miss.map(function(u){return u.replace(location.origin+"/","")}).join(", ")+" (mở lại app một lần khi có mạng)")},function(){})})})}
 function chkCaches(add){
   var g="Bộ nhớ đệm";
   if(!window.caches){add("info",g,"Không hỗ trợ Cache API");return Promise.resolve()}
@@ -143,18 +196,24 @@ function chkData(add){
   var g="Dữ liệu",K=window.NK,T=window.NT,items=[];
   try{items=(K&&K.items)||(T&&T.items&&T.items())||[]}catch(e){}
   if(!items.length&&!ready()){return}
-  var ids={},dup=0,noName=0,withCk=0,need=0,odd=0,imgs=0,ckImgs=0,ckC={},CKIDS={};
+  if(!items.length){add("warn",g,"Chưa có căn nào trên máy (chưa tải xong, đang offline, hoặc danh sách trống). Bấm \"Kiểm tra kết nối máy chủ\" để xem lý do.");return}
+  var ids={},dup=0,noName=0,withCk=0,need=0,odd=0,imG=0,imV=0,imH=0,ckC={},CKIDS={};
   try{ckC=K.ckC||{}}catch(e){}
   try{(K.CK||[]).forEach(function(s){(s.i||[]).forEach(function(x){CKIDS[x[0]]=1})})}catch(e){}
   items.forEach(function(it){
     if(ids[it.id])dup++;ids[it.id]=1;
     if(!it.n)noName++;
-    imgs+=(it.im||[]).length;
-    if(it.ck){
-      withCk++;ckImgs+=((it.ck.vi||[]).length+(it.ck.im||[]).length);
-      var e=ckC[it.id];if(!(e&&e.h===(it.ck.h||"")))need++;
-      if(e&&e.ck&&e.ck.c)for(var k in e.ck.c)if(!CKIDS[k]){odd++;break}}});
-  add("ok",g,items.length+" căn · "+imgs+" ảnh nhà · "+withCk+" căn có checklist ("+ckImgs+" ảnh)");
+    imG+=(it.im||[]).length;                       // ảnh gốc (it.im)
+    var c=it.ck;if(!c)return;
+    var nv=(c.vi||[]).length,nh=(c.im||[]).length;  // ảnh đi xem (ck.vi), ảnh hư hỏng (ck.im)
+    imV+=nv;imH+=nh;
+    var has=nv+nh>0||!!(c.nt&&String(c.nt).trim());
+    try{var l=K&&K.ckLiteOf?K.ckLiteOf(c):null;if(l&&l.s&&(l.s[0]+l.s[1]+l.s[2])>0)has=true}catch(e){}
+    if(!has)return;                                 // chỉ tính checklist có nội dung thật, giống ckHas trong index.html
+    withCk++;
+    var cc=ckC[it.id];if(!(cc&&cc.h===(c.h||"")))need++;
+    if(cc&&cc.ck&&cc.ck.c)for(var k in cc.ck.c)if(!CKIDS[k]){odd++;break}});
+  add("ok",g,items.length+" căn · ảnh gốc "+imG+" · ảnh đi xem "+imV+" · ảnh hư hỏng "+imH+" · "+withCk+" căn có checklist");
   if(dup)add("bad",g,dup+" căn bị trùng mã (id), cần kiểm tra Sheet");
   if(noName)add("warn",g,noName+" căn chưa có tên");
   if(need)add("info",g,need+"/"+withCk+" checklist chưa tải về máy (đang tải ngầm hoặc đang offline)");
@@ -180,8 +239,30 @@ function chkPerf(add){
     if(ls.length){
       var top=ls.slice().sort(function(a,b){return b.d-a.d}).slice(0,3).map(function(x){return x.d+" ms lúc +"+(x.s/1000).toFixed(1)+"s"}).join(" · ");
       add("info",g,"Nặng nhất: "+top+" · "+Math.round(early)+" ms nằm trong 5 giây đầu")}}
-  var c=navigator.connection||{};
-  add("info",g,"Mạng: "+(navigator.onLine===false?"offline":(c.effectiveType||"online"))+(c.saveData?" · tiết kiệm dữ liệu":"")+(navigator.deviceMemory?" · RAM ~"+navigator.deviceMemory+" GB":""))}
+}
+function mb(n){return (n/1048576).toFixed(n>=104857600?0:1)+" MB"}
+function chkEnv(add){
+  var g="Thiết bị & mạng",c=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
+  if(navigator.onLine===false)add("warn",g,"Trình duyệt báo đang offline");
+  else add("info",g,"Trình duyệt báo có mạng (chỉ là trạng thái của thiết bị, chưa chắc ra được internet; bấm \"Kiểm tra kết nối máy chủ\" để thử thật)");
+  if(c){
+    var p=[];
+    if(c.type)p.push("loại "+c.type);
+    if(c.effectiveType)p.push("tốc độ ước tính "+c.effectiveType);
+    if(typeof c.downlink==="number")p.push("băng thông ~"+c.downlink+" Mbps"+(c.downlink>=10?" (trình duyệt chỉ báo tối đa 10)":""));
+    if(typeof c.rtt==="number")p.push("độ trễ ~"+c.rtt+" ms");
+    if(c.saveData)p.push("đang bật tiết kiệm dữ liệu");
+    add(/^(slow-2g|2g)$/.test(c.effectiveType||"")?"warn":"info",g,"Kết nối: "+(p.join(" · ")||"không có chi tiết")+". Đây là số ước tính từ các lần tải gần đây, không phải phép đo tốc độ, và \"4g\" không có nghĩa là đang dùng 4G (Wi-Fi cũng hiện 4g)");
+  }else add("info",g,"Trình duyệt này (Safari/Firefox) không cung cấp loại mạng, băng thông hay độ trễ");
+  var dm=navigator.deviceMemory;
+  if(dm)add(dm<=1?"warn":"info",g,"RAM máy: "+(dm>=8?"từ 8 GB trở lên (trình duyệt chỉ báo tối đa 8)":"khoảng "+dm+" GB")+". Số đã làm tròn xuống theo bậc 0,5/1/2/4/8, là tổng RAM chứ không phải RAM còn trống");
+  else add("info",g,"Trình duyệt không cho biết RAM máy (chỉ Chrome/Edge/Opera và chỉ trên https)");
+  if(navigator.hardwareConcurrency)add("info",g,"Số nhân CPU: "+navigator.hardwareConcurrency);
+  var m=null;try{m=performance.memory}catch(e){}
+  if(m&&m.jsHeapSizeLimit){
+    var pc=Math.round(m.usedJSHeapSize*100/m.jsHeapSizeLimit);
+    add(pc>=70?"warn":"info",g,"Bộ nhớ JS của trang: "+mb(m.usedJSHeapSize)+" / giới hạn "+mb(m.jsHeapSizeLimit)+" ("+pc+"%). Chrome làm tròn thô số này, chỉ dùng để so sánh tương đối")}
+  else add("info",g,"Không đọc được bộ nhớ JS của trang (trình duyệt không hỗ trợ)")}
 function chkErrors(add){
   var g="Lỗi đã ghi";
   if(!B.e.length){add("ok",g,"Không có lỗi nào được ghi lại");return}
@@ -192,6 +273,104 @@ function chkErrors(add){
     var where=x.s?" ("+x.s.split("/").pop()+(x.l?":"+x.l:"")+")":"";
     add(lv,g,"["+x.k+" +"+(x.t/1000).toFixed(1)+"s] "+x.m+where)})}
 
+/* ---------- Kiểm tra kết nối máy chủ (Google Apps Script). Chỉ chạy khi bấm nút, toàn bộ là yêu cầu ĐỌC ---------- */
+var S=null,srvBusy=false;
+function sfg(){
+  var u="",k="";
+  try{u=(window.NB&&window.NB.apiUrl&&window.NB.apiUrl())||""}catch(e){}
+  try{k=(window.NT&&window.NT.ls&&window.NT.ls("nha-thue-key"))||""}catch(e){}
+  return{u:u,k:k}}
+function tfetch(url,opt,ms){
+  var c=window.AbortController?new AbortController():null,t0=performance.now(),tm=0;
+  opt=opt||{};if(c){opt.signal=c.signal;tm=setTimeout(function(){c.abort()},ms)}
+  function el(){return Math.round(performance.now()-t0)}
+  return fetch(url,opt).then(function(r){
+    if(opt.mode==="no-cors"){clearTimeout(tm);return{r:r,tx:"",ms:el()}}
+    return r.text().then(function(tx){clearTimeout(tm);return{r:r,tx:tx,ms:el()}})
+  }).catch(function(e){
+    clearTimeout(tm);
+    var ab=!!(e&&e.name==="AbortError"),er=new Error(ab?"quá thời gian chờ "+Math.round(ms/1000)+" giây":(e&&e.message)||"lỗi mạng");
+    er.ms=el();er.abort=ab;throw er})}
+function parseSrv(res,add,g,what){
+  var r=res.r,d=null,host="";
+  try{host=new URL(r.url).hostname}catch(e){}
+  try{d=JSON.parse(res.tx)}catch(e){}
+  if(d&&typeof d==="object")return d;
+  var why;
+  if(/accounts\.google\.com/.test(host))why="bị chuyển tới trang đăng nhập Google: Web app chưa được triển khai với quyền truy cập \"Bất kỳ ai\" (Anyone)";
+  else if(r.status===404)why="HTTP 404: link Web app sai hoặc đã bị xóa";
+  else if(r.status>=500)why="HTTP "+r.status+": lỗi phía Google/Apps Script";
+  else if(/<html|<!doctype/i.test(String(res.tx).slice(0,300)))why="trả về trang HTML thay vì dữ liệu (mã Apps Script báo lỗi, hoặc link không phải bản /exec đã triển khai)";
+  else why="phản hồi không đọc được dưới dạng JSON ("+(res.tx?res.tx.length+" ký tự":"rỗng")+")";
+  add("bad",g,what+": "+why+" · HTTP "+r.status+" · "+res.ms+" ms");
+  return null}
+function srvFail(add,g,what,e){
+  var hint=e&&e.abort?" (Apps Script khởi động nguội đôi khi mất hơn 20 giây, thử lại lần nữa)":". Đường truyền tới Google bình thường nên thường do: Web app chưa cho \"Bất kỳ ai\" truy cập, link sai, hoặc chưa triển khai lại phiên bản mới sau khi sửa mã";
+  add("bad",g,what+" thất bại: "+(e&&e.message||e)+hint)}
+function chkServer(){
+  var L=[];function add(s,g,t){L.push({s:s,g:g,t:t})}
+  var X={at:Date.now(),L:L},g1="Máy chủ · Cấu hình",g2="Máy chủ · Đường truyền",g3="Máy chủ · Phản hồi";
+  var cf=sfg(),u=cf.u,k=cf.k,host="",okCfg=true;
+  if(!u){add("bad",g1,"Chưa có link Web app (app đang ở màn hình nhập link)");okCfg=false}
+  else{
+    try{host=new URL(u).hostname}catch(e){}
+    if(!/^https:\/\//i.test(u)){add("bad",g1,"Link Web app không bắt đầu bằng https://");okCfg=false}
+    else if(!host){add("bad",g1,"Link Web app không hợp lệ");okCfg=false}
+    else{
+      add(host==="script.google.com"?"ok":"warn",g1,"Đã có link Web app, máy chủ "+host+(host==="script.google.com"?"":" (không phải script.google.com, hãy kiểm tra lại link)"));
+      if(!/\/exec\/?$/.test(u.split("?")[0]))add("warn",g1,"Link không kết thúc bằng /exec (link /dev chỉ chạy cho chủ tài khoản, link bị cắt cũng báo lỗi)")}}
+  if(!k){add("bad",g1,"Chưa có mã truy cập");okCfg=false}else add("ok",g1,"Đã có mã truy cập");
+  var off=navigator.onLine===false;
+  var tg=[["script.google.com","https://script.google.com/"],["script.googleusercontent.com (nơi Apps Script trả dữ liệu)","https://script.googleusercontent.com/"],["lh3.googleusercontent.com (ảnh Drive)","https://lh3.googleusercontent.com/"]];
+  return Promise.all(tg.map(function(x){
+    return tfetch(x[1],{mode:"no-cors",cache:"no-store"},8000).then(function(v){return{x:x,ok:true,ms:v.ms}},function(e){return{x:x,ok:false,m:e.message}})
+  })).then(function(rs){
+    var okN=0;
+    rs.forEach(function(v){
+      if(v.ok){okN++;add(v.ms>3000?"warn":"ok",g2,"Tới được "+v.x[0]+" · "+v.ms+" ms")}
+      else add(off?"info":"bad",g2,"Không tới được "+v.x[0]+": "+v.m)});
+    if(!okN){add("info",g2,"Không ra được internet nên bỏ qua các bước sau. Kiểm tra Wi-Fi/dữ liệu di động, rồi bấm lại.");return X}
+    if(!okCfg){add("info",g3,"Bỏ qua vì cấu hình chưa đủ");return X}
+    var base=u+"?key="+encodeURIComponent(k)+"&app="+encodeURIComponent(u);
+    return tfetch(base+"&since=",{cache:"no-store"},25000).then(function(res){
+      var d=parseSrv(res,add,g3,"Tải danh sách");if(!d)return X;
+      if(!d.ok){add("bad",g3,"Máy chủ từ chối: "+(d.error||"không rõ lý do")+" · "+res.ms+" ms");return X}
+      var sz=0;try{sz=new Blob([res.tx]).size}catch(e){sz=res.tx.length}
+      var n=(d.items||[]).length;
+      add(res.ms>8000?"warn":"ok",g3,"Tải danh sách: "+res.ms+" ms · "+kb(sz)+(res.ms>8000?" (chậm; Apps Script khởi động nguội hoặc danh sách quá nặng)":""));
+      add("ok",g3,"Quyền: "+(d.role==="edit"?"sửa":d.role==="view"?"chỉ xem":String(d.role))+" · máy chủ có "+n+" căn");
+      var T=window.NT,K=window.NK,local=-1;
+      try{local=T&&T.items?T.items().length:-1}catch(e){}
+      if(local>=0&&local!==n)add("warn",g3,"Lệch số căn: máy chủ "+n+", trên máy "+local+" (nếu vừa thêm/xóa thì bình thường, bấm Kiểm tra lại; nếu vẫn lệch hãy kéo làm mới danh sách)");
+      try{if(K&&typeof K.canW==="boolean"&&K.canW!==(d.role==="edit"))add("warn",g3,"Quyền trên máy ("+(K.canW?"sửa":"xem")+") khác máy chủ ("+(d.role==="edit"?"sửa":"xem")+"), hãy tải lại app")}catch(e){}
+      if(!d.ver)add("warn",g3,"Máy chủ không trả số phiên bản dữ liệu (ver): app sẽ tải lại cả danh sách mỗi lần làm mới");
+      var nx=Promise.resolve();
+      if(d.ver)nx=tfetch(base+"&since="+encodeURIComponent(d.ver),{cache:"no-store"},25000).then(function(r2){
+        var d2=parseSrv(r2,add,g3,"Làm mới nhanh");if(!d2)return;
+        if(d2.ok&&d2.same)add(r2.ms>6000?"warn":"ok",g3,"Làm mới nhanh: "+r2.ms+" ms, dữ liệu không đổi (cách app kiểm tra định kỳ)");
+        else if(d2.ok)add("info",g3,"Làm mới nhanh: dữ liệu vừa thay đổi trong lúc kiểm tra · "+r2.ms+" ms");
+        else add("bad",g3,"Làm mới nhanh bị từ chối: "+(d2.error||"không rõ lý do"))
+      },function(e){srvFail(add,g3,"Làm mới nhanh",e)});
+      return nx.then(function(){
+        var it=null;try{(T.items()||[]).some(function(x){if(x.ck){it=x;return true}})}catch(e){}
+        if(!it){add("info",g3,"Chưa có căn nào có checklist để thử tải");return X}
+        return tfetch(base+"&action=ck&id="+encodeURIComponent(it.id),{cache:"no-store"},25000).then(function(r3){
+          var d3=parseSrv(r3,add,g3,"Tải checklist");if(!d3)return X;
+          if(!d3.ok)add("bad",g3,"Tải checklist bị từ chối: "+(d3.error||"không rõ lý do")+" · "+r3.ms+" ms");
+          else add(r3.ms>6000?"warn":"ok",g3,"Tải checklist 1 căn: "+r3.ms+" ms"+(d3.ck?"":" (căn này chưa có nội dung checklist)"));
+          return X},function(e){srvFail(add,g3,"Tải checklist",e);return X})})
+    },function(e){srvFail(add,g3,"Tải danh sách",e);return X})})}
+function chkPost(){
+  var L=[],g="Máy chủ · Gửi dữ liệu (POST)",cf=sfg();
+  function add(s,t){L.push({s:s,g:g,t:t})}
+  if(!cf.u||!cf.k){add("bad","Thiếu link Web app hoặc mã truy cập");return Promise.resolve(L)}
+  var f=function(m,e){add("bad",m+": "+(e&&e.message||e)+". Kiểm tra link /exec đã triển khai và quyền \"Bất kỳ ai\"")};
+  return tfetch(cf.u,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({key:cf.k,action:"dbg-ping"}),cache:"no-store"},25000).then(function(res){
+    var d=parseSrv(res,function(s,gg,t){add(s,t)},g,"Gửi thử");if(!d)return L;
+    if(d.ok===true)add("warn","Máy chủ chấp nhận lệnh lạ \"dbg-ping\" (mã máy chủ không kiểm tra tên lệnh) · "+res.ms+" ms");
+    else add("ok","Đường gửi (POST) hoạt động: máy chủ đã nhận và trả lời"+(d.error?" \""+d.error+"\"":"")+" · "+res.ms+" ms. Lệnh thử bị từ chối là bình thường");
+    return L},function(e){f("Gửi thử thất bại",e);return L})}
+
 /* ---------- Chạy toàn bộ ---------- */
 function run(){
   if(running)return Promise.resolve(R);
@@ -201,8 +380,8 @@ function run(){
   R={at:Date.now(),L:L};
   return wait().then(function(w){
     chkComponents(add,w);chkBridges(add);chkRes(add);
-    return chkSw(add).then(function(){return chkCaches(add)}).then(function(){return chkStorage(add)}).then(function(){
-      chkData(add);chkPerf(add);chkErrors(add)})
+    return chkSw(add).then(function(){return chkAssets(add)}).then(function(){return chkCaches(add)}).then(function(){return chkStorage(add)}).then(function(){
+      chkData(add);chkPerf(add);chkEnv(add);chkErrors(add)})
   }).then(function(){running=false;badge();return R},function(e){running=false;add("bad","Kiểm tra","Chính bộ kiểm tra bị lỗi: "+(e&&e.message||e));badge();return R})}
 function count(s){return R?R.L.filter(function(x){return x.s===s}).length:0}
 
@@ -221,21 +400,29 @@ function panel(){
   var d=G("dbgd");if(d)return d;
   style();
   d=document.createElement("dialog");d.id="dbgd";
-  d.innerHTML='<div class="form"><h2>Kiểm tra hệ thống</h2><p class="pm" id="dbgs" role="status"></p><div id="dbgl"></div><div class="dbga" id="dbga"></div><div class="foot"><button class="btn p" type="button" id="dbgx">Đóng</button></div></div>';
+  d.innerHTML='<div class="form"><h2>Kiểm tra hệ thống</h2><p class="pm" id="dbgs" role="status"></p><div id="dbgl"></div><div id="dbgsv"></div><div class="dbga" id="dbga"></div><div class="foot"><button class="btn p" type="button" id="dbgx">Đóng</button></div></div>';
   document.body.appendChild(d);
   d.addEventListener("click",onClick);
   G("dbgx").onclick=function(){d.close()};
   return d}
 function say(t){var s=G("dbgs");if(s)s.textContent=t||""}
-function draw(){
-  panel();
-  var b=count("bad"),w=count("warn"),g="",h="";
-  say(!R?"Đang kiểm tra…":b?b+" vấn đề nghiêm trọng, "+w+" cảnh báo.":w?"Không có lỗi nghiêm trọng, "+w+" cảnh báo.":"Mọi thứ hoạt động bình thường.");
-  if(R)R.L.forEach(function(x){
+function rowsH(L){
+  var g="",h="";
+  L.forEach(function(x){
     if(x.g!==g){g=x.g;h+="<h3>"+esc(g)+"</h3>"}
     h+='<div class="dbgr '+x.s+'"><i>'+ICON[x.s]+"</i><span>"+esc(x.t)+"</span></div>"});
-  G("dbgl").innerHTML=h;
-  var a='<button type="button" class="btn" data-act="run">Kiểm tra lại</button><button type="button" class="btn" data-act="copy">Sao chép báo cáo</button>';
+  return h}
+function srvSum(){
+  if(!S)return "";
+  var b=S.L.filter(function(x){return x.s==="bad"}).length,w=S.L.filter(function(x){return x.s==="warn"}).length;
+  return b?"Máy chủ: "+b+" lỗi, "+w+" cảnh báo.":w?"Máy chủ: kết nối được, "+w+" cảnh báo.":"Máy chủ: kết nối bình thường."}
+function draw(){
+  panel();
+  var b=count("bad"),w=count("warn");
+  say(!R?"Đang kiểm tra…":b?b+" vấn đề nghiêm trọng, "+w+" cảnh báo.":w?"Không có lỗi nghiêm trọng, "+w+" cảnh báo.":"Mọi thứ hoạt động bình thường.");
+  G("dbgl").innerHTML=R?rowsH(R.L):"";
+  G("dbgsv").innerHTML=S?rowsH(S.L):"";
+  var a='<button type="button" class="btn" data-act="run">Kiểm tra lại</button><button type="button" class="btn" data-act="copy">Sao chép báo cáo</button><button type="button" class="btn" data-act="srv">Kiểm tra kết nối máy chủ</button><button type="button" class="btn" data-act="srvpost">Thử gửi (POST)</button>';
   if(R&&R.canPersist&&navigator.storage&&navigator.storage.persist)a+='<button type="button" class="btn" data-act="persist">Bật lưu trữ bền</button>';
   a+='<button type="button" class="btn" data-act="reset">Làm mới bản cài app</button><button type="button" class="btn" data-act="img">Xóa cache ảnh</button><button type="button" class="btn" data-act="ck">Xóa checklist đã nhớ</button><button type="button" class="btn" data-act="dup">Đặt lại dữ liệu quét trùng</button>';
   G("dbga").innerHTML=a}
@@ -253,6 +440,7 @@ function badge(){
 function report(){
   var c=navigator.connection||{},t="Báo cáo kiểm tra · "+new Date(R.at).toLocaleString("vi-VN")+"\n"+(navigator.userAgent||"")+"\n"+(window.Capacitor?"APK (Capacitor)":"Trình duyệt/PWA")+"\n",g="";
   R.L.forEach(function(x){if(x.g!==g){g=x.g;t+="\n["+g+"]\n"}t+=ICON[x.s]+" "+x.t+"\n"});
+  if(S){t+="\n=== Kết nối máy chủ · "+new Date(S.at).toLocaleString("vi-VN")+" ===\n";g="";S.L.forEach(function(x){if(x.g!==g){g=x.g;t+="\n["+g+"]\n"}t+=ICON[x.s]+" "+x.t+"\n"})}
   return t}
 function copy(t){
   if(navigator.clipboard&&navigator.clipboard.writeText)return navigator.clipboard.writeText(t);
@@ -276,6 +464,17 @@ function onClick(e){
     navigator.storage.persist().then(function(v){
       var m=v?"Đã bật lưu trữ bền.":"Chưa được cấp. "+whyNoPersist();
       rerun().then(function(){say(m)})},function(){say("Không gửi được yêu cầu lưu trữ bền.")});return}
+  if(a==="srv"){
+    if(srvBusy)return;srvBusy=true;say("Đang kiểm tra máy chủ… (có thể mất vài chục giây)");
+    chkServer().then(function(x){S=x},function(er){S={at:Date.now(),L:[{s:"bad",g:"Máy chủ",t:"Bộ kiểm tra bị lỗi: "+(er&&er.message||er)}]}}).then(function(){srvBusy=false;draw();say(srvSum())});return}
+  if(a==="srvpost"){
+    if(srvBusy)return;
+    if(!confirm("Gửi 1 lệnh thử không có thật (dbg-ping) tới máy chủ bằng đường POST, đúng cách app vẫn dùng để lưu. Máy chủ chỉ nên trả lời \"lệnh không hợp lệ\" và không ghi gì vào Sheet/Drive. Tiếp tục?"))return;
+    srvBusy=true;say("Đang gửi lệnh thử…");
+    chkPost().then(function(L){
+      if(!S)S={at:Date.now(),L:[]};
+      S.L=S.L.filter(function(x){return x.g!==L[0].g}).concat(L);S.at=Date.now()
+    }).then(function(){srvBusy=false;draw();say(srvSum())});return}
   gd=guard();if(gd){say(gd);return}
   if(a==="reset"){
     if(!confirm("Xóa vỏ app đã lưu (không xóa ảnh, dữ liệu Sheet hay cài đặt) và tải lại bản mới nhất?"))return;
