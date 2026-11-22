@@ -59,15 +59,42 @@ function updProg(){
   if(partEls[2])partEls[2].textContent=pd2+"/"+pc2;
   updSug();
 }
-function ckPhH(arr,kind,alt){
-  var rm=kind==="view"?"data-vrm":"data-crm";
-  var h=arr.map(function(s,i){return '<div><img alt="'+alt+'" decoding="async" src="'+esc(imgSrc(s,300))+'" data-big="'+esc(imgSrc(s,VW))+'">'+(K.canW?'<button type="button" '+rm+'="'+i+'" aria-label="Xóa ảnh">×</button>':'')+'</div>'}).join("");
-  h+=ckUpQ.filter(function(u){return (u.cur===K.ckCur||(u.hid&&u.hid===K.ckId))&&u.k===kind}).map(function(u){return '<div class="up"><img alt="" src="'+esc(u.src)+'"><span>Đang tải…</span></div>'}).join("");
-  return h}
+var phEls={view:{},damage:{}},phNm={};   // khóa -> ô ảnh đang hiển thị; phNm: id Drive -> tên tệp lúc đang tải (giữ nguyên ô khi tải xong, ảnh không nháy)
+function phTile(){var d=document.createElement("div"),im=document.createElement("img");im.decoding="async";d.appendChild(im);return d}
+function ckPhR(box,arr,kind,alt){
+  var rm=kind==="view"?"data-vrm":"data-crm",old=phEls[kind],nx={},want=[];
+  arr.forEach(function(s,i){want.push({k:"i:"+s,id:s,src:imgSrc(s,300),big:imgSrc(s,VW),i:i})});
+  ckUpQ.filter(function(u){return (u.cur===K.ckCur||(u.hid&&u.hid===K.ckId))&&u.k===kind}).forEach(function(u){want.push({k:"u:"+u.name,src:u.src,up:1})});
+  var nodes=want.map(function(w){
+    var d=old[w.k];
+    if(!d&&w.id&&phNm[w.id])d=old["u:"+phNm[w.id]];   // ảnh vừa tải xong: dùng lại đúng ô đang hiện
+    if(!d)d=phTile();
+    nx[w.k]=d;
+    var im=d.firstChild;
+    im.setAttribute("alt",w.up?"":alt);
+    if(im.getAttribute("src")!==w.src)im.setAttribute("src",w.src);
+    if(w.up)im.removeAttribute("data-big");else im.setAttribute("data-big",w.big);
+    var sp=d.querySelector("span"),bt=d.querySelector("button");
+    if(w.up){
+      d.className="up";
+      if(!sp){sp=document.createElement("span");sp.textContent="Đang tải…";d.appendChild(sp)}
+      if(bt)d.removeChild(bt);
+    }else{
+      d.className="";
+      if(sp)d.removeChild(sp);
+      if(K.canW){
+        if(!bt){bt=document.createElement("button");bt.type="button";bt.setAttribute("aria-label","Xóa ảnh");bt.textContent="×";d.appendChild(bt)}
+        bt.removeAttribute("data-vrm");bt.removeAttribute("data-crm");bt.setAttribute(rm,w.i);
+      }else if(bt)d.removeChild(bt);
+    }
+    return d});
+  phEls[kind]=nx;
+  nodes.forEach(function(d,i){if(box.children[i]!==d)box.insertBefore(d,box.children[i]||null)});
+  while(box.children.length>nodes.length)box.removeChild(box.lastChild)}
 function ckPh(){
   var a=$("ckvph"),b=$("ckph");
-  if(a)a.innerHTML=ckPhH(K.ckCur.vi,"view","Ảnh đi xem");
-  if(b)b.innerHTML=ckPhH(K.ckCur.im,"damage","Ảnh hư hỏng");
+  if(a)ckPhR(a,K.ckCur.vi,"view","Ảnh đi xem");
+  if(b)ckPhR(b,K.ckCur.im,"damage","Ảnh hư hỏng");
   if(window.Img&&Img.sweep){if(a)Img.sweep(a);if(b)Img.sweep(b)}
   var la=$("ckvl"),lb=$("ckil");
   if(la){la.hidden=!(K.ckCur.vu&&K.ckCur.vi.length);if(!la.hidden)la.href=K.ckCur.vu}
@@ -235,7 +262,7 @@ function init(k){
         function dropQ(){var i=ckUpQ.indexOf(x);if(i>-1)ckUpQ.splice(i,1)}
         ckUpQ.push(x);if(K.ckCur===cur){ckPh();syncUi()}
         return upSafe({name:x.name,mime:"image/jpeg",folder:fn,area:(findItem(hid)||{}).d||"",ward:(findItem(hid)||{}).w||"",addr:(findItem(hid)||{}).a||"",kind:kind,hid:hid,fid:cur.vu||"",data:u.split(",")[1]}).then(function(d){
-          LP[d.id]=u;
+          LP[d.id]=u;phNm[d.id]=x.name;
           dropQ();
           var tg=(K.ckId===hid&&K.ckCur)||cur;
           if(kind==="view"){tg.vi.push(d.id);if(d.url)tg.vu=d.url}
