@@ -661,19 +661,7 @@ var LP={};
 function imgSrc(s,w){if(String(s).indexOf("data:")===0)return s;if(LP[s])return LP[s];return "https://lh3.googleusercontent.com/d/"+encodeURIComponent(s)+"=w"+w}
 /* Cỡ ảnh khi xem: trang chi tiết và lightbox dùng chung một cỡ theo màn hình, nên mỗi ảnh chỉ tải một lần. VWF càng cao càng nét nhưng nặng. */
 var VWF=0.8,VW=(function(){var n=Math.min(screen.width||innerWidth,screen.height||innerHeight)*(window.devicePixelRatio||1)*VWF,a=[640,900,1280];for(var i=0;i<a.length;i++)if(a[i]>=n)return a[i];return 1280})();
-/* Ảnh Drive lỗi (quá nhiều request cùng lúc, ảnh mới chưa kịp tạo thumbnail…): thử lại bằng nguồn khác */
-document.addEventListener("error",function(e){var t=e.target;if(!t||t.tagName!=="IMG")return;
-  var s=t.getAttribute("src")||"",m=s.match(/lh3\.googleusercontent\.com\/d\/([^=?&]+)=w(\d+)/);
-  var n=+t.dataset.rt||0;if(n>=3)return;t.dataset.rt=n+1;
-  var id=m?m[1]:(s.match(/[?&]id=([^&]+)/)||[])[1],w=m?m[2]:((s.match(/sz=w(\d+)/)||[])[1]||"500");
-  if(!id)return;
-  var alt=[
-    "https://drive.google.com/thumbnail?id="+id+"&sz=w"+w,
-    "https://drive.google.com/uc?export=view&id="+id,
-    "https://lh3.googleusercontent.com/d/"+id+"=w"+w+"?r="+Date.now()
-  ][n];
-  setTimeout(function(){t.src=alt},400*(n+1))
-},true);
+/* Xử lý lỗi ảnh Drive (retry 3 nguồn), hiện ảnh mượt (.ld) và nén ảnh đã chuyển sang img.js */
 /* ===== Tải ảnh bền khi app chạy nền ===== */
 var vis={seq:0};
 document.addEventListener("visibilitychange",function(){vis.seq++;if(document.hidden){if(ckDirty)ckFlush()}else{wlOn();if(ckDirty)ckFlush()}});
@@ -822,21 +810,7 @@ function renderPv(){
   var h=editIm.map(function(s,i){return '<div><img alt="" src="'+esc(imgSrc(s,300))+'"><button type="button" data-rm="'+i+'" aria-label="Xóa ảnh">×</button></div>'}).join("");
   h+=upQ.map(function(u){return '<div class="up"><img alt="" src="'+esc(u.src)+'"><span>Đang tải…</span></div>'}).join("");
   $("pv").innerHTML=h;var dl=$("drl");var showL=editDr&&(editIm.length||upQ.length);if(dl){dl.hidden=!showL;if(showL)dl.href=editDr}}
-var shrinkQ=Promise.resolve();
-function shrink(file){
-  var p=shrinkQ.then(function(){return new Promise(function(res){
-    var url=URL.createObjectURL(file),im=new Image();
-    function clean(out){im.onload=im.onerror=null;try{im.src=""}catch(x){}URL.revokeObjectURL(url);res(out)}
-    im.onload=function(){try{
-      var k=Math.min(1,1200/Math.max(im.width,im.height)),c=document.createElement("canvas");
-      c.width=Math.max(1,Math.round(im.width*k));c.height=Math.max(1,Math.round(im.height*k));
-      c.getContext("2d").drawImage(im,0,0,c.width,c.height);
-      var d=c.toDataURL("image/jpeg",0.7);c.width=c.height=0;clean(d)
-    }catch(e){clean(null)}};
-    im.onerror=function(){clean(null)};
-    im.src=url})});
-  shrinkQ=p.catch(function(){});
-  return p}
+function shrink(file){return window.Img&&Img.shrink?Img.shrink(file):Promise.resolve(null)}
 function runPool(tasks,n){var i=0;
   function next(){if(i>=tasks.length)return Promise.resolve();var t=tasks[i++];return t().then(next,next)}
   var w=[];for(var k=0;k<Math.min(n,tasks.length);k++)w.push(next());return Promise.all(w)}
@@ -1122,10 +1096,7 @@ function markNew(){if(!items.length)return;var fresh=[],first=!knownIds;if(first
   items.forEach(function(it){if(!knownIds[it.id]){knownIds[it.id]=1;if(!first)fresh.push(it.id)}});
   if(!fresh.length||$("list").classList.contains("enter"))return;
   fresh.forEach(function(id){var c=$("list").querySelector('.card[data-id="'+id+'"]');if(c)c.classList.add("newin")})}
-function sweepImgs(root){
-  var imgs=root.getElementsByTagName("img");
-  for(var i=0;i<imgs.length;i++){var im=imgs[i];if(im.complete&&im.naturalWidth&&!im.classList.contains("ld")){im.classList.add("ld","ld0")}}
-}
+function sweepImgs(root){if(window.Img&&Img.sweep)Img.sweep(root)}
 /* So sánh trực tiếp mảng chuỗi HTML theo từng thẻ: không parse lại cả danh sách và không đọc .outerHTML */
 var tmpEl=null;
 function parseOne(html){
@@ -1751,15 +1722,9 @@ setInterval(poll,20000);document.addEventListener("visibilitychange",poll);windo
 (function(){var m=/[#&]k=([^&]+)/.exec(location.hash);if(m){ls(KK,decodeURIComponent(m[1]));try{history.replaceState(null,"",location.pathname+location.search)}catch(e){}}})();
 document.body.dataset.tab="list";
 (function(){var b=$("totop"),tk=false,on=false;function u(){tk=false;var v=window.scrollY>700;if(v!==on){on=v;b.classList.toggle("on",v)}}window.addEventListener("scroll",function(){if(!tk){tk=true;requestAnimationFrame(u)}},{passive:true});b.onclick=function(){window.scrollTo({top:0,behavior:"smooth"})}})();
-function pre(e){var t=e.target,b=t.closest&&t.closest("[data-ck],[data-sck]");if(b){var cid=b.dataset.ck||b.dataset.sck;ckGet(cid).catch(function(){});iwCkNow(findItem(cid))}
-  var tp=t.closest&&t.closest(".top");if(tp&&!t.closest("a,button,.th")){var cd=tp.closest(".card"),it=cd&&findItem(cd.dataset.id);if(it)iwIntent(it)}var pi=t.closest&&t.closest(".ph img,.cph img");if(pi&&pi.dataset.big)iwNow(pi.dataset.big)}
-$("list").addEventListener("pointerdown",pre,{passive:true});$("mdl").addEventListener("pointerdown",pre,{passive:true});
 var IW={q:[],n:0,nt:0,run:0,wait:0,fail:0,t:0,lo:0,io:null,seen:{},vis:{},eng:{},PER:3};
 function iwGal(g,i){if(window.Img)Img.iwGal(g,i)}
-function iwNow(u){if(window.Img)Img.iwNow(u)}
-function iwIntent(it){if(window.Img)Img.iwIntent(it)}
-function iwCkNow(it){if(window.Img)Img.iwCkNow(it)}
-window.NI={IW:IW,VW:VW,imgSrc:imgSrc,findItem:findItem,segArr:segArr,curSeg:curSeg,ckWarm:ckWarm,tab:function(){return tab},items:function(){return items}};
+window.NI={IW:IW,VW:VW,imgSrc:imgSrc,findItem:findItem,segArr:segArr,curSeg:curSeg,ckWarm:ckWarm,ckGet:ckGet,tab:function(){return tab},items:function(){return items}};
 if(window.Img)Img.init(window.NI);
 $("add").hidden=true;
 
@@ -1795,7 +1760,6 @@ IDBM.get(CKC).then(function(raw){
   }
 }).catch(function(){});
 
-document.addEventListener("load",function(e){var im=e.target;if(im&&im.tagName==="IMG"&&!im.classList.contains("ld"))im.classList.add("ld")},true);
 
 if("serviceWorker" in navigator&&/^https?:$/i.test(location.protocol)){var regSw=function(){var D=window.__dbg;if(D)D.swCall=Math.round(performance.now());navigator.serviceWorker.register("sw.js"+(CAP?"?app=1":""),{updateViaCache:"none"}).then(function(){return navigator.serviceWorker.ready}).then(function(r){if(D)D.swOk=Math.round(performance.now());if(r.active)r.active.postMessage({type:"status"})}).catch(function(e){var D=window.__dbg;if(D&&D.e.length<40)D.e.push({k:"sw",m:"Đăng ký service worker lỗi: "+(e&&e.message||e),s:"",l:0,t:Date.now()-D.t})})};if(document.readyState==="complete")regSw();else window.addEventListener("load",regSw);
   navigator.serviceWorker.addEventListener("message",function(e){if(e.data&&e.data.type==="update")$("upd").hidden=false});

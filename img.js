@@ -1,4 +1,5 @@
-/* img.js: lightbox xem ảnh + tải sẵn ảnh thông minh, tách khỏi index.html.
+/* img.js: bộ công cụ ảnh toàn app — lightbox, tải sẵn thông minh, nén ảnh trước khi upload,
+   tự đổi nguồn Drive khi lỗi, hiện ảnh mượt (.ld) và quét ảnh đã cache (.ld0).
    Nạp bằng <script src="img.js" defer></script>. index.html cung cấp cầu nối window.NI rồi gọi Img.init(NI);
    nạp theo thứ tự nào cũng được (index đặt NI trước thì img.js tự init, sau thì index gọi Img.init).
    Tối ưu: bỏ getBoundingClientRect() trên thẻ ngoài màn hình (dùng tập thẻ đang hiển thị visEls từ IntersectionObserver)
@@ -12,6 +13,40 @@ function segArr(it,k){return NI.segArr(it,k)}
 function curSeg(it){return NI.curSeg(it)}
 function findItem(id){return NI.findItem(id)}
 function ckWarm(){return NI.ckWarm()}
+
+/* ---------- Nén & thu nhỏ ảnh trước khi tải lên Drive (tuần tự tránh ngốn RAM) ---------- */
+var shrinkQ=Promise.resolve();
+function shrink(file){
+  var p=shrinkQ.then(function(){return new Promise(function(res){
+    var url=URL.createObjectURL(file),im=new Image();
+    function clean(out){im.onload=im.onerror=null;try{im.src=""}catch(x){}URL.revokeObjectURL(url);res(out)}
+    im.onload=function(){try{
+      var k=Math.min(1,1200/Math.max(im.width,im.height)),c=document.createElement("canvas");
+      c.width=Math.max(1,Math.round(im.width*k));c.height=Math.max(1,Math.round(im.height*k));
+      c.getContext("2d").drawImage(im,0,0,c.width,c.height);
+      var d=c.toDataURL("image/jpeg",0.7);c.width=c.height=0;clean(d)
+    }catch(e){clean(null)}};
+    im.onerror=function(){clean(null)};
+    im.src=url})});
+  shrinkQ=p.catch(function(){});
+  return p}
+
+/* ---------- Hiện ảnh mượt & tự thử lại nguồn Drive khác khi lỗi ---------- */
+function retryImg(t){
+  if(!t||t.tagName!=="IMG")return;
+  var s=t.getAttribute("src")||"",m=s.match(/lh3\.googleusercontent\.com\/d\/([^=?&]+)=w(\d+)/);
+  var n=+t.dataset.rt||0;if(n>=3)return;t.dataset.rt=n+1;
+  var id=m?m[1]:(s.match(/[?&]id=([^&]+)/)||[])[1],w=m?m[2]:((s.match(/sz=w(\d+)/)||[])[1]||"500");
+  if(!id)return;
+  var alt=[
+    "https://drive.google.com/thumbnail?id="+id+"&sz=w"+w,
+    "https://drive.google.com/uc?export=view&id="+id,
+    "https://lh3.googleusercontent.com/d/"+id+"=w"+w+"?r="+Date.now()
+  ][n];
+  setTimeout(function(){t.src=alt},400*(n+1))}
+function sweep(root){
+  var imgs=(root||document).getElementsByTagName("img");
+  for(var i=0;i<imgs.length;i++){var im=imgs[i];if(im.complete&&im.naturalWidth&&!im.classList.contains("ld"))im.classList.add("ld","ld0")}}
 
 /* ---------- Lightbox ---------- */
 var lbL=[],lbI=0;
@@ -60,6 +95,14 @@ function iwCkNow(it){if(it)iwCkUrls(it).forEach(iwNow)}
 function iwNow(u){if(!u||IW.seen[u])return;IW.seen[u]=1;var im=new Image();im.decoding="async";im.onerror=function(){delete IW.seen[u]};im.src=u}
 function iwIntent(it){IW.eng[it.id]=1;iwUrls(it,2).forEach(iwNow)}
 function iwGal(g,i){var c=g.children;[i+1,i+2,i-1].forEach(function(k){if(k<0||k>=c.length)return;var u=c[k].getAttribute&&c[k].getAttribute("src");if(u&&u.indexOf("https://lh3.")===0)iwNow(u)})}
+function iwPre(e){
+  var t=e.target;if(!t||!t.closest)return;
+  var b=t.closest("[data-ck],[data-sck]");
+  if(b){var cid=b.dataset.ck||b.dataset.sck;if(NI.ckGet)NI.ckGet(cid).catch(function(){});iwCkNow(findItem(cid))}
+  var tp=t.closest(".top");
+  if(tp&&!t.closest("a,button,.th")){var cd=tp.closest(".card"),it=cd&&findItem(cd.dataset.id);if(it)iwIntent(it)}
+  var pi=t.closest(".ph img,.cph img");
+  if(pi&&pi.dataset.big)iwNow(pi.dataset.big)}
 var iwC=null;
 function iwCache(){return iwC||(iwC=caches.open("img-v1").catch(function(e){iwC=null;throw e}))}
 function iwHas(u){var m=/^(.*=w)(\d+)$/.exec(u);if(!m||!window.caches)return Promise.resolve(false);
@@ -124,6 +167,13 @@ function iwLater(ms){clearTimeout(IW.t);IW.t=setTimeout(iwGo,ms)}
 function init(ni){
   if(inited||!ni)return;
   inited=true;NI=ni;IW=ni.IW;VW=ni.VW;
+  sweep(document);
+  document.addEventListener("load",function(e){var im=e.target;if(im&&im.tagName==="IMG"&&!im.classList.contains("ld"))im.classList.add("ld")},true);
+  document.addEventListener("error",function(e){retryImg(e.target)},true);
+  var lEl=G("list"),mEl=G("mdl"),cEl=G("ckb");
+  if(lEl)lEl.addEventListener("pointerdown",iwPre,{passive:true});
+  if(mEl)mEl.addEventListener("pointerdown",iwPre,{passive:true});
+  if(cEl)cEl.addEventListener("pointerdown",iwPre,{passive:true});
   /* Chỉ theo dõi childList trực tiếp của #list (không cần subtree) để không kích hoạt lại khi mở menu/tải ảnh trong thẻ */
   if(window.MutationObserver)new MutationObserver(function(){iwLater(1200)}).observe(G("list"),{childList:true});
   document.addEventListener("visibilitychange",function(){if(!document.hidden){IW.fail=0;iwLater(600)}});
@@ -131,6 +181,6 @@ function init(ni){
   if(navigator.serviceWorker)navigator.serviceWorker.addEventListener("controllerchange",function(){iwLater(1500)});
   iwLater(2500);
 }
-window.Img={init:init,openLb:openLb,iwGal:iwGal,iwNow:iwNow,iwIntent:iwIntent,iwCkNow:iwCkNow};
+window.Img={init:init,openLb:openLb,iwGal:iwGal,iwNow:iwNow,iwIntent:iwIntent,iwCkNow:iwCkNow,shrink:shrink,sweep:sweep};
 if(window.NI)init(window.NI);
 })();
