@@ -61,13 +61,14 @@ function updProg(){
 }
 function ckPhH(arr,kind,alt){
   var rm=kind==="view"?"data-vrm":"data-crm";
-  var h=arr.map(function(s,i){return '<div><img alt="'+alt+'" src="'+esc(imgSrc(s,300))+'" data-big="'+esc(imgSrc(s,VW))+'">'+(K.canW?'<button type="button" '+rm+'="'+i+'" aria-label="Xóa ảnh">×</button>':'')+'</div>'}).join("");
-  h+=ckUpQ.filter(function(u){return u.cur===K.ckCur&&u.k===kind}).map(function(u){return '<div class="up"><img alt="" src="'+esc(u.src)+'"><span>Đang tải…</span></div>'}).join("");
+  var h=arr.map(function(s,i){return '<div><img alt="'+alt+'" decoding="async" src="'+esc(imgSrc(s,300))+'" data-big="'+esc(imgSrc(s,VW))+'">'+(K.canW?'<button type="button" '+rm+'="'+i+'" aria-label="Xóa ảnh">×</button>':'')+'</div>'}).join("");
+  h+=ckUpQ.filter(function(u){return (u.cur===K.ckCur||(u.hid&&u.hid===K.ckId))&&u.k===kind}).map(function(u){return '<div class="up"><img alt="" src="'+esc(u.src)+'"><span>Đang tải…</span></div>'}).join("");
   return h}
 function ckPh(){
   var a=$("ckvph"),b=$("ckph");
-  if(a)a.innerHTML=ckPhH(K.ckCur.vi,"view","Ảnh thực tế");
+  if(a)a.innerHTML=ckPhH(K.ckCur.vi,"view","Ảnh đi xem");
   if(b)b.innerHTML=ckPhH(K.ckCur.im,"damage","Ảnh hư hỏng");
+  if(window.Img&&Img.sweep){if(a)Img.sweep(a);if(b)Img.sweep(b)}
   var la=$("ckvl"),lb=$("ckil");
   if(la){la.hidden=!(K.ckCur.vu&&K.ckCur.vi.length);if(!la.hidden)la.href=K.ckCur.vu}
   if(lb){lb.hidden=!(K.ckCur.du&&K.ckCur.im.length);if(!lb.hidden)lb.href=K.ckCur.du}}
@@ -90,7 +91,7 @@ function renderCk(full){
   h+='<details class="sec" open><summary><span>👍 Ưu điểm &amp; 👎 Nhược điểm</span></summary><div class="sb"><div class="fl"><label>Ưu điểm</label><textarea autocomplete="off" data-lpignore="true" data-1p-ignore data-pc="pr" style="min-height:72px"'+(K.canW?'':' disabled')+' placeholder="Điểm tốt của căn này…">'+esc(K.ckCur.pr)+'</textarea></div><div class="fl"><label>Nhược điểm</label><textarea autocomplete="off" data-lpignore="true" data-1p-ignore data-pc="co" style="min-height:72px"'+(K.canW?'':' disabled')+' placeholder="Điểm chưa ổn…">'+esc(K.ckCur.co)+'</textarea></div></div></details>';
   h+='<details class="sec" open><summary><span>⭐ Chấm điểm căn này</span><span class="cnt" id="rtv">'+(K.ckCur.rt?K.ckCur.rt+"/5":"")+'</span></summary><div class="sb"><div class="sg" id="rtsg"></div><div class="rts">'+[1,2,3,4,5].map(function(n){return '<button type="button" class="rtb" data-rt="'+n+'" aria-pressed="'+(K.ckCur.rt===n)+'">'+n+'<small>'+["Tệ","Tạm","Ổn","Tốt","Rất tốt"][n-1]+'</small></button>'}).join("")+'</div><p class="pm" style="margin:6px 0 0">Chạm lại số đang chọn để bỏ chấm.</p></div></details>';
   h+='<details class="sec" open><summary><span>Ghi chú &amp; ảnh đi xem</span></summary><div class="sb"><textarea autocomplete="off" data-lpignore="true" data-1p-ignore data-nt="" style="min-height:96px"'+(K.canW?'':' disabled')+' placeholder="Ghi lỗi, hư hỏng, điều cần nhắc chủ nhà…">'+esc(K.ckCur.nt)+'</textarea>';
-  h+='<div class="fl"><label>Ảnh thực tế khi đi xem</label>'+(K.canW?'<label class="btn upb" for="ckv">📷 Chọn ảnh thực tế từ thiết bị</label><input id="ckv" type="file" accept="image/*" multiple hidden>':'')+'<p class="pm" id="ckvm" style="margin:6px 0 0"></p><div class="pv cph" id="ckvph" style="margin-top:8px"></div><a id="ckvl" class="btn" target="_blank" rel="noopener" hidden style="margin-top:8px">📁 Thư mục ảnh đi xem trên Drive</a></div>';
+  h+='<div class="fl"><label>Ảnh đi xem (thực tế)</label>'+(K.canW?'<label class="btn upb" for="ckv">📷 Chọn ảnh đi xem từ thiết bị</label><input id="ckv" type="file" accept="image/*" multiple hidden>':'')+'<p class="pm" id="ckvm" style="margin:6px 0 0"></p><div class="pv cph" id="ckvph" style="margin-top:8px"></div><a id="ckvl" class="btn" target="_blank" rel="noopener" hidden style="margin-top:8px">📁 Thư mục ảnh đi xem trên Drive</a></div>';
   h+='<div class="fl"><label>Ảnh lỗi / hư hỏng</label>'+(K.canW?'<label class="btn upb" for="cki">📷 Chọn ảnh hư hỏng từ thiết bị</label><input id="cki" type="file" accept="image/*" multiple hidden>':'')+'<p class="pm" id="ckim" style="margin:6px 0 0"></p><div class="pv cph" id="ckph" style="margin-top:8px"></div><a id="ckil" class="btn" target="_blank" rel="noopener" hidden style="margin-top:8px">📁 Thư mục ảnh lỗi, hư hỏng trên Drive</a></div></div></details>';
   h+='<details class="sec" open><summary><span>Mẹo cuối</span></summary><div class="sb"><ul class="tips">'+TIPS.map(function(t){return '<li>'+esc(t)+'</li>'}).join("")+'</ul></div></details>';
   h+='<button type="button" class="ckx bt" data-ckx>✕ Đóng checklist</button>';
@@ -98,19 +99,57 @@ function renderCk(full){
   cknEl=$("ckn");ckbarEl=$("ckbar");rtsgEl=$("rtsg");
   Array.prototype.forEach.call(el.querySelectorAll("[data-sec]"),function(n){secEls[+n.dataset.sec]=n});
   Array.prototype.forEach.call(el.querySelectorAll("[data-part]"),function(n){partEls[+n.dataset.part]=n});
-  ckPh();updProg();
+  ckPh();updProg();syncUi();
   if(K.ckFresh)jumpTop();
 }
-function ckSave(){K.ckDirty=true;var s=$("cks");if(s)s.textContent="Chưa lưu…";clearTimeout(K.ckT);K.ckT=setTimeout(ckFlush,900)}
+function syncUi(){
+  if(!K)return;
+  var bBusy=(K.ckUpN||0)>0||K.ckUpQ.length>0,sBusy=!!(K.ckDirty||(K.ckSaveN||0)>0);
+  var lock=!!(K.canW&&(bBusy||sBusy));
+  var lblTop=bBusy?"⏳ Đang tải ảnh…":sBusy?"⏳ Đang lưu…":"✕ Đóng";
+  var lblBot=bBusy?"⏳ Đang tải ảnh…":sBusy?"⏳ Đang lưu…":"✕ Đóng checklist";
+  var el=$("ckb");
+  if(el){
+    var xs=el.querySelectorAll("[data-ckx]");
+    for(var i=0;i<xs.length;i++){
+      xs[i].disabled=lock;
+      xs[i].textContent=xs[i].classList.contains("bt")?lblBot:lblTop;
+    }
+  }
+  var st=$("cks");
+  if(st){
+    if(bBusy){st.textContent="Đang tải "+(K.ckUpN||K.ckUpQ.length)+" ảnh (chưa thể đóng)…";st.style.cursor=""}
+    else if((K.ckSaveN||0)>0){st.textContent="Đang lưu…";st.style.cursor=""}
+    else if(K.ckErr){st.textContent="Lưu lỗi — chạm để thử lại";st.style.cursor="pointer"}
+    else if(K.ckDirty){st.textContent="Chưa lưu…";st.style.cursor=""}
+    else st.style.cursor="";
+  }
+}
+function ckSave(){K.ckDirty=true;K.ckErr=false;clearTimeout(K.ckT);K.ckT=setTimeout(ckFlush,900);syncUi()}
 function ckPersist(id,base,x){
   var o=Object.assign({},base,{ck:ckLiteOf(x.s,base.ck&&base.ck.h),rt:x.rt,pr:x.pr,co:x.co});
   return persist(o,x.s).then(function(d){if(d&&d.ch&&d.ch[id]){K.ckC[id]={h:d.ch[id],ck:x.s};ckA[id]=Date.now();ckcSave()}return d})}
 function ckFlush(){
-  clearTimeout(K.ckT);if(!K.ckDirty||!K.ckId||!K.ckCur||!K.canW)return;
-  var it=findItem(K.ckId);if(!it)return;
-  K.ckDirty=false;var tq=K.ckTrashQ.splice(0),x=ckSnap(K.ckCur),id=K.ckId;
-  var s=$("cks");if(s)s.textContent="Đang lưu…";
-  K.ckQ=K.ckQ.then(function(){var cur=findItem(id);if(!cur)return null;return ckPersist(id,cur,x)}).then(function(d){if(!d)return;trashIds(tq);var s2=$("cks");if(s2&&K.ckId===id&&!K.ckDirty)s2.textContent="Đã lưu"},function(e){K.ckTrashQ=tq.concat(K.ckTrashQ);if(K.ckId===id)K.ckDirty=true;var s3=$("cks");if(s3)s3.textContent="Lưu lỗi, chạm lại để thử lần nữa";if(!document.hidden)K.fail(e)});
+  clearTimeout(K.ckT);K.ckT=null;
+  if(!K.ckDirty||!K.ckId||!K.ckCur||!K.canW){syncUi();return}
+  var it=findItem(K.ckId);if(!it){syncUi();return}
+  K.ckDirty=false;K.ckErr=false;K.ckSaveN=(K.ckSaveN||0)+1;
+  var tq=K.ckTrashQ.splice(0),x=ckSnap(K.ckCur),id=K.ckId;
+  syncUi();
+  K.ckQ=K.ckQ.then(function(){var cur=findItem(id);if(!cur)return null;return ckPersist(id,cur,x)}).then(function(d){
+    K.ckSaveN=Math.max(0,(K.ckSaveN||1)-1);
+    if(!d){syncUi();return}
+    trashIds(tq);
+    var s2=$("cks");if(s2&&K.ckId===id&&!K.ckDirty&&!K.ckErr)s2.textContent="Đã lưu ✓";
+    syncUi();
+    if(K.ckDirty&&K.ckId===id)ckFlush();
+  },function(e){
+    K.ckSaveN=Math.max(0,(K.ckSaveN||1)-1);
+    K.ckTrashQ=tq.concat(K.ckTrashQ);
+    if(K.ckId===id){K.ckDirty=true;K.ckErr=true}
+    syncUi();
+    if(!document.hidden)K.fail(e);
+  });
 }
 function init(k){
   if(inited||!k)return;
@@ -146,6 +185,7 @@ function init(k){
   upMon=K.upMon;
   upSafe=K.upSafe;
   $("ckb").onclick=function(e){
+    if(e.target.closest("#cks")&&K.ckErr&&K.canW){K.ckDirty=true;ckFlush();return}
     if(e.target.closest("[data-ckx]")){closeCk();return}
     if(e.target.closest("[data-ckretry]")){ckLoad(K.ckId);return}
     var rb=e.target.closest(".rtb");
@@ -174,36 +214,40 @@ function init(k){
     var fs=Array.prototype.slice.call(t.files);t.value="";if(!fs.length)return;
     var total=fs.length,done=0,bad=0,why="";
     function say(x,isBad){if(K.ckCur===cur){var m=$(mid);if(m){m.textContent=x;m.className="pm"+(isBad?" bad":"")}}}
-    upBusy(total);
+    K.ckUpN=(K.ckUpN||0)+total;upBusy(total);syncUi();
     say("Đang tải ảnh 0/"+total+" lên Drive…");
     var mon=upMon(function(sec){if(done<total)say("Đang tải ảnh "+done+"/"+total+" lên Drive… ("+sec+"s)")});mon.on();
     function fin(){
-      done++;upBusy(-1);
+      done++;K.ckUpN=Math.max(0,(K.ckUpN||1)-1);upBusy(-1);
       if(done>=total)mon.stop();
       if(K.ckCur===cur)ckPh();
-      if(done<total)say("Đang tải ảnh "+done+"/"+total+" lên Drive…");
-      else{say(bad?(total-bad)+"/"+total+" ảnh đã tải. "+bad+" ảnh lỗi ("+why+"), hãy chọn lại ảnh lỗi.":"✓ Đã tải "+total+" ảnh lên Drive",!!bad);if(K.ckCur===cur)ckSave();else ckSaveOff(hid,cur)}
+      if(done<total){say("Đang tải ảnh "+done+"/"+total+" lên Drive…");syncUi()}
+      else{
+        say(bad?(total-bad)+"/"+total+" ảnh đã tải. "+bad+" ảnh lỗi ("+why+"), hãy chọn lại ảnh lỗi.":"✓ Đã tải "+total+" ảnh lên Drive",!!bad);
+        if(K.ckCur===cur){if(total>bad||K.ckDirty)ckFlush();else syncUi()}
+        else ckSaveOff(hid,cur);
+      }
     }
     runPool(fs.map(function(f,k){return function(){
       return shrink(f).then(function(u){
         if(!u){bad++;why="không đọc được một số ảnh";return}
-        var x={cur:cur,k:kind,src:u,name:uname(pre,k)};
-        ckUpQ.push(x);if(K.ckCur===cur)ckPh();
+        var x={hid:hid,cur:cur,k:kind,src:u,name:uname(pre,k)};
+        function dropQ(){var i=ckUpQ.indexOf(x);if(i>-1)ckUpQ.splice(i,1)}
+        ckUpQ.push(x);if(K.ckCur===cur){ckPh();syncUi()}
         return upSafe({name:x.name,mime:"image/jpeg",folder:fn,area:(findItem(hid)||{}).d||"",ward:(findItem(hid)||{}).w||"",addr:(findItem(hid)||{}).a||"",kind:kind,hid:hid,fid:cur.vu||"",data:u.split(",")[1]}).then(function(d){
           LP[d.id]=u;
+          dropQ();
           var tg=(K.ckId===hid&&K.ckCur)||cur;
           if(kind==="view"){tg.vi.push(d.id);if(d.url)tg.vu=d.url}
           else{tg.im.push(d.id);if(d.url)tg.du=d.url}
           if(tg!==cur){cur.vi=tg.vi;cur.im=tg.im;cur.vu=tg.vu;cur.du=tg.du}
           if(K.ckCur===tg){ckPh();ckSave()}else ckSaveOff(hid,tg)
-        },function(e2){bad++;why=e2&&e2.message?e2.message:"lỗi kết nối"}).then(function(){
-          var i=ckUpQ.indexOf(x);if(i>-1)ckUpQ.splice(i,1)
-        })
+        },function(e2){dropQ();bad++;why=e2&&e2.message?e2.message:"lỗi kết nối"})
       }).then(fin,fin)
     }}),3)
   };
   if(K.tab==="ck"&&K.ckId)ckLoad(K.ckId);
 }
-window.Ck={init:init,renderCk:renderCk,ckFlush:ckFlush,ckPersist:ckPersist};
+window.Ck={init:init,renderCk:renderCk,ckFlush:ckFlush,ckPersist:ckPersist,syncUi:syncUi};
 if(window.NK)init(window.NK);
 })();
