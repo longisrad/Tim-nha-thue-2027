@@ -243,6 +243,10 @@ function chkPerf(add){
     if(ls.length){
       var top=ls.slice().sort(function(a,b){return b.d-a.d}).slice(0,3).map(function(x){return x.d+" ms lúc +"+(x.s/1000).toFixed(1)+"s"}).join(" · ");
       add("info",g,"Nặng nhất: "+top+" · "+Math.round(early)+" ms nằm trong 5 giây đầu")}}
+  if(B.laf&&B.laf.length){
+    var tl=B.laf.slice().sort(function(a,b){return b.d-a.d}).slice(0,5).map(function(x){return x.d+" ms lúc +"+(x.s/1000).toFixed(1)+"s: "+(x.u||"không có script")+(x.f?" "+x.f+"()":"")+(x.i?" ← "+x.i:"")+" · script "+x.c+" ms · bố cục/vẽ "+x.y+" ms"}).join(" | ");
+    add("info",g,"Khung hình nặng nhất theo nguồn: "+tl)}
+  else if(B.laf)add("info",g,"Chưa ghi nhận khung hình nặng nào (trên 50 ms), hoặc trình duyệt không hỗ trợ đo theo nguồn")
 }
 function mb(n){return (n/1048576).toFixed(n>=104857600?0:1)+" MB"}
 function chkEnv(add){

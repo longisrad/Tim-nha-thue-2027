@@ -4,7 +4,9 @@
 <script>(function(){var E=window.__dbg={e:[],lt:0,ltn:0,lts:[],t:Date.now()};function add(k,m,s,l){if(E.e.length<40)E.e.push({k:k,m:String(m).slice(0,300),s:s||"",l:l||0,t:Date.now()-E.t})}
 window.addEventListener("error",function(v){var t=v.target;if(t&&t!==window&&(t.tagName==="SCRIPT"||t.tagName==="LINK"))add("load",t.src||t.href||"");else add("js",v.message,v.filename,v.lineno)},true);
 window.addEventListener("unhandledrejection",function(v){var r=v.reason;add("promise",r&&r.message?r.message:r)});
-try{new PerformanceObserver(function(l){l.getEntries().forEach(function(x){E.lt+=x.duration;E.ltn++;if(E.lts.length<120)E.lts.push({s:Math.round(x.startTime),d:Math.round(x.duration)})})}).observe({type:"longtask",buffered:true})}catch(e){}})()</script>
+try{new PerformanceObserver(function(l){l.getEntries().forEach(function(x){E.lt+=x.duration;E.ltn++;if(E.lts.length<120)E.lts.push({s:Math.round(x.startTime),d:Math.round(x.duration)})})}).observe({type:"longtask",buffered:true})}catch(e){}
+/* Khung hình nặng theo nguồn (Chrome 123+): file/hàm script nặng nhất, và thời gian bố cục/vẽ. Chỉ ghi số liệu, không ghi nội dung */
+E.laf=[];try{new PerformanceObserver(function(l){l.getEntries().forEach(function(x){if(E.laf.length>=60)return;var sc=(x.scripts||[]).slice().sort(function(a,b){return b.duration-a.duration})[0],end=x.startTime+x.duration;E.laf.push({s:Math.round(x.startTime),d:Math.round(x.duration),c:sc?Math.round(sc.duration):0,y:Math.round(x.styleAndLayoutStart?end-x.styleAndLayoutStart:0),u:sc?String(sc.sourceURL||"").split("/").pop().split("?")[0]:"",f:sc?String(sc.sourceFunctionName||"").slice(0,40):"",i:sc?String(sc.invoker||"").slice(0,60):""})})}).observe({type:"long-animation-frame",buffered:true})}catch(e){}})()</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="referrer" content="no-referrer">
@@ -1834,7 +1836,27 @@ IDBM.get(CKC).then(function(raw){
 
 
 if("serviceWorker" in navigator&&/^https?:$/i.test(location.protocol)){var regSw=function(){var D=window.__dbg;if(D)D.swCall=Math.round(performance.now());navigator.serviceWorker.register("sw.js"+(CAP?"?app=1":""),{updateViaCache:"none"}).then(function(){return navigator.serviceWorker.ready}).then(function(r){if(D)D.swOk=Math.round(performance.now());if(r.active)r.active.postMessage({type:"status"})}).catch(function(e){var D=window.__dbg;if(D&&D.e.length<40)D.e.push({k:"sw",m:"Đăng ký service worker lỗi: "+(e&&e.message||e),s:"",l:0,t:Date.now()-D.t})})};if(document.readyState==="complete")regSw();else window.addEventListener("load",regSw);
-  navigator.serviceWorker.addEventListener("message",function(e){if(e.data&&e.data.type==="update")$("upd").hidden=false});
+  /* Có bản mới thì tự tải lại khi app đang rảnh: không mở hộp thoại/checklist, không lưu hay tải ảnh dở, và 4 giây không chạm màn hình.
+     Chưa rảnh thì giữ nút "Có bản mới" và thử lại mỗi 5 giây. Tự tải lại tối đa 1 lần mỗi 2 phút để không bị lặp nếu bản mới không áp dụng được. */
+  var updT=0,lastAct=Date.now();
+  ["pointerdown","keydown","scroll","touchmove"].forEach(function(ev){window.addEventListener(ev,function(){lastAct=Date.now()},{passive:true,capture:true})});
+  function updBusy(){
+    var lb=$("lb");
+    return !!(Date.now()-lastAct<4000||upl>0||pend>0||ckDirty||ckSaveN>0||ckUpN>0||(ckUpQ&&ckUpQ.length)||(ckTrashQ&&ckTrashQ.length)||tab==="ck"||document.querySelector("dialog[open]")||(lb&&getComputedStyle(lb).display!=="none"))}
+  function updTry(){
+    if($("upd").hidden){clearInterval(updT);updT=0;return}
+    var last=0;try{last=+sessionStorage.getItem("auto-upd")||0}catch(e){}
+    if(Date.now()-last<120000){clearInterval(updT);updT=0;return}   // vừa tự tải lại mà vẫn còn bản chờ: để người dùng chạm nút
+    if(updBusy())return;
+    clearInterval(updT);updT=0;
+    try{sessionStorage.setItem("auto-upd",String(Date.now()))}catch(e){}
+    $("upd").textContent="Đang cập nhật bản mới…";
+    setTimeout(function(){location.reload()},600)}
+  navigator.serviceWorker.addEventListener("message",function(e){
+    if(!(e.data&&e.data.type==="update"))return;
+    $("upd").hidden=false;
+    if(!updT)updT=setInterval(updTry,5000);
+    updTry()});
   $("upd").onclick=function(){location.reload()};
   /* Quay lại app (đã mở sẵn từ lâu) thì hỏi service worker có bản mới không, tối đa 10 phút một lần; có thì hiện nút "Có bản mới" */
   var lastChk=0;
