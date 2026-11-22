@@ -1,5 +1,6 @@
 /* dbg.js: tự kiểm tra sau khi các thành phần đã nạp xong + công cụ gỡ lỗi.
    - Chạy ngầm ~3 giây sau khi trang tải xong, không hiện gì khi mọi thứ ổn (chỉ có nút ⚠ nhỏ khi có lỗi nghiêm trọng).
+     Chạy ngầm không gửi loạt yêu cầu HEAD kiểm tra tệp cài đặt, chỉ làm mỗi 12 giờ một lần (bấm tay thì luôn làm).
    - Mở bảng báo cáo: chạm 7 lần liên tiếp vào tiêu đề trang, hoặc thêm ?debug=1 vào địa chỉ (PWA), hoặc gọi Dbg.show() trong console.
    - Bảng gồm: tóm tắt trạng thái cố định ở trên, lọc "Cần xử lý"/"Tất cả", nhóm thu gọn (tự mở nhóm có lỗi), nút "Kiểm tra toàn bộ" (thiết bị + máy chủ), nút Dừng.
    - Chỉ ĐỌC dữ liệu (ngoại lệ: mỗi phiên xin trình duyệt lưu trữ bền một lần, không hiện hộp thoại, không áp dụng cho APK; và nút "Thử gửi (POST)" do bạn tự bấm, có hỏi xác nhận).
@@ -198,7 +199,7 @@ function chkData(add){
   var g="Dữ liệu",K=window.NK,T=window.NT,items=[];
   try{items=(K&&K.items)||(T&&T.items&&T.items())||[]}catch(e){}
   if(!items.length&&!ready()){return}
-  if(!items.length){add("warn",g,"Chưa có căn nào trên máy (chưa tải xong, đang offline, hoặc danh sách trống). Bấm \"Kiểm tra kết nối máy chủ\" để xem lý do.");return}
+  if(!items.length){add("warn",g,"Chưa có căn nào trên máy (chưa tải xong, đang offline, hoặc danh sách trống). Bấm \"Kiểm tra toàn bộ\" để xem lý do.");return}
   var ids={},dup=0,noName=0,withCk=0,need=0,odd=0,imG=0,imV=0,imH=0,ckC={},CKIDS={};
   try{ckC=K.ckC||{}}catch(e){}
   try{(K.CK||[]).forEach(function(s){(s.i||[]).forEach(function(x){CKIDS[x[0]]=1})})}catch(e){}
@@ -246,7 +247,7 @@ function mb(n){return (n/1048576).toFixed(n>=104857600?0:1)+" MB"}
 function chkEnv(add){
   var g="Thiết bị & mạng",c=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
   if(navigator.onLine===false)add("warn",g,"Trình duyệt báo đang offline");
-  else add("info",g,"Trình duyệt báo có mạng (chỉ là trạng thái của thiết bị, chưa chắc ra được internet; bấm \"Kiểm tra kết nối máy chủ\" để thử thật)");
+  else add("info",g,"Trình duyệt báo có mạng (chỉ là trạng thái của thiết bị, chưa chắc ra được internet"+(S?"":"; bấm \"Kiểm tra toàn bộ\" để thử thật")+")");
   if(c){
     var p=[];
     if(c.type)p.push("loại "+c.type);
@@ -483,7 +484,9 @@ function chkPost(){
 
 /* ---------- Chạy kiểm tra thiết bị ---------- */
 var CAN=false;
-function run(){
+function assetsDue(){
+  try{var n=Date.now(),v=+localStorage.getItem("dbg-as")||0;if(n-v<43200000)return false;localStorage.setItem("dbg-as",String(n));return true}catch(e){return true}}
+function run(force){
   if(running)return Promise.resolve(R);
   running=true;CAN=false;
   var L=[];
@@ -491,7 +494,7 @@ function run(){
   function fin(){R={at:Date.now(),L:L,can:CAN};running=false;badge();var d=G("dbgd");if(d&&d.open)draw();return R}
   return wait().then(function(w){
     chkComponents(add,w);chkBridges(add);chkRes(add);
-    return chkSw(add).then(function(){return chkAssets(add)}).then(function(){return chkCaches(add)}).then(function(){return chkStorage(add)}).then(function(){return chkIdb(add)}).then(function(){
+    return chkSw(add).then(function(){return (force||assetsDue())?chkAssets(add):0}).then(function(){return chkCaches(add)}).then(function(){return chkStorage(add)}).then(function(){return chkIdb(add)}).then(function(){
       chkNative(add);chkData(add);chkPerf(add);chkMode(add);chkLink(add);chkEnv(add);chkErrors(add)})
   }).then(fin,function(e){add("bad","Kiểm tra","Chính bộ kiểm tra bị lỗi: "+(e&&e.message||e));return fin()})}
 function allL(){return (S?S.L:[]).concat(R?R.L:[])}
@@ -525,7 +528,8 @@ var CSS="#dbgd .form{gap:10px}"+
 "#dbgd .dbgr span{min-width:0;overflow-wrap:anywhere}"+
 "#dbgd .dbgr.bad i,#dbgd .dbgr.bad span{color:var(--danger)}#dbgd .dbgr.bad span{font-weight:700}#dbgd .dbgr.info span{color:var(--mute)}"+
 "#dbgd .dbgem{text-align:center;color:var(--mute);font-size:var(--fs-m);padding:18px 0}"+
-"#dbgd details.dbgt>summary{cursor:pointer;color:var(--mute);font-size:var(--fs-m);font-weight:600;min-height:36px;display:flex;align-items:center}"+
+"#dbgd details.dbgt>summary{cursor:pointer;color:var(--mute);font-size:var(--fs-m);font-weight:600;min-height:36px;display:flex;align-items:center;gap:8px}"+
+"#dbgd .foot{justify-content:flex-start;flex-wrap:wrap}"+
 "#dbgd .dbga{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}"+
 "#dbgd button:disabled{opacity:.5;cursor:default}"+
 "#dbgb{position:fixed;left:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:25;border:0;border-radius:999px;padding:6px 12px;min-height:34px;background:var(--danger);color:#fff;font-weight:700;font-size:var(--fs-s);box-shadow:0 3px 10px rgba(0,0,0,.3);cursor:pointer}";
@@ -602,7 +606,7 @@ function show(){
 function rerun(){
   if(busy)return Promise.resolve();
   busy=true;say("Đang kiểm tra thiết bị…");draw();
-  return run().then(function(){busy=false;say("");draw()})}
+  return run(true).then(function(){busy=false;say("");draw()})}
 function srvRun(){
   if(srvBusy)return Promise.resolve();
   srvBusy=true;PROG=function(t){say("Máy chủ "+t)};say("Máy chủ 1/5 · Kiểm tra cấu hình");draw();
@@ -610,7 +614,7 @@ function srvRun(){
 function allRun(){
   if(busy||srvBusy)return Promise.resolve();
   busy=true;say("Đang kiểm tra thiết bị…");draw();
-  return run().then(function(){busy=false;return srvRun()}).then(function(){busy=false;draw()})}
+  return run(true).then(function(){busy=false;return srvRun()}).then(function(){busy=false;draw()})}
 function badge(){
   var b=G("dbgb"),n=cnt("bad"),hide=false;
   try{hide=sessionStorage.getItem("dbg-hide")==="1"}catch(e){}
@@ -698,5 +702,5 @@ function start(){
   var go=function(){run().then(function(){if(/[?&]debug=1/.test(location.search))show()})};
   setTimeout(function(){if(window.requestIdleCallback)requestIdleCallback(go,{timeout:4000});else go()},3000)}
 if(document.readyState==="complete")start();else window.addEventListener("load",start);
-window.Dbg={run:run,show:show,all:allRun,report:function(){return R||S?report():""}};
+window.Dbg={run:function(){return run(true)},show:show,all:allRun,report:function(){return R||S?report():""}};
 })();

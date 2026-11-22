@@ -733,9 +733,13 @@ var lcT=0;
 function lcSave(){clearTimeout(lcT);lcT=setTimeout(function(){if(role&&!pend)ls(LC,JSON.stringify({k:lcKey(),v:dataVer,r:role,t:items}))},500)}
 var STK={};ST.forEach(function(s){STK[s[0]]=1});
 function nrm(a){a.forEach(function(x){if(x.t==null)x.t=0;if(!STK[x.st])x.st="new"});return a}
+/* rfT: lúc bắt đầu lần làm mới ngầm đang chạy. Định kỳ 20 giây, quay lại tab và có mạng trở lại có thể cùng kích hoạt: chỉ cho 1 yêu cầu chạy, đỡ gọi trùng Apps Script */
+var rfT=0;
 function refresh(silent){
   if(!apiUrl()){openSetup();return Promise.resolve()}
   if(silent&&pend>0)return Promise.resolve();
+  if(silent&&rfT&&Date.now()-rfT<30000)return Promise.resolve();
+  if(silent)rfT=Date.now();
   if(!silent&&!role)banner("Đang tải dữ liệu…");
   var v0=wver;
   return apiGet("&since="+encodeURIComponent(dataVer)+"&app="+encodeURIComponent(apiUrl())).then(function(d){
@@ -747,7 +751,7 @@ function refresh(silent){
     items=nrm(d.items||[]);dataVer=d.ver;applyRole();render();
     if(tab==="ck"&&!ckDirty&&ckId)ckLoad(ckId);
     lcSave();setTimeout(ckWarm,600);
-  }).catch(function(){banner("Không kết nối được tới Google Sheets. Kiểm tra mạng hoặc link Web app.")});
+  }).catch(function(){banner("Không kết nối được tới Google Sheets. Kiểm tra mạng hoặc link Web app.")}).then(function(){if(silent)rfT=0});
 }
 /* Server trả về phiên bản mới + bản nhẹ của căn vừa lưu: nếu không ai khác ghi xen giữa (prev khớp) thì nhận luôn, khỏi tải lại cả danh sách */
 function saved(d,needIt){
@@ -871,7 +875,6 @@ function dayLabel(d,ty){
   return WD[dt.getDay()]+" "+p[2]+"/"+p[1]+(+p[0]!==new Date().getFullYear()?"/"+p[0]:"");
 }
 function grpDiv(l,n){return '<div class="dsep"><span>'+esc(l)+'<b>'+n+'</b></span></div>'}
-function dayDiv(d,n,ty){return grpDiv(dayLabel(d,ty),n)}
 function areaCmp(a,b){
   var x=dkey(a.d),y=dkey(b.d);
   if(x!==y)return !x?1:!y?-1:x.localeCompare(y,"vi");
@@ -1598,7 +1601,6 @@ setInterval(poll,20000);document.addEventListener("visibilitychange",poll);windo
 document.body.dataset.tab="list";
 (function(){var b=$("totop"),tk=false;function u(){tk=false;b.classList.toggle("on",window.scrollY>700)}window.addEventListener("scroll",function(){if(!tk){tk=true;requestAnimationFrame(u)}},{passive:true});b.onclick=function(){window.scrollTo({top:0,behavior:"smooth"})}})();
 /* Chạm vào nút Checklist là bắt đầu tải chi tiết ngay, lúc mở xong thường đã có sẵn */
-var PRI={};
 function pre(e){var t=e.target,b=t.closest&&t.closest("[data-ck],[data-sck]");if(b){var cid=b.dataset.ck||b.dataset.sck;ckGet(cid).catch(function(){});iwCkNow(findItem(cid))}
   var tp=t.closest&&t.closest(".top");if(tp&&!t.closest("a,button,.th")){var cd=tp.closest(".card"),it=cd&&findItem(cd.dataset.id);if(it)iwIntent(it)}var pi=t.closest&&t.closest(".ph img,.cph img");if(pi&&pi.dataset.big)iwNow(pi.dataset.big)}
 $("list").addEventListener("pointerdown",pre,{passive:true});$("mdl").addEventListener("pointerdown",pre,{passive:true});
