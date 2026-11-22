@@ -1,7 +1,8 @@
 /* img.js: lightbox xem ảnh + tải sẵn ảnh thông minh, tách khỏi index.html.
    Nạp bằng <script src="img.js" defer></script>. index.html cung cấp cầu nối window.NI rồi gọi Img.init(NI);
    nạp theo thứ tự nào cũng được (index đặt NI trước thì img.js tự init, sau thì index gọi Img.init).
-   index.html giữ hàm mỏng openLb / iwGal / iwNow / iwIntent gọi sang đây; thiếu img.js thì các hàm này im lặng bỏ qua. */
+   Tối ưu: bỏ getBoundingClientRect() trên thẻ ngoài màn hình (dùng tập thẻ đang hiển thị visEls từ IntersectionObserver)
+   và bỏ subtree trên MutationObserver #list để giữ nguyên hiệu quả content-visibility: auto khi cuộn. */
 (function(){
 "use strict";
 var G=function(i){return document.getElementById(i)};
@@ -45,12 +46,9 @@ G("lb").addEventListener("keydown",function(e){if(e.key==="ArrowRight")lbGo(1);e
 })();
 
 /* ===== Tải sẵn ảnh thông minh =====
-   Ưu tiên: (0) người dùng vừa chạm/mở -> tải ngay, không giới hạn; (1) thẻ đang hiện trên màn hình;
-   (2) thẻ sắp tới theo hướng cuộn; (3) 2 thẻ vừa lướt qua. Hàng đợi được lập lại mỗi khi cuộn nên thẻ đã trôi xa tự bị bỏ.
-   Chiều sâu: thẻ chỉ lướt qua tải 1 ảnh đầu; thẻ "quan tâm" (chạm hoặc dừng >1 giây) tải 3 ảnh.
-   Ngân sách theo mạng (wifi nhiều, mạng di động ít, tiết kiệm dữ liệu/2G thì không), nhường băng thông cho ảnh nhỏ đang hiện.
-   Chỉ chạy khi sw.js đã kiểm soát trang (lúc đó ảnh mới được lưu bền). Ảnh tải bằng cỡ xem VW nên trang chi tiết và lightbox dùng chung. */
-var IWT=[null,{max:36,maxT:80,ahead:4,par:1},{max:120,maxT:400,ahead:10,par:2}];   // max: ảnh xem; maxT: ảnh nhỏ của checklist (nhẹ nên tính riêng)
+   Chỉ kiểm tra ảnh chưa tải xong trên các thẻ đang nằm trong viewport (visEls) để không ép browser tính layout thẻ ẩn. */
+var IWT=[null,{max:36,maxT:80,ahead:4,par:1},{max:120,maxT:400,ahead:10,par:2}];
+var visEls={},obsSet=typeof WeakSet!=="undefined"?new WeakSet():null;
 function iwTier(){var c=navigator.connection||{};
   if(document.hidden||navigator.onLine===false||c.saveData||/2g/.test(c.effectiveType||""))return 0;
   if(!(navigator.serviceWorker&&navigator.serviceWorker.controller))return 0;
@@ -63,21 +61,37 @@ function iwNow(u){if(!u||IW.seen[u])return;IW.seen[u]=1;var im=new Image();im.de
 function iwIntent(it){IW.eng[it.id]=1;iwUrls(it,2).forEach(iwNow)}
 function iwGal(g,i){var c=g.children;[i+1,i+2,i-1].forEach(function(k){if(k<0||k>=c.length)return;var u=c[k].getAttribute&&c[k].getAttribute("src");if(u&&u.indexOf("https://lh3.")===0)iwNow(u)})}
 var iwC=null;
-function iwCache(){return iwC||(iwC=caches.open("img-v1").catch(function(e){iwC=null;throw e}))}   // mở cache một lần, không mở lại cho từng ảnh
+function iwCache(){return iwC||(iwC=caches.open("img-v1").catch(function(e){iwC=null;throw e}))}
 function iwHas(u){var m=/^(.*=w)(\d+)$/.exec(u);if(!m||!window.caches)return Promise.resolve(false);
   var w=+m[2],ws=[w].concat([200,300,360,640,900,1280].filter(function(x){return x>w&&x<=w*2}));
   return iwCache().then(function(c){return Promise.all(ws.map(function(x){return c.match(m[1]+x)}))}).then(function(r){return r.some(Boolean)},function(){return false})}
-function iwBusy(){var im=document.querySelectorAll("#list .card img"),i,r;for(i=0;i<im.length;i++){if(im[i].complete)continue;r=im[i].getBoundingClientRect();if(r.bottom>0&&r.top<innerHeight)return true}return false}
+function iwBusy(){
+  for(var id in visEls){
+    var card=visEls[id];
+    if(!card||!card.isConnected){delete visEls[id];delete IW.vis[id];continue}
+    var im=card.getElementsByTagName("img");
+    for(var i=0;i<im.length;i++)if(!im[i].complete)return true;
+  }
+  return false}
 function iwObs(){
   if(!IW.io&&window.IntersectionObserver)IW.io=new IntersectionObserver(function(es){
-    es.forEach(function(e){var id=e.target.dataset.id;
-      if(e.isIntersecting){if(!IW.vis[id]){IW.vis[id]=1;setTimeout(function(){if(IW.vis[id]&&!IW.eng[id]){IW.eng[id]=1;iwLater(200)}},1000)}}
-      else delete IW.vis[id]});
+    es.forEach(function(e){var id=e.target.dataset.id;if(!id)return;
+      if(e.isIntersecting){visEls[id]=e.target;if(!IW.vis[id]){IW.vis[id]=1;setTimeout(function(){if(IW.vis[id]&&!IW.eng[id]){IW.eng[id]=1;iwLater(200)}},1000)}}
+      else{delete IW.vis[id];delete visEls[id]}});
     iwLater(350)});
-  if(IW.io){var cs=document.querySelectorAll("#list .card");for(var i=0;i<cs.length;i++)IW.io.observe(cs[i])}}
+  if(IW.io){
+    var cs=G("list").getElementsByClassName("card");
+    for(var i=0;i<cs.length;i++){
+      var c=cs[i];
+      if(obsSet){if(obsSet.has(c))continue;obsSet.add(c)}
+      IW.io.observe(c);
+    }
+  }}
 function iwPlan(){
   var T=iwTier();IW.q=[];if(!T)return;
-  var P=IWT[T],cs=[].slice.call(document.querySelectorAll("#list .card")),vis=[],i,k;
+  var P=IWT[T];
+  if(IW.n>=P.max&&IW.nt>=P.maxT)return;
+  var cs=G("list").getElementsByClassName("card"),vis=[],i,k;
   for(i=0;i<cs.length;i++)if(IW.vis[cs[i].dataset.id])vis.push(i);
   if(!vis.length)for(i=0;i<Math.min(3,cs.length);i++)vis.push(i);
   if(!vis.length)return;
@@ -88,8 +102,10 @@ function iwPlan(){
   order.forEach(function(ix,rank){var it=findItem(cs[ix].dataset.id);if(!it)return;
     iwUrls(it,IW.eng[it.id]?IW.PER:1).forEach(function(u,n){if(!IW.seen[u])q.push({u:u,p:(rank<vis.length?0:10)+n,o:o++})})});
   var dn={};function ckT(it,p){if(dn[it.id])return;dn[it.id]=1;iwCkUrls(it).forEach(function(u){if(!IW.seen[u])q.push({u:u,p:p,o:o++,t:1})})}
-  order.forEach(function(ix){var it=findItem(cs[ix].dataset.id);if(it)ckT(it,100)});   // ảnh checklist: căn đang xem trước, rồi tất cả căn còn lại
-  NI.items().forEach(function(it){ckT(it,200)});
+  if(IW.nt<P.maxT){
+    order.forEach(function(ix){var it=findItem(cs[ix].dataset.id);if(it)ckT(it,100)});
+    NI.items().forEach(function(it){ckT(it,200)});
+  }
   q.sort(function(x,y){return x.p-y.p||x.o-y.o});IW.q=q}
 function iwLoad(u,t){
   iwHas(u).then(function(has){
@@ -108,7 +124,8 @@ function iwLater(ms){clearTimeout(IW.t);IW.t=setTimeout(iwGo,ms)}
 function init(ni){
   if(inited||!ni)return;
   inited=true;NI=ni;IW=ni.IW;VW=ni.VW;
-  if(window.MutationObserver)new MutationObserver(function(){iwLater(1200)}).observe(G("list"),{childList:true,subtree:true});
+  /* Chỉ theo dõi childList trực tiếp của #list (không cần subtree) để không kích hoạt lại khi mở menu/tải ảnh trong thẻ */
+  if(window.MutationObserver)new MutationObserver(function(){iwLater(1200)}).observe(G("list"),{childList:true});
   document.addEventListener("visibilitychange",function(){if(!document.hidden){IW.fail=0;iwLater(600)}});
   window.addEventListener("online",function(){IW.fail=0;iwLater(600)});
   if(navigator.serviceWorker)navigator.serviceWorker.addEventListener("controllerchange",function(){iwLater(1500)});

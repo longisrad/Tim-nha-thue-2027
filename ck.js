@@ -1,12 +1,11 @@
 /* ck.js: giao diện và lưu checklist (trang chỉnh sửa mục đạt/lỗi, ghi chú, ảnh xem/lỗi, chấm điểm), tách khỏi index.html.
-   Nạp bằng <script src="ck.js" defer></script>. index.html cuối cùng đặt cầu nối window.NK rồi gọi Ck.init(NK);
-   nạp theo thứ tự nào cũng được. Biến bị gán lại (ckCur, ckDirty, ckQ, tab...) đi qua K.<tên> (getter/setter của cầu nối);
-   hàm và đối tượng cố định được lấy một lần lúc init.
-   index.html giữ hàm mỏng renderCk / ckPersist / ckFlush gọi sang đây; thiếu ck.js thì các hàm này bỏ qua. */
+   Tối ưu: cache tham chiếu phần tử thống kê phần/mục ngay sau renderCk và chỉ ghi innerHTML gợi ý khi nội dung đổi,
+   giúp mỗi lần chạm mục đạt/lỗi phản hồi O(1) không cần querySelector toàn trang. */
 (function(){
 "use strict";
 var K=null,inited=false;
 var $,CK,LP,PARTS,TIPS,VW,ckA,ckCopy,ckLiteOf,ckLoad,ckSaveOff,ckSnap,ckStat,ckUpQ,ckcSave,closeCk,esc,findItem,imgSrc,jumpTop,openLb,persist,rtgH,runPool,shrink,trashIds,uname,upBusy,upMon,upSafe;
+var secEls=[],partEls={},cknEl=null,ckbarEl=null,rtsgEl=null,lastSugH="";
 function secHas(s){
   var k,v;
   for(k=0;k<(s.i||[]).length;k++)if(K.ckCur.c[s.i[k][0]])return true;
@@ -27,25 +26,37 @@ function ckSuggest(c){
   var r=st.d/n,sc=r>=0.9?5:r>=0.75?4:r>=0.6?3:r>=0.4?2:1;
   return{n:n,t:st.t,d:st.d,b:st.b,s:sc}}
 function updSug(){
-  var el=$("rtsg");if(!el||!K.ckCur)return;
-  var g=ckSuggest(K.ckCur);
-  if(!g.s){el.innerHTML='<span class="grow">💡 Cần kiểm thêm ít nhất 5 mục checklist để có gợi ý điểm.</span>';return}
-  var low=g.n<g.t/2;
-  el.innerHTML='<span class="grow">💡 Gợi ý: <b>'+g.s+'/5</b> · '+g.d+' đạt'+(g.b?', '+g.b+' lỗi':'')+' (đã kiểm '+g.n+'/'+g.t+' mục)'+(low?'<small>Mới kiểm chưa tới nửa checklist, gợi ý chỉ mang tính tham khảo.</small>':'')+'</span>'+(K.canW&&K.ckCur.rt!==g.s?'<button type="button" class="btn" data-rts="'+g.s+'">Dùng gợi ý</button>':'')}
+  var el=rtsgEl||$("rtsg");if(!el||!K.ckCur)return;
+  var g=ckSuggest(K.ckCur),h;
+  if(!g.s){h='<span class="grow">💡 Cần kiểm thêm ít nhất 5 mục checklist để có gợi ý điểm.</span>'}
+  else{
+    var low=g.n<g.t/2;
+    h='<span class="grow">💡 Gợi ý: <b>'+g.s+'/5</b> · '+g.d+' đạt'+(g.b?', '+g.b+' lỗi':'')+' (đã kiểm '+g.n+'/'+g.t+' mục)'+(low?'<small>Mới kiểm chưa tới nửa checklist, gợi ý chỉ mang tính tham khảo.</small>':'')+'</span>'+(K.canW&&K.ckCur.rt!==g.s?'<button type="button" class="btn" data-rts="'+g.s+'">Dùng gợi ý</button>':'');
+  }
+  if(h!==lastSugH){lastSugH=h;el.innerHTML=h}}
 function setRt(n){
   K.ckCur.rt=n;
-  Array.prototype.forEach.call(document.querySelectorAll(".rtb"),function(b){b.setAttribute("aria-pressed",+b.dataset.rt===K.ckCur.rt)});
+  Array.prototype.forEach.call($("ckb").getElementsByClassName("rtb"),function(b){b.setAttribute("aria-pressed",+b.dataset.rt===K.ckCur.rt)});
   var rv=$("rtv");if(rv)rv.textContent=K.ckCur.rt?K.ckCur.rt+"/5":"";
   var cs=$("ckst");if(cs)cs.innerHTML=rtgH(K.ckCur.rt);
   updSug();ckSave()}
 function updProg(){
-  if(!K.ckCur||!$("ckn"))return;
+  if(!K.ckCur||!cknEl)return;
   var s=ckStat(K.ckCur);
-  $("ckn").innerHTML='<b>'+s.d+'/'+s.t+'</b> đạt'+(s.b?' · <span class="bad">'+s.b+' lỗi</span>':'');
-  $("ckbar").style.width=Math.round(s.d*100/s.t)+"%";
-  CK.forEach(function(sec,si){var n=0;(sec.i||[]).forEach(function(x){if(K.ckCur.c[x[0]]===1)n++});
-    var el=document.querySelector('[data-sec="'+si+'"]');if(el)el.textContent=(sec.i&&sec.i.length)?n+"/"+sec.i.length:""});
-  [1,2].forEach(function(pn){var pc=0,pd=0;CK.forEach(function(q){if(q.p===pn)(q.i||[]).forEach(function(x){pc++;if(K.ckCur.c[x[0]]===1)pd++})});var e=document.querySelector('[data-part="'+pn+'"]');if(e)e.textContent=pd+"/"+pc});
+  cknEl.innerHTML='<b>'+s.d+'/'+s.t+'</b> đạt'+(s.b?' · <span class="bad">'+s.b+' lỗi</span>':'');
+  if(ckbarEl)ckbarEl.style.width=Math.round(s.d*100/s.t)+"%";
+  var pd1=0,pc1=0,pd2=0,pc2=0;
+  for(var si=0;si<CK.length;si++){
+    var sec=CK[si],its=sec.i||[],n=0,j;
+    for(j=0;j<its.length;j++){
+      if(K.ckCur.c[its[j][0]]===1)n++;
+      if(sec.p===1){pc1++;if(K.ckCur.c[its[j][0]]===1)pd1++}
+      else if(sec.p===2){pc2++;if(K.ckCur.c[its[j][0]]===1)pd2++}
+    }
+    var se=secEls[si];if(se)se.textContent=its.length?n+"/"+its.length:"";
+  }
+  if(partEls[1])partEls[1].textContent=pd1+"/"+pc1;
+  if(partEls[2])partEls[2].textContent=pd2+"/"+pc2;
   updSug();
 }
 function ckPhH(arr,kind,alt){
@@ -62,6 +73,7 @@ function ckPh(){
   if(lb){lb.hidden=!(K.ckCur.du&&K.ckCur.im.length);if(!lb.hidden)lb.href=K.ckCur.du}}
 function renderCk(full){
   var it=findItem(K.ckId),el=$("ckb");
+  secEls=[];partEls={};cknEl=null;ckbarEl=null;rtsgEl=null;lastSugH="";
   if(!it){K.ckCur=null;K.ckDirty=false;el.className="";el.innerHTML='<div class="empty"><p>'+(K.items.length?"Hãy chọn một căn ở tab Danh sách rồi bấm Checklist.":"Chưa có căn nào. Hãy thêm nhà ở tab Danh sách trước.")+'</p></div>';return}
   K.ckCur=ckCopy(full);K.ckCur.rt=it.rt||0;K.ckCur.pr=it.pr||"";K.ckCur.co=it.co||"";K.ckDirty=false;el.className=K.canW?"":"ro";
   var h='<div class="ckhd"><h2 class="ckt">'+esc(it.n)+'</h2><button type="button" class="ckx" data-ckx>✕ Đóng</button></div><div id="ckst" style="margin:-4px 0 8px">'+rtgH(K.ckCur.rt)+'</div>'+(K.canW?'<p class="hint">Sau mỗi lần đi xem, chạm từng mục: 1 lần = đạt ✓, 2 lần = có lỗi ✕, 3 lần = bỏ trống. Tự động lưu.</p>':'<p class="pm">Bạn chỉ có quyền xem checklist.</p>');
@@ -82,7 +94,11 @@ function renderCk(full){
   h+='<div class="fl"><label>Ảnh lỗi / hư hỏng</label>'+(K.canW?'<label class="btn upb" for="cki">📷 Chọn ảnh hư hỏng từ thiết bị</label><input id="cki" type="file" accept="image/*" multiple hidden>':'')+'<p class="pm" id="ckim" style="margin:6px 0 0"></p><div class="pv cph" id="ckph" style="margin-top:8px"></div><a id="ckil" class="btn" target="_blank" rel="noopener" hidden style="margin-top:8px">📁 Thư mục ảnh lỗi, hư hỏng trên Drive</a></div></div></details>';
   h+='<details class="sec" open><summary><span>Mẹo cuối</span></summary><div class="sb"><ul class="tips">'+TIPS.map(function(t){return '<li>'+esc(t)+'</li>'}).join("")+'</ul></div></details>';
   h+='<button type="button" class="ckx bt" data-ckx>✕ Đóng checklist</button>';
-  el.innerHTML=h;ckPh();updProg();
+  el.innerHTML=h;
+  cknEl=$("ckn");ckbarEl=$("ckbar");rtsgEl=$("rtsg");
+  Array.prototype.forEach.call(el.querySelectorAll("[data-sec]"),function(n){secEls[+n.dataset.sec]=n});
+  Array.prototype.forEach.call(el.querySelectorAll("[data-part]"),function(n){partEls[+n.dataset.part]=n});
+  ckPh();updProg();
   if(K.ckFresh)jumpTop();
 }
 function ckSave(){K.ckDirty=true;var s=$("cks");if(s)s.textContent="Chưa lưu…";clearTimeout(K.ckT);K.ckT=setTimeout(ckFlush,900)}
@@ -175,11 +191,11 @@ function init(k){
         ckUpQ.push(x);if(K.ckCur===cur)ckPh();
         return upSafe({name:x.name,mime:"image/jpeg",folder:fn,area:(findItem(hid)||{}).d||"",ward:(findItem(hid)||{}).w||"",addr:(findItem(hid)||{}).a||"",kind:kind,hid:hid,fid:cur.vu||"",data:u.split(",")[1]}).then(function(d){
           LP[d.id]=u;
-          var tg=(K.ckId===hid&&K.ckCur)||cur;   // đã mở lại cùng căn trong lúc tải: ghi vào bản đang mở, không lưu bản cũ đè lên
+          var tg=(K.ckId===hid&&K.ckCur)||cur;
           if(kind==="view"){tg.vi.push(d.id);if(d.url)tg.vu=d.url}
           else{tg.im.push(d.id);if(d.url)tg.du=d.url}
           if(tg!==cur){cur.vi=tg.vi;cur.im=tg.im;cur.vu=tg.vu;cur.du=tg.du}
-          if(K.ckCur===tg){ckPh();ckSave()}else ckSaveOff(hid,tg)   // lưu ngay từng ảnh đã lên Drive, lỡ thoát giữa chừng vẫn còn
+          if(K.ckCur===tg){ckPh();ckSave()}else ckSaveOff(hid,tg)
         },function(e2){bad++;why=e2&&e2.message?e2.message:"lỗi kết nối"}).then(function(){
           var i=ckUpQ.indexOf(x);if(i>-1)ckUpQ.splice(i,1)
         })

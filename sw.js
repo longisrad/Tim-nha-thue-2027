@@ -1,9 +1,10 @@
-/* Service worker – Tìm nhà thuê.
+/* Service worker – Tìm nhà thuê (tối ưu mở nhanh cho Webapp/PWA).
    Hai chế độ:
-   - PWA (mặc định): cache vỏ app + font/icon + ảnh Drive.
+   - PWA (mặc định): cache vỏ app + font/icon + ảnh Drive. Mở ngay từ SHELL không đợi NEXT nếu không có bản chờ;
+     trì hoãn syncNext 2,5 giây để không tranh băng thông với dữ liệu Google Sheets và ảnh đầu trang.
    - APK Capacitor (đăng ký với ?app=1): file app đã nằm sẵn trong APK nên KHÔNG cache vỏ app, chỉ cache ảnh Drive.
    Đổi VERSION khi đổi font/icon/manifest. Sửa index.html thì không cần đổi (tự cập nhật mỗi lần mở). */
-const VERSION = 'v25';
+const VERSION = 'v26';
 const SHELL = 'shell-' + VERSION;
 const RUNTIME = 'runtime-' + VERSION;
 const NEXT = 'next-' + VERSION;   // bản mới tải về, chờ lần mở trang kế tiếp mới áp dụng (tránh lệch index.html cũ + ck.js mới)
@@ -42,10 +43,17 @@ const IMG_SIZES = [200, 300, 360, 640, 900, 1280];   // các cỡ app đang dùn
 const IMG_RE = /^\/d\/([^=\/?]+)=w(\d+)$/;           // lh3.googleusercontent.com/d/<id>=w<px>
 const noop = function () {};
 
+/* Tái sử dụng handle Cache API để không gọi caches.open() lặp lại trên từng request */
+var shellC = null, imgC = null, rtC = null, hasNext = null;
+function getShell() { return shellC || (shellC = caches.open(SHELL).catch(function (e) { shellC = null; throw e; })); }
+function getImgC() { return imgC || (imgC = caches.open(IMG).catch(function (e) { imgC = null; throw e; })); }
+function getRtC() { return rtC || (rtC = caches.open(RUNTIME).catch(function (e) { rtC = null; throw e; })); }
+
 self.addEventListener('install', function (e) {
+  hasNext = false;
   if (!APP_MODE) {
     // Từng file một: thiếu một file không làm hỏng cả lần cài. cache:'reload' bỏ qua cache HTTP.
-    e.waitUntil(caches.open(SHELL).then(function (c) {
+    e.waitUntil(getShell().then(function (c) {
       return Promise.all(SHELL_FILES.map(function (f) {
         return c.add(new Request(f, { cache: 'reload' })).catch(noop);
       }));
@@ -89,7 +97,7 @@ function image(e, url, id, w) {
   var base = url.origin + '/d/' + id + '=w', key = base + w;
   // Ưu tiên đúng cỡ; nếu chưa có thì dùng cỡ lớn hơn nhưng không quá 2 lần (đỡ tải lại, không tốn RAM giải mã)
   var list = [w].concat(IMG_SIZES.filter(function (s) { return s > w && s <= w * 2; }));
-  var work = caches.open(IMG).then(function (c) {
+  var work = getImgC().then(function (c) {
     return pick(c, base, list).then(function (hit) {
       if (hit) return { res: hit };
       var ent = pending[key];
@@ -116,8 +124,8 @@ function pick(c, base, list) {
   return c.match(base + list[0]).then(function (h) { return h || pick(c, base, list.slice(1)); });
 }
 
-/* ---------- PWA: trang chính mở ngay từ bản đã lưu, tải bản mới ngầm (index.html, dup.js, img.js và ck.js) ----------
-   Bản mới được tải đủ cả 4 file rồi mới đưa vào NEXT; lần mở trang kế tiếp mới chuyển sang SHELL cùng lúc.
+/* ---------- PWA: trang chính mở ngay từ bản đã lưu, tải bản mới ngầm (index.html, dup.js, img.js, ck.js, bk.js, dbg.js) ----------
+   Bản mới được tải đủ cả 6 file rồi mới đưa vào NEXT; lần mở trang kế tiếp mới chuyển sang SHELL cùng lúc.
    Nhờ vậy trang đang chạy không bao giờ nhận index.html cũ ghép với ck.js/img.js/dup.js mới (cầu nối NK/NI sẽ lệch). */
 var APP_FILES = [INDEX, DUP, IMGJS, CKJS, BKJS, DBGJS];
 function clean(res) {   // phản hồi đã bị chuyển hướng không dùng được cho điều hướng trang
@@ -135,11 +143,14 @@ function fetchFile(path) {
     return clean(res).then(function (r) { return r && r.ok ? r : null; });
   }, function () { return null; });
 }
-// Đưa bản đã chờ trong NEXT vào SHELL (chạy trước khi phục vụ trang)
+// Đưa bản đã chờ trong NEXT vào SHELL (bỏ qua nếu đã biết chắc NEXT rỗng)
 function promote() {
-  return Promise.all([caches.open(NEXT), caches.open(SHELL)]).then(function (cs) {
+  if (hasNext === false) return Promise.resolve();
+  return Promise.all([caches.open(NEXT), getShell()]).then(function (cs) {
     var n = cs[0], s = cs[1];
     return n.keys().then(function (ks) {
+      if (!ks.length) { hasNext = false; return; }
+      hasNext = false;
       return Promise.all(ks.map(function (k) {
         return n.match(k).then(function (r) {
           var p = [s.put(k, r.clone())];
@@ -150,9 +161,9 @@ function promote() {
     });
   }).catch(noop);
 }
-// Tải ngầm bản mới: chỉ khi tải đủ cả 4 file mới xếp vào NEXT (có file lỗi thì bỏ cả đợt, lần mở sau thử lại)
+// Tải ngầm bản mới: chỉ khi tải đủ tất cả file mới xếp vào NEXT (có file lỗi thì bỏ cả đợt, lần mở sau thử lại)
 function syncNext() {
-  return Promise.all([caches.open(SHELL), caches.open(NEXT)]).then(function (cs) {
+  return Promise.all([getShell(), caches.open(NEXT)]).then(function (cs) {
     var s = cs[0], n = cs[1];
     return Promise.all(APP_FILES.map(fetchFile)).then(function (rs) {
       if (rs.some(function (r) { return !r; })) return false;
@@ -164,13 +175,18 @@ function syncNext() {
         });
       })).then(function (ch) { return ch.some(Boolean); });
     });
-  }).then(function (changed) { if (changed) return tellPages(); }).catch(noop);
+  }).then(function (changed) {
+    if (changed) { hasNext = true; return tellPages(); }
+  }).catch(noop);
 }
 function openPage(e) {
   var serve = promote().then(function () {
-    return caches.match(INDEX, { ignoreSearch: true });
+    return getShell().then(function (s) { return s.match(INDEX, { ignoreSearch: true }); });
   });
-  e.waitUntil(serve.then(syncNext));   // sau khi đã phục vụ trang mới tải bản kế tiếp
+  // Trì hoãn syncNext 2,5s để ưu tiên toàn bộ băng thông cho dữ liệu Sheets và ảnh đầu trang
+  e.waitUntil(serve.then(function () {
+    return new Promise(function (r) { setTimeout(r, 2500); });
+  }).then(syncNext));
   return serve.then(function (hit) {
     return hit || fetch(e.request).catch(function () { return caches.match('./'); });
   }).then(function (r) { return r || Response.error(); });
@@ -187,14 +203,15 @@ self.addEventListener('message', function (e) {
   }
   if (APP_MODE || !e.data || e.data.type !== 'status' || !e.source) return;
   e.waitUntil(caches.open(NEXT).then(function (c) { return c.keys(); }).then(function (ks) {
+    hasNext = ks.length > 0;
     if (ks.length) e.source.postMessage({ type: 'update' });
   }));
 });
 
 /* ---------- File tĩnh cùng nguồn ---------- */
 function asset(e, req) {
-  // File cài sẵn (font, icon, manifest): lấy thẳng từ cache, KHÔNG gọi mạng mỗi lần. Muốn làm mới thì đổi VERSION.
-  return caches.open(SHELL).then(function (s) { return s.match(req); }).then(function (hit) {
+  // File cài sẵn (font, icon, manifest, js): đọc thẳng từ SHELL cache, KHÔNG gọi mạng mỗi lần.
+  return getShell().then(function (s) { return s.match(req); }).then(function (hit) {
     return hit || swr(e, req);
   });
 }
@@ -203,12 +220,12 @@ function swr(e, req) {
   var net = fetch(req).then(function (res) {
     if (res && res.ok) {
       var copy = res.clone();
-      caches.open(RUNTIME).then(function (c) { return c.put(req, copy).then(function () { return trim(c, RUNTIME_MAX); }); }).catch(noop);
+      getRtC().then(function (c) { return c.put(req, copy).then(function () { return trim(c, RUNTIME_MAX); }); }).catch(noop);
     }
     return res;
   }).catch(function () { return null; });
   e.waitUntil(net);
-  return caches.open(RUNTIME).then(function (c) { return c.match(req); }).then(function (hit) {
+  return getRtC().then(function (c) { return c.match(req); }).then(function (hit) {
     return hit || net.then(function (r) { return r || Response.error(); });
   });
 }

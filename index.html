@@ -20,6 +20,7 @@ try{new PerformanceObserver(function(l){l.getEntries().forEach(function(x){E.lt+
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="preload" as="font" href="fonts/bvp-400.woff" type="font/woff" crossorigin>
 <link rel="preload" as="font" href="fonts/bvp-700.woff" type="font/woff" crossorigin>
+<link rel="preload" as="font" href="fonts/montserrat-800.woff" type="font/woff" crossorigin>
 <link rel="dns-prefetch" href="https://lh3.googleusercontent.com">
 <link rel="dns-prefetch" href="https://script.google.com">
 <link rel="dns-prefetch" href="https://script.googleusercontent.com">
@@ -812,11 +813,11 @@ function closeMenus(){
   if(menuM){
     menuM.hidden=true;
     if(menuM._home&&menuM._home.isConnected)menuM._home.appendChild(menuM);
-    else if(menuM.parentNode===document.body)menuM.remove();
+    else if(menuM.parentNode)menuM.remove();
   }
   menuB=null;menuM=null
 }
-/* Đưa menu lên document.body khi mở để không bị content-visibility/contain trên thẻ cắt mất */
+/* Đưa menu lên dialog đang mở (hoặc document.body khi ở ngoài danh sách) để không bị content-visibility cắt hay chìm sau lớp modal */
 function placeMenu(){
   if(!menuB||!menuM)return;
   if(menuM.hidden||!document.contains(menuB)){closeMenus();return}
@@ -831,7 +832,7 @@ function toggleMenu(b){
   closeMenus();
   if(!was){
     b._m=m;m._home=b.parentNode;
-    document.body.appendChild(m);
+    (b.closest("dialog[open]")||document.body).appendChild(m);
     m.hidden=false;b.setAttribute("aria-expanded","true");
     menuB=b;menuM=m;placeMenu();
   }
@@ -1232,6 +1233,7 @@ function dvHead(it){
   return h}
 function bindDvg(){var box=$("dvs"),g=box.querySelector(".dvg");if(!g)return;iwGal(g,0);var scT=0;g.addEventListener("scroll",function(){if(scT)return;scT=1;requestAnimationFrame(function(){scT=0;var i=Math.round(g.scrollLeft/g.clientWidth),c=box.querySelector(".dvn");if(c)c.textContent=(i+1)+" / "+g.children.length;iwGal(g,i)})},{passive:true})}
 function openDv(id){var it=findItem(id);if(!it)return;
+  closeMenus();
   var k=it.st||"new",col="var(--s-"+k+")",bg="var(--b-"+k+")",m=ppm(it),cs=it.ck?ckStat(it.ck):null;
   var ad=addrOf(it);
   var h='<div style="--c:'+col+';--bg2:'+bg+'">';
@@ -1259,6 +1261,7 @@ function openDv(id){var it=findItem(id);if(!it)return;
   var box=$("dvs");box.innerHTML=h;box.scrollTop=0;$("dv").dataset.id=id;
   sweepImgs(box);bindDvg();
   if(!$("dv").open)$("dv").showModal()}
+$("dv").addEventListener("close",closeMenus);
 $("dv").onclick=function(e){var t=e.target,id=this.dataset.id;
   var sg=t.closest("[data-dvseg]");if(sg){var si=findItem(id);if(si){realSeg[id]=sg.dataset.dvseg;$("dvhw").innerHTML=dvHead(si);sweepImgs($("dvhw"));bindDvg()}return}
   if(t===this||t.closest("[data-dvx]")){this.close();return}
