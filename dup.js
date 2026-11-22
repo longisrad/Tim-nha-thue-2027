@@ -105,36 +105,78 @@ var TH=14,MIN=2,imgPairs=null,scanning=false,stopFlag=false,cache={},cacheLoaded
 var undoSt=[],zlay=null,cmpAll={};
 function undoUi(){var b=G("dupundo"),u=undoSt[undoSt.length-1];if(!b)return;b.hidden=!u;if(u){G("dupundot").textContent=u.l;G("dupundob").textContent="↶ Hoàn tác"+(undoSt.length>1?" ("+undoSt.length+")":"")}}
 function undoPush(l,a){if(!a||!a.length)return;undoSt.push({l:l,a:a});if(undoSt.length>30)undoSt.shift();undoUi()}
-function undoDo(){var u=undoSt.pop();if(!u)return;loadIgnored();u.a.forEach(function(x){if(x.p===undefined)delete ignored[x.k];else ignored[x.k]=x.p});saveIgnored();undoUi();render()}
-var synced=null,dsBusy=false,dsAgain=false,dsT=0;
-function loadIgnored(){if(ignLoaded)return;ignLoaded=true;try{ignored=JSON.parse(ls("dign1")||"{}")||{}}catch(e){ignored={}}try{synced=JSON.parse(ls("dign1s")||"null")}catch(e){synced=null}if(!synced||typeof synced!=="object")synced=null}
-function saveIgnored(){try{ls("dign1",JSON.stringify(ignored))}catch(e){}clearTimeout(dsT);dsT=setTimeout(pushIgnored,600)}
-/* Đồng bộ cặp "Không trùng" lên tab "Trùng" của Sheet: chỉ gửi phần thay đổi so với lần đồng bộ trước (synced) */
+var ignDirty={},dsBusy=false,dsAgain=false,dsT=0,pullP=null,lastPull=0,ignIdbDone=false;
+function ignWriteLs(){
+  var qStr=Object.keys(ignDirty).length?JSON.stringify(ignDirty):"";
+  try{ls("dign1",JSON.stringify(ignored));ls("dign1q",qStr)}catch(e){}
+  if(N()&&N().idbSave){N().idbSave("dign1",JSON.stringify(ignored));N().idbSave("dign1q",qStr)}
+}
+function loadIgnored(){
+  if(!ignLoaded){
+    ignLoaded=true;
+    try{ignored=JSON.parse(ls("dign1")||"{}")||{}}catch(e){ignored={}}
+    try{ignDirty=JSON.parse(ls("dign1q")||"{}")||{}}catch(e){ignDirty={}}
+    if(!ignored||typeof ignored!=="object")ignored={};
+    if(!ignDirty||typeof ignDirty!=="object")ignDirty={};
+    try{if(ls("dign1s"))ls("dign1s","")}catch(e){}
+  }
+  if(!ignIdbDone&&!ls("dign1")&&N()&&N().idbGet){
+    ignIdbDone=true;
+    Promise.all([N().idbGet("dign1").catch(function(){return null}),N().idbGet("dign1q").catch(function(){return null})]).then(function(v){
+      var chg=false;
+      if(typeof v[0]==="string"&&v[0]&&!ls("dign1")){
+        try{var o0=JSON.parse(v[0]);if(o0&&typeof o0==="object"){Object.keys(o0).forEach(function(k){if(!(k in ignored)&&!(k in ignDirty)){ignored[k]=o0[k];chg=true}})}}catch(e){}
+      }
+      if(typeof v[1]==="string"&&v[1]&&!ls("dign1q")){
+        try{var o1=JSON.parse(v[1]);if(o1&&typeof o1==="object"){Object.keys(o1).forEach(function(k){if(!(k in ignDirty)){ignDirty[k]=o1[k];if(o1[k]>0)ignored[k]=o1[k];else delete ignored[k];chg=true}})}}catch(e){}
+      }
+      if(chg){ignWriteLs();var dd=G("dupd");if(dd&&dd.open)render()}
+    });
+  }
+}
+function saveIgnored(now){
+  ignWriteLs();clearTimeout(dsT);
+  if(now){dsT=0;pushIgnored()}
+  else dsT=setTimeout(function(){dsT=0;pushIgnored()},150);
+}
+function flushIgnored(){if(dsT){clearTimeout(dsT);dsT=0;pushIgnored()}else if(Object.keys(ignDirty).length)pushIgnored()}
+function undoDo(){var u=undoSt.pop();if(!u)return;loadIgnored();u.a.forEach(function(x){if(x.p===undefined){delete ignored[x.k];ignDirty[x.k]=0}else{ignored[x.k]=x.p;ignDirty[x.k]=x.p}});saveIgnored();undoUi();render()}
+/* Đồng bộ cặp "Không trùng" lên tab "Trùng" của Sheet dựa theo hàng đợi thay đổi cục bộ ignDirty */
 function pushIgnored(){
   if(!(N()&&N().apiPost&&canWrite()))return;
   if(dsBusy){dsAgain=true;return}
-  var base=synced||{},add=[],del=[];
-  Object.keys(ignored).forEach(function(k){if(!(k in base))add.push({k:k,t:ignored[k]})});
-  Object.keys(base).forEach(function(k){if(!(k in ignored))del.push(k)});
-  if(!add.length&&!del.length)return;
-  dsBusy=true;var snap=JSON.parse(JSON.stringify(ignored));
-  N().apiPost("dupSet",{add:add,del:del},30000).then(function(){synced=snap;try{ls("dign1s",JSON.stringify(snap))}catch(e){}},function(){}).then(function(){dsBusy=false;if(dsAgain){dsAgain=false;pushIgnored()}})}
-function pullIgnored(){
+  var keys=Object.keys(ignDirty);
+  if(!keys.length)return;
+  var add=[],del=[],sent={};
+  keys.forEach(function(k){var v=ignDirty[k];sent[k]=v;if(v>0)add.push({k:k,t:v});else del.push(k)});
+  dsBusy=true;
+  N().apiPost("dupSet",{add:add,del:del},30000).then(function(){
+    Object.keys(sent).forEach(function(k){if(ignDirty[k]===sent[k])delete ignDirty[k]});
+    ignWriteLs();
+  },function(){}).then(function(){dsBusy=false;if(dsAgain){dsAgain=false;pushIgnored()}})}
+function sameMap(a,b){var ka=Object.keys(a),kb=Object.keys(b);if(ka.length!==kb.length)return false;for(var i=0;i<ka.length;i++)if(a[ka[i]]!==b[ka[i]])return false;return true}
+function pullIgnored(force){
   if(!(N()&&N().apiGet))return Promise.resolve();
   loadIgnored();
-  return N().apiGet("&action=dup",20000).then(function(d){
+  if(pullP)return pullP;
+  if(!force&&lastPull&&Date.now()-lastPull<20000)return Promise.resolve();
+  pullP=N().apiGet("&action=dup",20000).then(function(d){
+    lastPull=Date.now();
     if(!d||!d.ok)return;
-    var R={},base=synced||{},nw={},byId=null,its=N().items();
-    (d.pairs||[]).forEach(function(p){R[p.k]=p.t||1});
-    if(its&&its.length){byId={};its.forEach(function(it){byId[it.id]=1})}
-    Object.keys(R).forEach(function(k){if(!(k in base)||(k in ignored))nw[k]=R[k]});
-    Object.keys(ignored).forEach(function(k){if(!(k in base))nw[k]=ignored[k]});
-    if(byId)Object.keys(nw).forEach(function(k){var ids=k.split("|");if(!byId[ids[0]]||!byId[ids[1]])delete nw[k]});
-    ignored=nw;synced=R;
-    try{ls("dign1",JSON.stringify(ignored));ls("dign1s",JSON.stringify(R))}catch(e){}
+    var R={},nw={},byId=null,its=N().items();
+    (d.pairs||[]).forEach(function(p){R[p.k]=p.t||1;nw[p.k]=p.t||1});
+    Object.keys(ignDirty).forEach(function(k){if(ignDirty[k]>0)nw[k]=ignDirty[k];else delete nw[k]});
+    if(its&&its.length){
+      byId={};its.forEach(function(it){byId[it.id]=1});
+      Object.keys(nw).forEach(function(k){var ids=k.split("|");if(!byId[ids[0]]||!byId[ids[1]]){delete nw[k];if(k in R)ignDirty[k]=0;else delete ignDirty[k]}});
+    }
+    var chg=!sameMap(ignored,nw);
+    ignored=nw;
+    ignWriteLs();
     pushIgnored();
-    var dd=G("dupd");if(dd&&dd.open)render()
-  },function(){})}
+    var dd=G("dupd");if(dd&&dd.open&&chg)render()
+  },function(){}).then(function(){pullP=null},function(){pullP=null});
+  return pullP}
 function canWrite(){if(N()&&N().canW)return !!N().canW();var b=G("bnow");return b?!b.hidden:true}
 
 /* ---------- Chuẩn hoá ---------- */
@@ -382,8 +424,8 @@ function changeImgMode(sel){
 function ignorePair(el,val){
   var idx=+(val?el.dataset.ign:el.dataset.unign),o=viewList[idx];if(!o)return;
   loadIgnored();
-  var k=o.a.id+"|"+o.b.id,prev=ignored[k];
-  if(val){ignored[k]=Date.now();delete openSet[k];delete openImgSet[k]}else delete ignored[k];
+  var k=o.a.id+"|"+o.b.id,prev=ignored[k],ts=Date.now();
+  if(val){ignored[k]=ts;ignDirty[k]=ts;delete openSet[k];delete openImgSet[k]}else{delete ignored[k];ignDirty[k]=0}
   undoPush(val?"Đã đánh dấu Không trùng":"Đã bỏ đánh dấu Không trùng",[{k:k,p:prev}]);
   saveIgnored();render()}
 function checkPairImg(el){
@@ -397,14 +439,14 @@ function checkPairImg(el){
   }
   pairImgMsg[k]={busy:true,text:"Đang kiểm tra "+aIm.length+" ảnh vs "+bIm.length+" ảnh…"};
   render();
-  loadCache().then(function(){
+  Promise.all([loadCache(),loadPm()]).then(function(){
     var uniq={},list=[];
     aIm.concat(bIm).forEach(function(s){if(!uniq[s]){uniq[s]=1;list.push(s)}});
-    var map={},bad=0,pos=0;
+    var map={},doneSet={},bad=0,pos=0;
     function worker(){
       if(pos>=list.length)return Promise.resolve();
       var s=list[pos++];
-      return hashOf(s).then(function(h){if(h){var sg=parseSig(h);if(sg)map[s]=sg}else if(h===null)bad++}).then(worker)}
+      return hashOf(s).then(function(h){if(h!==null){doneSet[s]=1;if(h){var sg=sigOf(s)||parseSig(h);if(sg)map[s]=sg}}else bad++}).then(worker)}
     return Promise.all([worker(),worker(),worker()]).then(function(){
       saveCache();
       var found=[],seen={},i,j,sa,sb,ha,hb,m;
@@ -423,6 +465,15 @@ function checkPairImg(el){
       imgPairs=(imgPairs||[]).filter(function(r){
         return !((r.a.id===o.a.id&&r.b.id===o.b.id)||(r.a.id===o.b.id&&r.b.id===o.a.id));
       }).concat(found);
+      if(pm){
+        if(pm.th!==TH){pm=pmEmpty()}
+        Object.keys(doneSet).forEach(function(s){pm.done[s]=1;if(pm.fail)delete pm.fail[s]});
+        pm.pairs=(pm.pairs||[]).filter(function(r){
+          return !((r.a===o.a.id&&r.b===o.b.id)||(r.a===o.b.id&&r.b===o.a.id));
+        }).concat(found.map(function(r){return{a:r.a.id,b:r.b.id,x:r.x,y:r.y,d:r.d,k:r.k,o:r.o}}));
+        pm.th=TH;
+        savePm();
+      }
       if(found.length){
         pairImgMsg[k]={ok:true,text:"Tìm thấy "+found.length+" cặp ảnh giống nhau"+(bad?" ("+bad+" ảnh không đọc được)":"")+"."};
       }else if(bad&&bad===list.length){
@@ -435,7 +486,7 @@ function checkPairImg(el){
   })}
 function afterDel(id){
   loadIgnored();var changed=false;
-  Object.keys(ignored).forEach(function(k){var ids=k.split("|");if(ids[0]===id||ids[1]===id){delete ignored[k];changed=true}});
+  Object.keys(ignored).forEach(function(k){var ids=k.split("|");if(ids[0]===id||ids[1]===id){delete ignored[k];ignDirty[k]=0;changed=true}});
   if(changed)saveIgnored();
   sync()}
 function delItem(el){
@@ -863,19 +914,33 @@ function ignImgNote(r){
   var n=0;r.ign.forEach(function(o){if(o.img&&o.img.length)n++});
   return n?" ("+n+" cặp đang ở mục “Không phải trùng”).":""}
 /* ===== So khớp ảnh theo từng lượt BATCH căn, lưu kết quả để lần sau chỉ so ảnh mới ===== */
-var BATCH=20,PM_KEY="dpm1",pm=null,pmLoaded=false,pmP=null,sigMemo={};
+var BATCH=20,FAIL_TTL=300000,PM_KEY="dpm1",pm=null,pmLoaded=false,pmP=null,sigMemo={};
 function sigOf(s){var v=sigMemo[s];if(v!==undefined)return v;var c=cache[s];v=c?parseSig(c):null;if(c!==undefined)sigMemo[s]=v;return v}
-function pmEmpty(){return{th:TH,done:{},pairs:[]}}
+function pmEmpty(){return{th:TH,done:{},pairs:[],seen:{},fail:{}}}
 function loadPm(){
   if(pmLoaded)return Promise.resolve(pm);
   if(pmP)return pmP;
-  function fin(raw){var o=null;try{o=JSON.parse(raw||"null")}catch(e){}if(!o||typeof o!=="object"||!o.done||!o.pairs)o=pmEmpty();pm=o;pmLoaded=true;pmP=null;return pm}
+  function fin(raw){
+    var o=null;try{o=JSON.parse(raw||"null")}catch(e){}
+    if(!o||typeof o!=="object"||!o.done||!o.pairs)o=pmEmpty();
+    if(!o.seen||typeof o.seen!=="object")o.seen={};
+    if(!o.fail||typeof o.fail!=="object")o.fail={};
+    pm=o;pmLoaded=true;pmP=null;return pm}
   var idb=N()&&N().idbGet;
   if(!idb)return Promise.resolve(fin(ls(PM_KEY)));
   pmP=idb(PM_KEY).then(function(v){return fin(typeof v==="string"?v:"")},function(){return fin(ls(PM_KEY))});
   return pmP}
 function savePm(){try{var raw=JSON.stringify(pm);if(N()&&N().idbSave)N().idbSave(PM_KEY,raw);else ls(PM_KEY,raw)}catch(e){}}
+function seedPmSeen(){
+  if(!pm||!items.length||!Object.keys(pm.done).length||Object.keys(pm.seen).length)return;
+  var chg=false;
+  activeItems().forEach(function(it){
+    var ims=(it.im||[]).filter(Boolean);
+    if(ims.length&&ims.every(function(s){return !!pm.done[s]})){pm.seen[it.id]=ims.join("|");chg=true}
+  });
+  if(chg)savePm()}
 function pairsFromPm(){
+  if(!items.length){imgPairs=[];return imgPairs}
   var byId={};items.forEach(function(it){byId[it.id]=it});
   var seenP={};
   imgPairs=pm.pairs.map(function(r){return{a:byId[r.a],b:byId[r.b],x:r.x,y:r.y,d:r.d,k:r.k||"",o:r.o||""}}).filter(function(r){
@@ -885,8 +950,16 @@ function pairsFromPm(){
   cleanImgPairs();
   pm.pairs=imgPairs.map(function(r){return{a:r.a.id,b:r.b.id,x:r.x,y:r.y,d:r.d,k:r.k,o:r.o}});
   return imgPairs}
+function isFailCool(f,now){return !!(f&&typeof f==="object"&&f.n>=2&&(now-f.t)<FAIL_TTL)}
 function pendingItems(skip){
-  return activeItems().filter(function(it){return(it.im||[]).some(function(s){return s&&!pm.done[s]&&!(skip&&skip[s])&&!(pm.fail&&pm.fail[s]>=2)})})}
+  seedPmSeen();
+  var now=Date.now();
+  return activeItems().filter(function(it){
+    var ims=(it.im||[]).filter(Boolean);
+    if(!ims.length)return false;
+    if(ims.some(function(s){return !pm.done[s]&&!(skip&&skip[s])&&!isFailCool(pm.fail&&pm.fail[s],now)}))return true;
+    return ims.every(function(s){return !!pm.done[s]})&&pm.seen[it.id]!==ims.join("|");
+  })}
 function matchInc(newJ,oldJ){
   var allJ=oldJ.concat(newJ),A=allJ.map(function(x){return sigOf(x.s)}),out=[],seen={},p=oldJ.length;
   function step(){
@@ -921,7 +994,7 @@ function autoScan(){
     var d=G("dupd");
     if(scanning||!d||!d.open)return;
     if(pm.th!==TH||!Object.keys(pm.done).length)return;   /* chỉ tự chạy sau khi đã quét thủ công một lần */
-    if(pendingItems().length>=BATCH)scan(true)})}
+    if(pendingItems().length>0)scan(true)})}
 function rescanFromCache(){
   if(scanning||imgPairs===null)return;
   Promise.all([loadCache(),loadPm()]).then(function(){
@@ -952,16 +1025,16 @@ function scan(auto){
   function batch(total){
     if(stopFlag)return Promise.resolve(false);
     var pend=pendingItems(badSet);
-    if(!pend.length||(auto&&pend.length<BATCH))return Promise.resolve(false);
-    var B=pend.slice(0,BATCH),newJ=[],urls=[],seenU={},Bid={};
-    B.forEach(function(it){Bid[it.id]=1;(it.im||[]).forEach(function(s){if(s&&!pm.done[s]&&!badSet[s]){newJ.push({it:it,s:s});if(!seenU[s]){seenU[s]=1;urls.push(s)}}})});
+    if(!pend.length)return Promise.resolve(false);
+    var B=pend.slice(0,BATCH),newJ=[],urls=[],seenU={},Bid={},now=Date.now();
+    B.forEach(function(it){Bid[it.id]=1;(it.im||[]).forEach(function(s){if(!s)return;newJ.push({it:it,s:s});if(!pm.done[s]&&!badSet[s]&&!isFailCool(pm.fail&&pm.fail[s],now)&&!seenU[s]){seenU[s]=1;urls.push(s)}})});
     var idx=0,got={},flat={};
     function worker(){
       if(stopFlag||idx>=urls.length)return Promise.resolve();
       var u=urls[idx++];
       return hashOf(u).then(function(h){
         if(h){var sg=sigOf(u)||parseSig(h);if(sg){got[u]=1;t.ok++;if(sg.ori==="L")t.nL++;else t.nP++}}
-        else if(h===null){badSet[u]=1;t.bad++;pm.fail=pm.fail||{};pm.fail[u]=(pm.fail[u]||0)+1}
+        else if(h===null){badSet[u]=1;t.bad++;pm.fail=pm.fail||{};var cf=pm.fail[u];pm.fail[u]={n:(cf&&typeof cf==="object"?cf.n:0)+1,t:Date.now()}}
         else{flat[u]=1;t.flat++}
         msg("Đang so ảnh: "+t["căn"]+"/"+total+" căn (đọc ảnh "+Math.min(idx,urls.length)+"/"+urls.length+")…")
       }).then(worker)}
@@ -970,10 +1043,15 @@ function scan(auto){
       saveCache();
       var oldJ=[];
       activeItems().forEach(function(it){if(Bid[it.id])return;(it.im||[]).forEach(function(s){if(s&&pm.done[s])oldJ.push({it:it,s:s})})});
-      var nj=newJ.filter(function(j){return got[j.s]||flat[j.s]});
+      Object.keys(got).forEach(function(u){pm.done[u]=1;if(pm.fail)delete pm.fail[u]});
+      Object.keys(flat).forEach(function(u){pm.done[u]=1;if(pm.fail)delete pm.fail[u]});
+      var nj=newJ.filter(function(j){return pm.done[j.s]});
       return matchInc(nj,oldJ).then(function(out){
         out.forEach(function(r){pm.pairs.push({a:r.a.id,b:r.b.id,x:r.x,y:r.y,d:r.d,k:r.k,o:r.o})});
-        nj.forEach(function(j){pm.done[j.s]=1});
+        B.forEach(function(it){
+          var ims=(it.im||[]).filter(Boolean);
+          if(ims.length&&ims.every(function(s){return !!pm.done[s]}))pm.seen[it.id]=ims.join("|");
+        });
         pm.th=TH;t.newPairs+=out.length;t["căn"]+=B.length;
         savePm();
         bar.style.width=Math.min(100,t["căn"]/total*100)+"%";
@@ -982,7 +1060,7 @@ function scan(auto){
   Promise.all([loadCache(),loadPm()]).then(function(){
     if(pm.th!==TH){pm=pmEmpty();savePm()}
     if(!auto)pm.fail={};
-    var total=pendingItems().length;if(auto)total=Math.floor(total/BATCH)*BATCH;
+    var total=pendingItems().length;
     if(!total){return}
     msg("Đang so ảnh: 0/"+total+" căn…");
     return run(total)
@@ -1067,8 +1145,9 @@ function init(nt){
   G("dupd").addEventListener("load",function(e){var t=e.target;if(t&&t.tagName==="IMG"&&!t.classList.contains("dpl")&&!t.closest(".dpzstage"))t.classList.add("dpl")},true);
   G("dupl").addEventListener("pointerdown",onPairDown,{passive:true});
   G("dupignl").addEventListener("pointerdown",onPairDown,{passive:true});
-  document.addEventListener("visibilitychange",function(){if(!document.hidden)zPump()});
-  window.addEventListener("online",zPump);
+  document.addEventListener("visibilitychange",function(){if(document.hidden)flushIgnored();else{zPump();var dd=G("dupd");if(dd&&dd.open)pullIgnored(false)}});
+  window.addEventListener("pagehide",flushIgnored);
+  window.addEventListener("online",function(){zPump();flushIgnored()});
   G("dupd").addEventListener("cancel",function(e){
     if(closeZoom()){e.preventDefault();return}
     if(showIgn){e.preventDefault();goMain()}
@@ -1091,7 +1170,8 @@ function init(nt){
   G("dupundox").onclick=function(){undoSt=[];undoUi()};
   G("dupignclr").onclick=function(){
     if(!confirm("Khôi phục tất cả các cặp đã đánh dấu về lại danh sách kiểm tra trùng?"))return;
-    var pa=Object.keys(ignored).map(function(k){return{k:k,p:ignored[k]}});
+    loadIgnored();
+    var pa=Object.keys(ignored).map(function(k){ignDirty[k]=0;return{k:k,p:ignored[k]}});
     ignored={};undoPush("Đã khôi phục "+pa.length+" cặp",pa);saveIgnored();goMain()};
   G("dupl").onclick=onPairClick;
   G("dupignl").onclick=onPairClick;
@@ -1109,10 +1189,11 @@ function open(nt){
   G("dupnoout").checked=skipOut;
   items=N().items();cleanImgPairs();limMain=limIgn=LIMIT;openSet={};openImgSet={};pairImgMode={};pairImgMsg={};cmpAll={};zoomCmp=null;showIgn=false;msg(imgPairs&&imgPairs.length?"Đang hiện "+imgPairs.length+" cặp ảnh giống nhau.":"");G("dupbar").hidden=true;G("dupstop").hidden=true;G("dupz").hidden=true;render();
   if(!G("dupd").open)G("dupd").showModal();G("dupd").scrollTop=0;
-  loadCache().then(function(){if(G("dupd").open&&!scanning&&imgPairs===null)applyCachedPairs();autoScan()});
-  pullIgnored()}
+  loadCache().then(function(){if(G("dupd").open&&!scanning){if(imgPairs===null)applyCachedPairs();autoScan()}});
+  pullIgnored(true)}
 function close(){
   stopFlag=true;zoomCmp=null;undoSt=[];undoUi();
+  flushIgnored();
   var z=G("dupz"),d=G("dupd");
   if(z)z.hidden=true;
   if(d&&d.open)d.close()}
@@ -1121,9 +1202,10 @@ function sync(){
   clearTimeout(syncT);syncT=setTimeout(function(){
     items=N().items();cleanImgPairs();
     loadIgnored();var byId={},chg=false;items.forEach(function(it){byId[it.id]=1});
-    Object.keys(ignored).forEach(function(k){var ids=k.split("|");if(!byId[ids[0]]||!byId[ids[1]]){delete ignored[k];chg=true}});
+    Object.keys(ignored).forEach(function(k){var ids=k.split("|");if(!byId[ids[0]]||!byId[ids[1]]){delete ignored[k];ignDirty[k]=0;chg=true}});
     if(chg)saveIgnored();
-    render()
+    render();
+    if(cacheLoaded&&!scanning)autoScan()
   },120)}
 
 window.Dup={pull:pullIgnored,init:init,open:open,close:close,sync:sync,closeZoom:closeZoom};

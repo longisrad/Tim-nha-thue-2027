@@ -750,6 +750,7 @@ function mergeItems(oldArr,nextArr){
 function nrm(a){a.forEach(function(x){if(x.t==null)x.t=0;if(!STK[x.st])x.st="new"});return a}
 var rfT=0,warmTm=0;
 function schedWarm(){clearTimeout(warmTm);if(typeof requestIdleCallback==="function")warmTm=setTimeout(function(){requestIdleCallback(ckWarm,{timeout:2000})},1600);else warmTm=setTimeout(ckWarm,1800)}
+function dupPullBg(force){if(window.Dup&&Dup.pull)try{Dup.pull(!!force)}catch(e){}}
 function refresh(silent){
   if(!apiUrl()){openSetup();return Promise.resolve()}
   if(silent&&pend>0)return Promise.resolve();
@@ -761,13 +762,13 @@ function refresh(silent){
     if(v0!==wver||pend>0){if(!silent)banner(canW?"":"Chế độ chỉ xem.");return}
     if(!d.ok){dataVer="";banner(d.error||"Không có quyền.");openSetup(d.error||"Mã truy cập không đúng hoặc không có quyền.");return}
     var r0=role;role=d.role;canW=role==="edit";
-    if(d.same){applyRole();if(r0!==role){dataRev++;render()}schedWarm();return}
+    if(d.same){applyRole();if(r0!==role){dataRev++;render()}schedWarm();if(!silent||($("dupd")&&$("dupd").open))dupPullBg(false);return}
     if(!r0)enterAnim();
     var next=nrm(d.items||[]),mg=items.length?mergeItems(items,next):{list:next,changed:true};
     dataVer=d.ver;
     if(mg.changed||r0!==role){items=mg.list;dataRev++;applyRole();render();if(tab==="ck"&&!ckDirty&&ckId)ckLoad(ckId)}
     else applyRole();
-    lcSave();schedWarm();
+    lcSave();schedWarm();if(!silent||mg.changed||($("dupd")&&$("dupd").open))dupPullBg(false);
   }).catch(function(){banner("Không kết nối được tới Google Sheets. Kiểm tra mạng hoặc link Web app.")}).then(function(){if(silent)rfT=0});
 }
 function saved(d,needIt){
@@ -1784,7 +1785,7 @@ document.addEventListener("focusin",function(e){var t=e.target;if(!t||!t.closest
     if(rb.classList.contains("spin"))return;
     rb.classList.add("spin");
     var fin=function(){rb.classList.remove("spin")};
-    var dp=function(){try{return window.Dup&&Dup.pull?Dup.pull():0}catch(e){return 0}};
+    var dp=function(){try{return window.Dup&&Dup.pull?Dup.pull(true):0}catch(e){return 0}};
     if(tab==="ck"&&ckDirty){ckFlush();ckQ.then(function(){return refresh(false)}).then(dp).then(fin,fin)}
     else refresh(false).then(dp).then(fin,fin);
   };
