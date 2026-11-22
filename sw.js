@@ -4,7 +4,7 @@
      trì hoãn syncNext 2,5 giây để không tranh băng thông với dữ liệu Google Sheets và ảnh đầu trang.
    - APK Capacitor (đăng ký với ?app=1): file app đã nằm sẵn trong APK nên KHÔNG cache vỏ app, chỉ cache ảnh Drive.
    Đổi VERSION khi đổi font/icon/manifest. Sửa index.html thì không cần đổi (tự cập nhật mỗi lần mở). */
-const VERSION = 'v27';
+const VERSION = 'v28';
 const SHELL = 'shell-' + VERSION;
 const RUNTIME = 'runtime-' + VERSION;
 const NEXT = 'next-' + VERSION;   // bản mới tải về, chờ lần mở trang kế tiếp mới áp dụng (tránh lệch index.html cũ + ck.js mới)
@@ -201,7 +201,9 @@ self.addEventListener('message', function (e) {
     e.source.postMessage({ type: 'pong', v: VERSION, app: APP_MODE, lim: { s: IMG_MAX_S, l: IMG_MAX_L, w: SMALL_W } });
     return;
   }
-  if (APP_MODE || !e.data || e.data.type !== 'status' || !e.source) return;
+  if (APP_MODE || !e.data || !e.source) return;
+  if (e.data.type === 'check') { e.waitUntil(syncNext()); return; }   // trang đang mở hỏi bản mới (khi quay lại app)
+  if (e.data.type !== 'status') return;
   e.waitUntil(caches.open(NEXT).then(function (c) { return c.keys(); }).then(function (ks) {
     hasNext = ks.length > 0;
     if (ks.length) e.source.postMessage({ type: 'update' });

@@ -1835,7 +1835,13 @@ IDBM.get(CKC).then(function(raw){
 
 if("serviceWorker" in navigator&&/^https?:$/i.test(location.protocol)){var regSw=function(){var D=window.__dbg;if(D)D.swCall=Math.round(performance.now());navigator.serviceWorker.register("sw.js"+(CAP?"?app=1":""),{updateViaCache:"none"}).then(function(){return navigator.serviceWorker.ready}).then(function(r){if(D)D.swOk=Math.round(performance.now());if(r.active)r.active.postMessage({type:"status"})}).catch(function(e){var D=window.__dbg;if(D&&D.e.length<40)D.e.push({k:"sw",m:"Đăng ký service worker lỗi: "+(e&&e.message||e),s:"",l:0,t:Date.now()-D.t})})};if(document.readyState==="complete")regSw();else window.addEventListener("load",regSw);
   navigator.serviceWorker.addEventListener("message",function(e){if(e.data&&e.data.type==="update")$("upd").hidden=false});
-  $("upd").onclick=function(){location.reload()}}
+  $("upd").onclick=function(){location.reload()};
+  /* Quay lại app (đã mở sẵn từ lâu) thì hỏi service worker có bản mới không, tối đa 10 phút một lần; có thì hiện nút "Có bản mới" */
+  var lastChk=0;
+  document.addEventListener("visibilitychange",function(){
+    var c=navigator.serviceWorker.controller;
+    if(document.hidden||!c||navigator.onLine===false||Date.now()-lastChk<600000)return;
+    lastChk=Date.now();try{c.postMessage({type:"check"})}catch(e){}})}
 document.addEventListener("focusin",function(e){var t=e.target;if(!t||!t.closest||!t.closest("dialog"))return;if(!/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))return;setTimeout(function(){if(!document.body.contains(t))return;try{t.scrollIntoView({block:"center",behavior:"smooth"})}catch(x){}},350)});
 (function(){
   if(!CAP)return;
