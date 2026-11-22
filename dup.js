@@ -98,8 +98,8 @@ var CSS2=[
 "@media (max-width:420px){.dpa .dpv{margin-left:0;flex-basis:100%;text-align:left}.dpset{grid-template-columns:minmax(0,1fr)}}",
 "@media (prefers-reduced-motion:reduce){.dpz,.dpz *,.dpimgs,.dpl,.dpth img,.dpm img,.dpip img,.dpzstage::after{animation:none!important;transition:none!important}}"
 ].join("\n");
-var DLG="<dialog id=\"dupd\"><div class=\"form\" id=\"dupmain\">\n  <h2>Kiểm tra trùng</h2>\n  <p class=\"pm\" id=\"dupsum\"></p>\n  <div class=\"dpbar2\" id=\"duplinks\" hidden><button type=\"button\" class=\"link\" id=\"duptog\" hidden></button><button type=\"button\" class=\"dpignbtn\" id=\"dupigntog\" hidden></button></div>\n  <div class=\"dpset\"><div class=\"dpsens\"><label for=\"dupsens\">Độ nhạy ảnh</label><select id=\"dupsens\"><option value=\"6\">Ít nhầm (6/64 bit)</option><option value=\"10\">Bình thường (10/64 bit)</option><option value=\"14\" selected>Nhạy (14/64 bit — mặc định)</option><option value=\"18\">Rất nhạy (18/64 bit)</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupimgv\">Cách xem ảnh</label><select id=\"dupimgv\"><option value=\"manual\" selected>Đóng sẵn · bấm “Xem ảnh” ở từng cặp</option><option value=\"both\">Mở sẵn · so sánh 2 căn cạnh nhau</option><option value=\"stack\">Mở sẵn · xếp dọc từng căn</option></select></div></div>\n  <div class=\"dpact\"><label class=\"dpopt\"><input type=\"checkbox\" id=\"dupnoout\"><span>Bỏ qua căn đã “Loại”</span></label>\n  <div class=\"foot2\"><button class=\"btn p\" type=\"button\" id=\"dupimg\">Quét ảnh trùng</button><button class=\"btn\" type=\"button\" id=\"dupstop\" hidden>Dừng</button></div></div>\n  <div class=\"dpb\" id=\"dupbar\" hidden><i></i></div>\n  <p class=\"pm\" id=\"dupm\" role=\"status\"></p>\n  <div id=\"dupl\"></div>\n  <div class=\"foot\"><button class=\"btn p\" type=\"button\" id=\"dupx\">Đóng</button></div>\n</div><div class=\"form\" id=\"dupignview\" hidden>\n  <div class=\"dphead\"><button type=\"button\" class=\"btn\" id=\"dupback\">← Quay lại</button><h2>Không phải trùng</h2></div>\n  <p class=\"pm\" id=\"dupignsum\"></p>\n  <button type=\"button\" class=\"link\" id=\"dupignclr\" hidden>Khôi phục tất cả về danh sách kiểm tra</button>\n  <div id=\"dupignl\"></div>\n  <div class=\"foot\"><button class=\"btn\" type=\"button\" id=\"dupback2\">← Quay lại</button><button class=\"btn p\" type=\"button\" id=\"dupx2\">Đóng</button></div>\n</div><div class=\"dpz\" id=\"dupz\" hidden><div class=\"dpzb\"><div class=\"dpzhdr\"><p class=\"dpzt\" id=\"dupzt\"></p><button type=\"button\" class=\"dpzlay\" id=\"dupzlay\">Xếp dọc</button><button type=\"button\" class=\"dpzcls\" id=\"dupzx2\" aria-label=\"Đóng\">×</button></div><div class=\"dpzm\" id=\"dupzm\" hidden></div><div class=\"dpzg\" id=\"dupzg\"><div class=\"dpzcol\"><div class=\"dpzstage\"><img id=\"dupz1\" alt=\"Ảnh căn 1\"><span class=\"dpzempty\" id=\"dupze1\" hidden>Chưa có ảnh</span></div><div class=\"dpzmeta\"><b id=\"dupz1n\"></b><small id=\"dupz1m\"></small></div><div class=\"dpzctrl\" id=\"dupzc1\" hidden><button type=\"button\" id=\"dupz1prev\" aria-label=\"Ảnh trước căn 1\">‹</button><span id=\"dupz1c\"></span><button type=\"button\" id=\"dupz1next\" aria-label=\"Ảnh sau căn 1\">›</button></div></div><div class=\"dpzcol\"><div class=\"dpzstage\"><img id=\"dupz2\" alt=\"Ảnh căn 2\"><span class=\"dpzempty\" id=\"dupze2\" hidden>Chưa có ảnh</span></div><div class=\"dpzmeta\"><b id=\"dupz2n\"></b><small id=\"dupz2m\"></small></div><div class=\"dpzctrl\" id=\"dupzc2\" hidden><button type=\"button\" id=\"dupz2prev\" aria-label=\"Ảnh trước căn 2\">‹</button><span id=\"dupz2c\"></span><button type=\"button\" id=\"dupz2next\" aria-label=\"Ảnh sau căn 2\">›</button></div></div></div><div class=\"foot\"><button class=\"btn p\" type=\"button\" id=\"dupzx\">Đóng</button></div></div></div><div class=\"dpundo\" id=\"dupundo\" hidden><span id=\"dupundot\"></span><button type=\"button\" id=\"dupundob\">↶ Hoàn tác</button><button type=\"button\" class=\"x\" id=\"dupundox\" aria-label=\"Ẩn\">✕</button></div></dialog>";
-var TH=14,MIN=2,imgPairs=null,scanning=false,stopFlag=false,cache={},cacheLoaded=false,cacheP=null,inflight={},LIMIT=50,limMain=50,limIgn=50,memo=null,syncT=0,showOne=false,showIgn=false,skipOut=true,skipLoaded=false,imgAutoMode="manual",imgModeLoaded=false,viewList=[],openSet={},openImgSet={},pairImgMode={},ignored={},ignLoaded=false,pairImgMsg={},zoomCmp=null;
+var DLG="<dialog id=\"dupd\"><div class=\"form\" id=\"dupmain\">\n  <h2>Kiểm tra trùng</h2>\n  <p class=\"pm\" id=\"dupsum\"></p>\n  <div class=\"dpbar2\" id=\"duplinks\" hidden><button type=\"button\" class=\"link\" id=\"duptog\" hidden></button><button type=\"button\" class=\"dpignbtn\" id=\"dupigntog\" hidden></button></div>\n  <div class=\"dpset\"><div class=\"dpsens\"><label for=\"dupsens\">Độ nhạy ảnh</label><select id=\"dupsens\"><option value=\"6\">Ít nhầm (6/64 bit)</option><option value=\"10\">Bình thường (10/64 bit)</option><option value=\"14\" selected>Nhạy (14/64 bit — mặc định)</option><option value=\"18\">Rất nhạy (18/64 bit)</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupvf\">Kiểm tra lần hai (so điểm ảnh)</label><select id=\"dupvf\"><option value=\"0\">Tắt (chỉ dùng hash)</option><option value=\"1\" selected>Vừa (mặc định)</option><option value=\"2\">Chặt (ít nhầm nhất)</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupimgv\">Cách xem ảnh</label><select id=\"dupimgv\"><option value=\"manual\" selected>Đóng sẵn · bấm “Xem ảnh” ở từng cặp</option><option value=\"both\">Mở sẵn · so sánh 2 căn cạnh nhau</option><option value=\"stack\">Mở sẵn · xếp dọc từng căn</option></select></div></div>\n  <div class=\"dpact\"><label class=\"dpopt\"><input type=\"checkbox\" id=\"dupnoout\"><span>Bỏ qua căn đã “Loại”</span></label>\n  <div class=\"foot2\"><button class=\"btn p\" type=\"button\" id=\"dupimg\">Quét ảnh trùng</button><button class=\"btn\" type=\"button\" id=\"dupstop\" hidden>Dừng</button></div></div>\n  <div class=\"dpb\" id=\"dupbar\" hidden><i></i></div>\n  <p class=\"pm\" id=\"dupm\" role=\"status\"></p>\n  <div id=\"dupl\"></div>\n  <div class=\"foot\"><button class=\"btn p\" type=\"button\" id=\"dupx\">Đóng</button></div>\n</div><div class=\"form\" id=\"dupignview\" hidden>\n  <div class=\"dphead\"><button type=\"button\" class=\"btn\" id=\"dupback\">← Quay lại</button><h2>Không phải trùng</h2></div>\n  <p class=\"pm\" id=\"dupignsum\"></p>\n  <button type=\"button\" class=\"link\" id=\"dupignclr\" hidden>Khôi phục tất cả về danh sách kiểm tra</button>\n  <div id=\"dupignl\"></div>\n  <div class=\"foot\"><button class=\"btn\" type=\"button\" id=\"dupback2\">← Quay lại</button><button class=\"btn p\" type=\"button\" id=\"dupx2\">Đóng</button></div>\n</div><div class=\"dpz\" id=\"dupz\" hidden><div class=\"dpzb\"><div class=\"dpzhdr\"><p class=\"dpzt\" id=\"dupzt\"></p><button type=\"button\" class=\"dpzlay\" id=\"dupzlay\">Xếp dọc</button><button type=\"button\" class=\"dpzcls\" id=\"dupzx2\" aria-label=\"Đóng\">×</button></div><div class=\"dpzm\" id=\"dupzm\" hidden></div><div class=\"dpzg\" id=\"dupzg\"><div class=\"dpzcol\"><div class=\"dpzstage\"><img id=\"dupz1\" alt=\"Ảnh căn 1\"><span class=\"dpzempty\" id=\"dupze1\" hidden>Chưa có ảnh</span></div><div class=\"dpzmeta\"><b id=\"dupz1n\"></b><small id=\"dupz1m\"></small></div><div class=\"dpzctrl\" id=\"dupzc1\" hidden><button type=\"button\" id=\"dupz1prev\" aria-label=\"Ảnh trước căn 1\">‹</button><span id=\"dupz1c\"></span><button type=\"button\" id=\"dupz1next\" aria-label=\"Ảnh sau căn 1\">›</button></div></div><div class=\"dpzcol\"><div class=\"dpzstage\"><img id=\"dupz2\" alt=\"Ảnh căn 2\"><span class=\"dpzempty\" id=\"dupze2\" hidden>Chưa có ảnh</span></div><div class=\"dpzmeta\"><b id=\"dupz2n\"></b><small id=\"dupz2m\"></small></div><div class=\"dpzctrl\" id=\"dupzc2\" hidden><button type=\"button\" id=\"dupz2prev\" aria-label=\"Ảnh trước căn 2\">‹</button><span id=\"dupz2c\"></span><button type=\"button\" id=\"dupz2next\" aria-label=\"Ảnh sau căn 2\">›</button></div></div></div><div class=\"foot\"><button class=\"btn p\" type=\"button\" id=\"dupzx\">Đóng</button></div></div></div><div class=\"dpundo\" id=\"dupundo\" hidden><span id=\"dupundot\"></span><button type=\"button\" id=\"dupundob\">↶ Hoàn tác</button><button type=\"button\" class=\"x\" id=\"dupundox\" aria-label=\"Ẩn\">✕</button></div></dialog>";
+var TH=14,VL=1,MIN=2,imgPairs=null,scanning=false,stopFlag=false,cache={},cacheLoaded=false,cacheP=null,inflight={},LIMIT=50,limMain=50,limIgn=50,memo=null,syncT=0,showOne=false,showIgn=false,skipOut=true,skipLoaded=false,imgAutoMode="manual",imgModeLoaded=false,viewList=[],openSet={},openImgSet={},pairImgMode={},ignored={},ignLoaded=false,pairImgMsg={},zoomCmp=null;
 
 /* ---------- Lưu danh sách "không phải trùng" vào localStorage ---------- */
 var undoSt=[],zlay=null,cmpAll={};
@@ -240,7 +240,7 @@ function build(){
   var src=activeItems(),P={},byId={};
   src.forEach(function(it){byId[it.id]=it});
   textPairs(src).forEach(function(t){var a=byId[t.a],b=byId[t.b];if(a&&b)P[t.a+"|"+t.b]={a:a,b:b,why:t.why.slice(),img:[]}});
-  if(imgPairs)imgPairs.forEach(function(r){var a=byId[r.a.id],b=byId[r.b.id];if(!a||!b)return;var o=addP(P,a,b,"img");if(!o)return;var sw=o.a.id!==r.a.id;o.img.push(sw?{x:r.y,y:r.x,d:r.d,k:r.k||"",o:r.o||""}:{x:r.x,y:r.y,d:r.d,k:r.k||"",o:r.o||""})});
+  if(imgPairs)imgPairs.forEach(function(r){var a=byId[r.a.id],b=byId[r.b.id];if(!a||!b)return;var o=addP(P,a,b,"img");if(!o)return;var sw=o.a.id!==r.a.id;o.img.push(sw?{x:r.y,y:r.x,d:r.d,k:r.k||"",o:r.o||"",n:r.n}:{x:r.x,y:r.y,d:r.d,k:r.k||"",o:r.o||"",n:r.n})});
   var all=Object.keys(P).map(function(k){var o=P[k];o.sc=sc(o);return o}).sort(function(a,b){return(b.img.length>0?1:0)-(a.img.length>0?1:0)||b.sc-a.sc||b.img.length-a.img.length});
   var active=[],ign=[];
   all.forEach(function(p){
@@ -256,7 +256,7 @@ function build(){
     nSkip:items.length-src.length
   }}
 function pc(x){x=x-((x>>>1)&0x55555555);x=(x&0x33333333)+((x>>>2)&0x33333333);return(((x+(x>>>4))&0x0f0f0f0f)*0x01010101)>>>24}
-function simText(d,k,ori){
+function simText(d,k,ori,n){
   var parts=[];
   if(ori==="LP")parts.push("ngang ↔ dọc");
   else if(ori==="L")parts.push("ảnh ngang");
@@ -268,6 +268,7 @@ function simText(d,k,ori){
   else if(k==="lptm")parts.push("cắt viền + lật");
   if(d===0&&(!k||k==="lp"))return"Giống 100%"+(parts.length?" ("+parts.join(" · ")+")":"");
   parts.push("lệch "+d+"/64 bit");
+  if(n!=null)parts.push("điểm ảnh khớp "+n+"%");
   return"Giống "+Math.round((64-d)/64*100)+"% ("+parts.join(" · ")+")"}
 function txtH(v){return v?esc(v):'<span class="dpe">Không có</span>'}
 function linkH(u){var s=su(u);if(s)return'<a href="'+esc(s)+'" target="_blank" rel="noopener noreferrer">'+esc(s)+'</a>';return txtH(u)}
@@ -293,13 +294,13 @@ function detailH(o,idx){
   if(o.img.length){
     h+='<div class="dpi"><p class="dpil">Ảnh giống nhau ('+o.img.length+' cặp — bấm vào ảnh để phóng to)</p><div class="dpig">';
     o.img.forEach(function(m,i){
-      h+='<button type="button" class="dpip" data-zoom="'+idx+':'+i+'"><span><img alt="Ảnh căn 1" loading="lazy" src="'+esc(imgSrc(m.x,300))+'"><img alt="Ảnh căn 2" loading="lazy" src="'+esc(imgSrc(m.y,300))+'"></span><small>'+esc(simText(m.d,m.k,m.o))+'</small></button>';
+      h+='<button type="button" class="dpip" data-zoom="'+idx+':'+i+'"><span><img alt="Ảnh căn 1" loading="lazy" src="'+esc(imgSrc(m.x,300))+'"><img alt="Ảnh căn 2" loading="lazy" src="'+esc(imgSrc(m.y,300))+'"></span><small>'+esc(simText(m.d,m.k,m.o,m.n))+'</small></button>';
     });
     h+='</div></div>';
   }
   return h;
 }
-function loadImgMode(){if(imgModeLoaded)return;imgModeLoaded=true;try{var v=ls("dimgv");imgAutoMode=(v==="both"||v==="stack")?v:"manual"}catch(e){imgAutoMode="manual"}try{var t=+ls("dth");if(t===6||t===10||t===14||t===18)TH=t;var z=ls("dzl");zlay=(z==="1"||z==="0")?z:null}catch(e){}}
+function loadImgMode(){if(imgModeLoaded)return;imgModeLoaded=true;try{var v=ls("dimgv");imgAutoMode=(v==="both"||v==="stack")?v:"manual"}catch(e){imgAutoMode="manual"}try{var t=+ls("dth");if(t===6||t===10||t===14||t===18)TH=t;var vv=ls("dvf");if(vv==="0"||vv==="1"||vv==="2")VL=+vv;var z=ls("dzl");zlay=(z==="1"||z==="0")?z:null}catch(e){}}
 function isImgOpen(k){return openImgSet[k]!==undefined?!!openImgSet[k]:imgAutoMode!=="manual"}
 function modeFor(k){return pairImgMode[k]||(imgAutoMode==="stack"?"stack":"both")}
 function houseImgs(it){
@@ -462,26 +463,29 @@ function checkPairImg(el){
           }
         }
       }
+      return verifyList(found).then(function(found){
+      var rjT=found.rej?" (đã loại "+found.rej+" cặp nhầm sau kiểm tra lần hai)":"";
       imgPairs=(imgPairs||[]).filter(function(r){
         return !((r.a.id===o.a.id&&r.b.id===o.b.id)||(r.a.id===o.b.id&&r.b.id===o.a.id));
       }).concat(found);
       if(pm){
-        if(pm.th!==TH){pm=pmEmpty()}
+        if(pmStale()){pm=pmEmpty()}
         Object.keys(doneSet).forEach(function(s){pm.done[s]=1;if(pm.fail)delete pm.fail[s]});
         pm.pairs=(pm.pairs||[]).filter(function(r){
           return !((r.a===o.a.id&&r.b===o.b.id)||(r.a===o.b.id&&r.b===o.a.id));
-        }).concat(found.map(function(r){return{a:r.a.id,b:r.b.id,x:r.x,y:r.y,d:r.d,k:r.k,o:r.o}}));
-        pm.th=TH;
+        }).concat(found.map(function(r){return{a:r.a.id,b:r.b.id,x:r.x,y:r.y,d:r.d,k:r.k,o:r.o,n:r.n}}));
+        pm.th=TH;pm.vf=VL;
         savePm();
       }
       if(found.length){
-        pairImgMsg[k]={ok:true,text:"Tìm thấy "+found.length+" cặp ảnh giống nhau"+(bad?" ("+bad+" ảnh không đọc được)":"")+"."};
+        pairImgMsg[k]={ok:true,text:"Tìm thấy "+found.length+" cặp ảnh giống nhau"+(bad?" ("+bad+" ảnh không đọc được)":"")+rjT+"."};
       }else if(bad&&bad===list.length){
         pairImgMsg[k]={bad:true,text:"Không đọc được ảnh của 2 căn này."};
       }else{
-        pairImgMsg[k]={text:"Không trùng ảnh ("+aIm.length+" vs "+bIm.length+" ảnh"+(bad?", "+bad+" ảnh lỗi":"")+")."};
+        pairImgMsg[k]={text:"Không trùng ảnh ("+aIm.length+" vs "+bIm.length+" ảnh"+(bad?", "+bad+" ảnh lỗi":"")+")"+rjT+"."};
       }
       render();
+      });
     });
   })}
 function afterDel(id){
@@ -622,7 +626,7 @@ function renderCmpZoom(k){
   var o=viewList[zoomCmp.idx];if(!o){closeZoom();return}
   var ia=zoomCmp.ia,ib=zoomCmp.ib,la=zoomCmp.imgsA,lb=zoomCmp.imgsB;
   var imA=la[ia],imB=lb[ib],anyCtrl=la.length>1||lb.length>1,mi=zMatchIdx(o,imA,imB);
-  G("dupzt").textContent=mi>=0?simText(o.img[mi].d,o.img[mi].k,o.img[mi].o):"So sánh ảnh 2 căn";
+  G("dupzt").textContent=mi>=0?simText(o.img[mi].d,o.img[mi].k,o.img[mi].o,o.img[mi].n):"So sánh ảnh 2 căn";
   G("dupzlay").textContent=zoomCmp.stack?"Cạnh nhau":"Xếp dọc";
   G("dupzg").classList.toggle("stack",!!zoomCmp.stack);
   G("dupz").classList.add("stk");G("dupz").classList.toggle("side",!zoomCmp.stack);
@@ -975,6 +979,91 @@ function cmpSig(a,b,th){
     tryM(a.sq,b.sqm,a.sqcol,b.sqcol,sqLim,true,46,2,"lpm","LP");
   }
   return best}
+/* ===== Kiểm tra lần hai: so điểm ảnh sau khi hash đã chọn cặp ứng viên =====
+   Hash dHash chỉ giữ dấu chiều sáng nên hai phòng khác nhau cùng bố cục sáng/tối vẫn có thể khớp.
+   Ở đây mỗi ảnh được thu về bản xám 32×32, bỏ phần sáng tối nền (trừ trung bình cục bộ 7×7) rồi so
+   tương quan chuẩn hóa (-1..1): chỉ ảnh có cùng đường nét mới cao. Chỉ chạy cho cặp ứng viên, không chạy cho mọi cặp. */
+var PIX=32,pixMemo={},VTHR=[null,{f:.45,c:.30,s:.30},{f:.65,c:.40,s:.40}];
+function pixTry(s){
+  var s0=imgSrc(s,64),isLh=s0.indexOf("https://lh3.googleusercontent.com/")===0;
+  return isLh?[s0+"?dh=1",imgSrc(s,120)+"?dh=2",imgSrc(s,200)]:[s0]}
+function normVec(px){
+  var n=PIX*PIX,g=new Float32Array(n),h=new Float32Array(n),i,x,y,dx,dy,xx,yy,m,q=0,k=3,t;
+  for(i=0;i<n;i++)g[i]=px[i*4]*.299+px[i*4+1]*.587+px[i*4+2]*.114;
+  for(y=0;y<PIX;y++)for(x=0;x<PIX;x++){
+    m=0;
+    for(dy=-k;dy<=k;dy++){yy=y+dy;yy=yy<0?0:yy>=PIX?PIX-1:yy;
+      for(dx=-k;dx<=k;dx++){xx=x+dx;xx=xx<0?0:xx>=PIX?PIX-1:xx;m+=g[yy*PIX+xx]}}
+    h[y*PIX+x]=g[y*PIX+x]-m/((2*k+1)*(2*k+1))}
+  m=0;for(i=0;i<n;i++)m+=h[i];m/=n;
+  for(i=0;i<n;i++){t=h[i]-m;h[i]=t;q+=t*t}
+  if(q<n)return null;   /* gần như phẳng: không đủ nét để so */
+  q=Math.sqrt(q);for(i=0;i<n;i++)h[i]/=q;
+  return h}
+function pixOf(s){
+  if(pixMemo[s]!==undefined)return Promise.resolve(pixMemo[s]);
+  return new Promise(function(res){
+    var tries=pixTry(s),step=0;
+    function next(){
+      if(step>=tries.length){res(null);return}
+      var u=tries[step++],im=new Image(),settled=false,t;
+      if(u.indexOf("https://lh3.googleusercontent.com/")===0)im.crossOrigin="anonymous";
+      im.referrerPolicy="no-referrer";
+      function drop(){im.onload=im.onerror=null;try{im.src=""}catch(e){}}
+      function fail(){if(settled)return;settled=true;clearTimeout(t);drop();setTimeout(next,300)}
+      t=setTimeout(fail,12000);
+      im.onload=function(){
+        if(settled)return;settled=true;clearTimeout(t);
+        try{
+          var iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height;
+          if(!iw||!ih){drop();setTimeout(next,300);return}
+          var L=iw>=ih,cv=document.createElement("canvas");cv.width=cv.height=PIX;
+          var cx=cv.getContext("2d",{willReadFrequently:true}),side=Math.min(iw,ih);
+          var grab=function(sx,sy,sw,sh){cx.clearRect(0,0,PIX,PIX);cx.drawImage(im,sx,sy,sw,sh,0,0,PIX,PIX);return normVec(cx.getImageData(0,0,PIX,PIX).data)};
+          var v={F:grab(0,0,iw,ih),
+                 C:L?grab(iw*18/144,ih*12/104,iw*108/144,ih*80/104):grab(iw*18/108,ih*16/144,iw*72/108,ih*112/144),
+                 S:grab(Math.floor((iw-side)/2),Math.floor((ih-side)/2),side,side)};
+          drop();pixMemo[s]=v;res(v)
+        }catch(e){drop();setTimeout(next,300)}};
+      im.onerror=fail;im.src=u}
+    next()})}
+function dotV(a,b,flip){
+  var s=0,n=PIX*PIX,i,y,x;
+  if(!flip){for(i=0;i<n;i++)s+=a[i]*b[i];return s}
+  for(y=0;y<PIX;y++)for(x=0;x<PIX;x++)s+=a[y*PIX+x]*b[y*PIX+PIX-1-x];
+  return s}
+function bestDot(pa,pb,keys,flip){
+  var best=-2,i,a,b,v;
+  for(i=0;i<keys.length;i++){a=pa[keys[i][0]];b=pb[keys[i][1]];if(!a||!b)continue;v=dotV(a,b,flip);if(v>best)best=v}
+  return best}
+/* Trả về {ok,n}: n là điểm khớp 0..100 (null nếu không kiểm tra được); không đọc được ảnh thì giữ kết quả của hash */
+function verOne(m,sa,sb){
+  var T=VTHR[VL];
+  if(!T||m.k==="lpt"||m.k==="lptm"||(m.d<=3&&!m.k))return Promise.resolve({ok:true,n:null});
+  return Promise.all([pixOf(sa),pixOf(sb)]).then(function(r){
+    var pa=r[0],pb=r[1];
+    if(!pa||!pb)return{ok:true,n:null};
+    var k=m.k,n,thr,CC=[["C","C"],["C","F"],["F","C"]];
+    if(k===""){n=bestDot(pa,pb,[["F","F"]],false);thr=T.f}
+    else if(k==="m"){n=bestDot(pa,pb,[["F","F"]],true);thr=T.f}
+    else if(k==="c"){n=bestDot(pa,pb,CC,false);thr=T.c}
+    else if(k==="cm"){n=bestDot(pa,pb,CC,true);thr=T.c}
+    else if(k==="lp"){n=bestDot(pa,pb,[["S","S"]],false);thr=T.s}
+    else if(k==="lpm"){n=bestDot(pa,pb,[["S","S"]],true);thr=T.s}
+    else return{ok:true,n:null};
+    if(n<=-2)return{ok:true,n:null};
+    return{ok:n>=thr,n:Math.max(0,Math.round(n*100))}})}
+function verifyList(list){
+  if(!VTHR[VL]||!list.length){list.rej=0;return Promise.resolve(list)}
+  var res=new Array(list.length),i=0;
+  function worker(){
+    if(i>=list.length)return Promise.resolve();
+    var j=i++,r=list[j];
+    return verOne(r,r.x,r.y).then(function(v){res[j]=v}).then(worker)}
+  return Promise.all([worker(),worker(),worker()]).then(function(){
+    var out=[],rej=0;
+    list.forEach(function(r,j){var v=res[j];if(v&&v.ok){if(v.n!==null)r.n=v.n;out.push(r)}else rej++});
+    out.rej=rej;return out})}
 function matchJobs(jobs,Hm){
   var out=[],seen={},i,j,A=jobs.map(function(x){return Hm[x.s]}),m,k;
   for(i=0;i<jobs.length;i++)for(j=i+1;j<jobs.length;j++){
@@ -990,7 +1079,8 @@ function ignImgNote(r){
 /* ===== So khớp ảnh theo từng lượt BATCH căn, lưu kết quả để lần sau chỉ so ảnh mới ===== */
 var BATCH=20,FAIL_TTL=300000,PM_KEY="dpm1",pm=null,pmLoaded=false,pmP=null,sigMemo={};
 function sigOf(s){var v=sigMemo[s];if(v!==undefined)return v;var c=cache[s];v=c?parseSig(c):null;if(c!==undefined)sigMemo[s]=v;return v}
-function pmEmpty(){return{th:TH,done:{},pairs:[],seen:{},fail:{}}}
+function pmEmpty(){return{th:TH,vf:VL,done:{},pairs:[],seen:{},fail:{}}}
+function pmStale(){return pm.th!==TH||(pm.vf||0)!==VL}
 function loadPm(){
   if(pmLoaded)return Promise.resolve(pm);
   if(pmP)return pmP;
@@ -1017,12 +1107,12 @@ function pairsFromPm(){
   if(!items.length){imgPairs=[];return imgPairs}
   var byId={};items.forEach(function(it){byId[it.id]=it});
   var seenP={};
-  imgPairs=pm.pairs.map(function(r){return{a:byId[r.a],b:byId[r.b],x:r.x,y:r.y,d:r.d,k:r.k||"",o:r.o||""}}).filter(function(r){
+  imgPairs=pm.pairs.map(function(r){return{a:byId[r.a],b:byId[r.b],x:r.x,y:r.y,d:r.d,k:r.k||"",o:r.o||"",n:r.n}}).filter(function(r){
     if(!r.a||!r.b)return false;
     var pk=[r.a.id+"\u0001"+r.x,r.b.id+"\u0001"+r.y].sort().join("|");   // cùng cặp ảnh (kể cả đảo chiều) chỉ giữ một
     if(seenP[pk])return false;seenP[pk]=1;return true});
   cleanImgPairs();
-  pm.pairs=imgPairs.map(function(r){return{a:r.a.id,b:r.b.id,x:r.x,y:r.y,d:r.d,k:r.k,o:r.o}});
+  pm.pairs=imgPairs.map(function(r){return{a:r.a.id,b:r.b.id,x:r.x,y:r.y,d:r.d,k:r.k,o:r.o,n:r.n}});
   return imgPairs}
 function isFailCool(f,now){return !!(f&&typeof f==="object"&&f.n>=2&&(now-f.t)<FAIL_TTL)}
 function pendingItems(skip){
@@ -1049,13 +1139,13 @@ function matchInc(newJ,oldJ){
       }
     }
     if(p<allJ.length)return new Promise(function(r){setTimeout(r,0)}).then(step);
-    return out}
+    return verifyList(out)}
   return Promise.resolve().then(step)}
 function applyCachedPairs(){
   if(scanning||!cacheLoaded)return;
   loadPm().then(function(){
     if(scanning||imgPairs!==null)return;
-    if(pm.th!==TH||(!pm.pairs.length&&!Object.keys(pm.done).length)){
+    if(pmStale()||(!pm.pairs.length&&!Object.keys(pm.done).length)){
       var n=0;activeItems().forEach(function(it){(it.im||[]).forEach(function(s){if(s&&cache[s])n++})});
       if(n>=2)msg("Có "+n+" ảnh đã lưu, chưa so khớp.");
       return}
@@ -1067,12 +1157,12 @@ function autoScan(){
   loadPm().then(function(){
     var d=G("dupd");
     if(scanning||!d||!d.open)return;
-    if(pm.th!==TH||!Object.keys(pm.done).length)return;   /* chỉ tự chạy sau khi đã quét thủ công một lần */
+    if(pmStale()||!Object.keys(pm.done).length)return;   /* chỉ tự chạy sau khi đã quét thủ công một lần */
     if(pendingItems().length>0)scan(true)})}
 function rescanFromCache(){
   if(scanning||imgPairs===null)return;
   Promise.all([loadCache(),loadPm()]).then(function(){
-    if(pm.th!==TH){scan();return}
+    if(pmStale()){scan();return}
     pairsFromPm();
     var r=render(),note=ignImgNote(r),np=pendingItems().length;
     msg("Đã cập nhật: "+imgPairs.length+" cặp ảnh giống nhau."+(np?" Còn "+np+" căn chưa so.":"")+note)})}
@@ -1122,12 +1212,12 @@ function scan(auto){
       Object.keys(flat).forEach(function(u){pm.done[u]=1;if(pm.fail)delete pm.fail[u]});
       var nj=newJ.filter(function(j){return pm.done[j.s]});
       return matchInc(nj,oldJ).then(function(out){
-        out.forEach(function(r){pm.pairs.push({a:r.a.id,b:r.b.id,x:r.x,y:r.y,d:r.d,k:r.k,o:r.o})});
+        out.forEach(function(r){pm.pairs.push({a:r.a.id,b:r.b.id,x:r.x,y:r.y,d:r.d,k:r.k,o:r.o,n:r.n})});
         B.forEach(function(it){
           var ims=(it.im||[]).filter(Boolean);
           if(ims.length&&ims.every(function(s){return !!pm.done[s]}))pm.seen[it.id]=ims.join("|");
         });
-        pm.th=TH;t.newPairs+=out.length;t["căn"]+=B.length;
+        pm.th=TH;pm.vf=VL;t.newPairs+=out.length;t["căn"]+=B.length;
         savePm();
         bar.style.width=Math.min(100,t["căn"]/total*100)+"%";
         return true})})}
@@ -1135,7 +1225,7 @@ function scan(auto){
   if(hsPhase)msg("Đang đồng bộ hash từ máy chủ…");
   Promise.all([loadCache(),loadPm(),hsWait()]).then(function(){
     if(hsPendR){if(hsPendR.chg){pm=pmEmpty();savePm()}hsPendR=null}   // hash vừa đổi theo máy chủ: quét lại từ hash mới
-    if(pm.th!==TH){pm=pmEmpty();savePm()}
+    if(pmStale()){pm=pmEmpty();savePm()}
     if(!auto)pm.fail={};
     var total=pendingItems().length;
     if(!total){return}
@@ -1230,6 +1320,7 @@ function init(nt){
     if(showIgn){e.preventDefault();goMain()}
   });
   G("dupsens").onchange=function(){TH=+this.value||14;try{ls("dth",String(TH))}catch(e){}rescanFromCache()};
+  G("dupvf").onchange=function(){VL=+this.value||0;try{ls("dvf",String(VL))}catch(e){}rescanFromCache()};
   G("dupimgv").onchange=function(){
     var v=this.value;
     imgAutoMode=(v==="both"||v==="stack")?v:"manual";
@@ -1262,6 +1353,7 @@ function open(nt){
   loadSkip();
   loadImgMode();
   G("dupsens").value=String(TH);
+  G("dupvf").value=String(VL);
   G("dupimgv").value=imgAutoMode;
   G("dupnoout").checked=skipOut;
   items=N().items();cleanImgPairs();limMain=limIgn=LIMIT;openSet={};openImgSet={};pairImgMode={};pairImgMsg={};cmpAll={};zoomCmp=null;showIgn=false;msg(imgPairs&&imgPairs.length?"Đang hiện "+imgPairs.length+" cặp ảnh giống nhau.":"");G("dupbar").hidden=true;G("dupstop").hidden=true;G("dupz").hidden=true;render();
