@@ -226,6 +226,7 @@ function chkData(add){
     if(K.ckDirty)add("info",g,"Đang có thay đổi checklist chưa lưu");
     if(K.ckUpQ&&K.ckUpQ.length)add("info",g,K.ckUpQ.length+" ảnh đang tải lên");
     if(K.ckTrashQ&&K.ckTrashQ.length)add("info",g,K.ckTrashQ.length+" ảnh chờ chuyển vào thùng rác")}}
+function clk(s){return new Date(B.t+s).toLocaleTimeString("vi-VN")}
 function chkPerf(add){
   var g="Hiệu năng";
   try{
@@ -241,10 +242,10 @@ function chkPerf(add){
     ls.forEach(function(x){if(x.d>worst)worst=x.d;if(x.s<5000)early+=x.d});
     add(worst>1000||B.lt>up*150?"warn":"info",g,B.ltn+" tác vụ treo giao diện >50 ms, tổng "+Math.round(B.lt)+" ms"+(worst?", dài nhất "+worst+" ms":""));
     if(ls.length){
-      var top=ls.slice().sort(function(a,b){return b.d-a.d}).slice(0,3).map(function(x){return x.d+" ms lúc +"+(x.s/1000).toFixed(1)+"s"}).join(" · ");
+      var top=ls.slice().sort(function(a,b){return b.d-a.d}).slice(0,3).map(function(x){return x.d+" ms lúc +"+(x.s/1000).toFixed(1)+"s ("+clk(x.s)+")"}).join(" · ");
       add("info",g,"Nặng nhất: "+top+" · "+Math.round(early)+" ms nằm trong 5 giây đầu")}}
   if(B.laf&&B.laf.length){
-    var tl=B.laf.slice().sort(function(a,b){return b.d-a.d}).slice(0,5).map(function(x){return x.d+" ms lúc +"+(x.s/1000).toFixed(1)+"s: "+(x.u||"không có script")+(x.f?" "+x.f+"()":"")+(x.i?" ← "+x.i:"")+" · script "+x.c+" ms · bố cục/vẽ "+x.y+" ms"}).join(" | ");
+    var tl=B.laf.slice().sort(function(a,b){return b.d-a.d}).slice(0,5).map(function(x){return x.d+" ms lúc +"+(x.s/1000).toFixed(1)+"s ("+clk(x.s)+"): "+(x.u||"không có script")+(x.f?" "+x.f+"()":"")+(x.i?" ← "+x.i:"")+" · script "+x.c+" ms · bố cục/vẽ "+x.y+" ms"}).join(" | ");
     add("info",g,"Khung hình nặng nhất theo nguồn: "+tl)}
   else if(B.laf)add("info",g,"Chưa ghi nhận khung hình nặng nào (trên 50 ms), hoặc trình duyệt không hỗ trợ đo theo nguồn")
 }

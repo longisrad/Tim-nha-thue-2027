@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<script>(function(){var E=window.__dbg={e:[],lt:0,ltn:0,lts:[],t:Date.now()};function add(k,m,s,l){if(E.e.length<40)E.e.push({k:k,m:String(m).slice(0,300),s:s||"",l:l||0,t:Date.now()-E.t})}
+<script>(function(){var E=window.__dbg={e:[],lt:0,ltn:0,lts:[],t:Date.now()};function K(a,n,o){if(a.length<n){a.push(o);return}var m=0,i;for(i=1;i<a.length;i++)if(a[i].d<a[m].d)m=i;if(o.d>a[m].d)a[m]=o}
+function add(k,m,s,l){if(E.e.length<40)E.e.push({k:k,m:String(m).slice(0,300),s:s||"",l:l||0,t:Date.now()-E.t})}
 window.addEventListener("error",function(v){var t=v.target;if(t&&t!==window&&(t.tagName==="SCRIPT"||t.tagName==="LINK"))add("load",t.src||t.href||"");else add("js",v.message,v.filename,v.lineno)},true);
 window.addEventListener("unhandledrejection",function(v){var r=v.reason;add("promise",r&&r.message?r.message:r)});
-try{new PerformanceObserver(function(l){l.getEntries().forEach(function(x){E.lt+=x.duration;E.ltn++;if(E.lts.length<120)E.lts.push({s:Math.round(x.startTime),d:Math.round(x.duration)})})}).observe({type:"longtask",buffered:true})}catch(e){}
+try{new PerformanceObserver(function(l){l.getEntries().forEach(function(x){E.lt+=x.duration;E.ltn++;K(E.lts,120,{s:Math.round(x.startTime),d:Math.round(x.duration)})})}).observe({type:"longtask",buffered:true})}catch(e){}
+/* Danh sách chi tiết giữ các lần NẶNG NHẤT (không phải các lần đầu tiên), tối đa 120 tác vụ treo và 60 khung hình. */
 /* Khung hình nặng theo nguồn (Chrome 123+): file/hàm script nặng nhất, và thời gian bố cục/vẽ. Chỉ ghi số liệu, không ghi nội dung */
-E.laf=[];try{new PerformanceObserver(function(l){l.getEntries().forEach(function(x){if(E.laf.length>=60)return;var sc=(x.scripts||[]).slice().sort(function(a,b){return b.duration-a.duration})[0],end=x.startTime+x.duration;E.laf.push({s:Math.round(x.startTime),d:Math.round(x.duration),c:sc?Math.round(sc.duration):0,y:Math.round(x.styleAndLayoutStart?end-x.styleAndLayoutStart:0),u:sc?String(sc.sourceURL||"").split("/").pop().split("?")[0]:"",f:sc?String(sc.sourceFunctionName||"").slice(0,40):"",i:sc?String(sc.invoker||"").slice(0,60):""})})}).observe({type:"long-animation-frame",buffered:true})}catch(e){}})()</script>
+E.laf=[];try{new PerformanceObserver(function(l){l.getEntries().forEach(function(x){var sc=(x.scripts||[]).slice().sort(function(a,b){return b.duration-a.duration})[0],end=x.startTime+x.duration;K(E.laf,60,{s:Math.round(x.startTime),d:Math.round(x.duration),c:sc?Math.round(sc.duration):0,y:Math.round(x.styleAndLayoutStart?end-x.styleAndLayoutStart:0),u:sc?String(sc.sourceURL||"").split("/").pop().split("?")[0]:"",f:sc?String(sc.sourceFunctionName||"").slice(0,40):"",i:sc?String(sc.invoker||"").slice(0,60):""})})}).observe({type:"long-animation-frame",buffered:true})}catch(e){}})()</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="referrer" content="no-referrer">
