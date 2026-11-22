@@ -69,6 +69,50 @@ jobs:
           ls -l android/app/src/main/res/mipmap-xxxhdpi/
           test -f android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png || { echo "::error::Không sinh được icon Android, kiểm tra tên file trong assets/"; exit 1; }
 
+      - name: Bật service worker trong APK (để lưu ảnh bền)
+        # Capacitor Android mặc định không cho trang đăng ký service worker ("unknown error when fetching the script").
+        # Chuyển yêu cầu của service worker về máy chủ nội bộ của Capacitor, như yêu cầu của trang.
+        # Nếu sau khi cài APK bị trắng màn hình: xóa bước này là về như cũ.
+        run: |
+          python3 - <<'PY'
+          import glob, re, sys
+          files = glob.glob('android/app/src/main/java/**/MainActivity.java', recursive=True)
+          if not files:
+              print('::error::Không thấy MainActivity.java'); sys.exit(1)
+          p = files[0]
+          s = open(p, encoding='utf-8').read()
+          if 'ServiceWorkerClient' in s:
+              print('Đã có sẵn, bỏ qua'); sys.exit(0)
+          pkg = re.search(r'^package\s+([\w.]+);', s, re.M).group(1)
+          java = """package %s;
+
+          import android.os.Build;
+          import android.os.Bundle;
+          import android.webkit.ServiceWorkerClient;
+          import android.webkit.ServiceWorkerController;
+          import android.webkit.WebResourceRequest;
+          import android.webkit.WebResourceResponse;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+              @Override
+              public void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                      ServiceWorkerController.getInstance().setServiceWorkerClient(new ServiceWorkerClient() {
+                          @Override
+                          public WebResourceResponse shouldInterceptRequest(WebResourceRequest request) {
+                              return getBridge().getLocalServer().shouldInterceptRequest(request);
+                          }
+                      });
+                  }
+              }
+          }
+          """ % pkg
+          open(p, 'w', encoding='utf-8').write(java)
+          print(java)
+          PY
+
       - name: Đồng bộ
         run: npx cap sync android
 
