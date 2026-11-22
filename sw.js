@@ -3,7 +3,7 @@
    - PWA (mặc định): cache vỏ app + font/icon + ảnh Drive.
    - APK Capacitor (đăng ký với ?app=1): file app đã nằm sẵn trong APK nên KHÔNG cache vỏ app, chỉ cache ảnh Drive.
    Đổi VERSION khi đổi font/icon/manifest. Sửa index.html thì không cần đổi (tự cập nhật mỗi lần mở). */
-const VERSION = 'v23';
+const VERSION = 'v24';
 const SHELL = 'shell-' + VERSION;
 const RUNTIME = 'runtime-' + VERSION;
 const NEXT = 'next-' + VERSION;   // bản mới tải về, chờ lần mở trang kế tiếp mới áp dụng (tránh lệch index.html cũ + ck.js mới)
@@ -33,8 +33,8 @@ const SHELL_FILES = [
   './fonts/montserrat-800.woff'
 ];
 const RUNTIME_MAX = 30;          // file tĩnh lạ cùng nguồn
-const IMG_MAX_S = 1500;          // ảnh nhỏ (<= 360px, thumbnail/checklist): ~25 KB/ảnh
-const IMG_MAX_L = 240;           // ảnh lớn (> 360px, xem chi tiết/lightbox): ~150 KB/ảnh
+const IMG_MAX_S = 3000;          // ảnh nhỏ (<= 360px, thumbnail/checklist): ~25 KB/ảnh
+const IMG_MAX_L = 700;           // ảnh lớn (> 360px, xem chi tiết/lightbox): ~150 KB/ảnh
 const SMALL_W = 360;             // tách 2 hạn mức để ảnh nhỏ của hàng trăm căn không đẩy ảnh lớn ra khỏi cache (và ngược lại)
 const IMG_SIZES = [200, 300, 360, 640, 900, 1280];   // các cỡ app đang dùng
 const IMG_RE = /^\/d\/([^=\/?]+)=w(\d+)$/;           // lh3.googleusercontent.com/d/<id>=w<px>

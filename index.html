@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<script>(function(){var E=window.__dbg={e:[],lt:0,ltn:0,t:Date.now()};function add(k,m,s,l){if(E.e.length<40)E.e.push({k:k,m:String(m).slice(0,300),s:s||"",l:l||0,t:Date.now()-E.t})}
+<script>(function(){var E=window.__dbg={e:[],lt:0,ltn:0,lts:[],t:Date.now()};function add(k,m,s,l){if(E.e.length<40)E.e.push({k:k,m:String(m).slice(0,300),s:s||"",l:l||0,t:Date.now()-E.t})}
 window.addEventListener("error",function(v){var t=v.target;if(t&&t!==window&&(t.tagName==="SCRIPT"||t.tagName==="LINK"))add("load",t.src||t.href||"");else add("js",v.message,v.filename,v.lineno)},true);
 window.addEventListener("unhandledrejection",function(v){var r=v.reason;add("promise",r&&r.message?r.message:r)});
-try{new PerformanceObserver(function(l){l.getEntries().forEach(function(x){E.lt+=x.duration;E.ltn++})}).observe({type:"longtask",buffered:true})}catch(e){}})()</script>
+try{new PerformanceObserver(function(l){l.getEntries().forEach(function(x){E.lt+=x.duration;E.ltn++;if(E.lts.length<120)E.lts.push({s:Math.round(x.startTime),d:Math.round(x.duration)})})}).observe({type:"longtask",buffered:true})}catch(e){}})()</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="referrer" content="no-referrer">
@@ -1766,7 +1766,7 @@ render();if(!apiUrl()||(!ls(KK)&&!lc0))openSetup();else refresh();dirLoad();
     var l=n.querySelectorAll?n.querySelectorAll("img"):[];for(var i=0;i<l.length;i++)if(l[i].complete&&l[i].naturalWidth)ok(l[i],true)}
   try{new MutationObserver(function(m){for(var i=0;i<m.length;i++)for(var j=0;j<m[i].addedNodes.length;j++)sweep(m[i].addedNodes[j])}).observe(document.body,{childList:true,subtree:true});sweep(document.body)}catch(e){}
 })();
-if("serviceWorker" in navigator&&/^https?:$/i.test(location.protocol)){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js"+(CAP?"?app=1":""),{updateViaCache:"none"}).then(function(){return navigator.serviceWorker.ready}).then(function(r){if(r.active)r.active.postMessage({type:"status"})}).catch(function(){})});
+if("serviceWorker" in navigator&&/^https?:$/i.test(location.protocol)){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js"+(CAP?"?app=1":""),{updateViaCache:"none"}).then(function(){return navigator.serviceWorker.ready}).then(function(r){if(r.active)r.active.postMessage({type:"status"})}).catch(function(e){var D=window.__dbg;if(D&&D.e.length<40)D.e.push({k:"sw",m:"Đăng ký service worker lỗi: "+(e&&e.message||e),s:"",l:0,t:Date.now()-D.t})})});
   navigator.serviceWorker.addEventListener("message",function(e){if(e.data&&e.data.type==="update")$("upd").hidden=false});
   $("upd").onclick=function(){location.reload()}}
 /* Bàn phím mở: đưa ô đang nhập vào vùng nhìn thấy trong hộp thoại */

@@ -1,13 +1,13 @@
 /* dbg.js: tự kiểm tra sau khi các thành phần đã nạp xong + công cụ gỡ lỗi.
    - Chạy ngầm ~3 giây sau khi trang tải xong, không hiện gì khi mọi thứ ổn (chỉ có nút ⚠ nhỏ khi có lỗi nghiêm trọng).
    - Mở bảng báo cáo: chạm 7 lần liên tiếp vào tiêu đề trang, hoặc thêm ?debug=1 vào địa chỉ (PWA), hoặc gọi Dbg.show() trong console.
-   - Chỉ ĐỌC dữ liệu. Báo cáo không chứa link Web app, mã truy cập hay tên căn (chỉ số lượng).
+   - Chỉ ĐỌC dữ liệu (ngoại lệ duy nhất: khi app đã cài ra màn hình chính, mỗi phiên xin Chrome lưu trữ bền một lần, không hiện hộp thoại). Báo cáo không chứa link Web app, mã truy cập hay tên căn (chỉ số lượng).
    - Các nút sửa lỗi đều hỏi xác nhận, không động tới dữ liệu trên Sheet/Drive, và từ chối khi đang có thay đổi chưa lưu hoặc ảnh đang tải lên.
    Cần đoạn bắt lỗi sớm (window.__dbg) trong <head> của index.html; thiếu đoạn đó thì dbg.js vẫn chạy nhưng chỉ thấy lỗi xảy ra sau khi nó nạp. */
 (function(){
 "use strict";
 var G=function(i){return document.getElementById(i)};
-var B=window.__dbg||(window.__dbg={e:[],lt:0,ltn:0,t:Date.now()});
+var B=window.__dbg||(window.__dbg={e:[],lt:0,ltn:0,lts:[],t:Date.now()});
 var R=null,running=false,taps=0,tapT=0;
 var FILES=["ck.js","img.js","dup.js","dbg.js"];
 var NK_KEYS=["tab","$","CK","LP","PARTS","TIPS","VW","canW","ckA","ckC","ckCopy","ckCur","ckDirty","ckFresh","ckId","ckLiteOf","ckLoad","ckQ","ckSaveOff","ckSnap","ckStat","ckT","ckTrashQ","ckUpQ","ckcSave","closeCk","esc","fail","findItem","imgSrc","items","jumpTop","openLb","persist","rtgH","runPool","shrink","trashIds","uname","upBusy","upMon","upSafe"];
@@ -18,7 +18,7 @@ var NT_KEYS=["apiGet","apiPost","items","esc","su","imgSrc","addrOf","stName","f
 var MOD={Ck:["init","renderCk","ckFlush","ckPersist"],Img:["init","openLb","iwGal","iwNow","iwIntent","iwCkNow"],Dup:["pull","init","open","close","sync","closeZoom"]};
 var IDS=["list","ckb","lb","lbi","lbc","lbn","lbp","upd","pgCk"];
 var NET=/failed to fetch|load failed|networkerror|network request|internet connection|mất kết nối|aborted/i;
-var LIM={s:1500,l:240,w:360};   // mặc định; sw.js mới trả đúng số đang dùng
+var LIM={s:3000,l:700,w:360};   // mặc định; sw.js mới trả đúng số đang dùng
 
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function kb(n){return n>=1048576?(n/1048576).toFixed(1)+" MB":Math.round(n/1024)+" KB"}
@@ -32,6 +32,14 @@ function wait(){
       if(ready()){res({ok:true,ms:Date.now()-t0});return}
       if(Date.now()-t0>10000){res({ok:false,ms:Date.now()-t0});return}
       setTimeout(poll,250)})()})}
+
+/* ---------- Môi trường chạy ---------- */
+function isApk(){return !!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())}
+function isStandalone(){try{return !!(window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone===true}catch(e){return false}}
+function whyNoPersist(){
+  if(isApk())return "APK: dữ liệu nằm trong bộ nhớ riêng của app (WebView), không bị tự xóa khi thiếu chỗ, chỉ mất khi bạn xóa dữ liệu app hoặc gỡ cài đặt. Cờ \"lưu trữ bền\" của WebView luôn tắt và không cần bật.";
+  if(!isStandalone())return "Đang mở trong tab trình duyệt: Chrome không cấp quyền lưu trữ bền cho tab. Hãy chọn \"Cài đặt ứng dụng\" (menu ⋮) để đưa app ra màn hình chính, rồi mở từ biểu tượng đó.";
+  return "Chrome chưa cấp (thường tự cấp cho app đã cài sau vài ngày dùng thường xuyên). Có thể thử lại sau.";}
 
 /* ---------- Các nhóm kiểm tra ---------- */
 function chkComponents(add,w){
@@ -64,8 +72,9 @@ function chkRes(add){
     var r=rs.filter(function(x){return x.name.split("?")[0].slice(-f.length-1)==="/"+f})[0];
     if(!r){add("info","Tệp",f+": không có trong số liệu tải (có thể bị trình duyệt giới hạn)");return}
     if(r.responseStatus&&r.responseStatus>=400){add("bad","Tệp",f+": lỗi HTTP "+r.responseStatus);return}
-    var from=(r.transferSize===0&&r.decodedBodySize>0)?"bộ nhớ đệm":"mạng";
-    add(r.duration>2500?"warn":"ok","Tệp",f+": "+Math.round(r.duration)+" ms · "+from+" · "+kb(r.decodedBodySize||0))})}
+    var local=r.transferSize===0&&!r.decodedBodySize;   // APK: tệp lấy thẳng từ gói app, trình duyệt không đo được dung lượng
+    var from=local?"gói app":(r.transferSize===0?"bộ nhớ đệm":"mạng");
+    add(r.duration>2500?"warn":"ok","Tệp",f+": "+Math.round(r.duration)+" ms · "+from+(r.decodedBodySize?" · "+kb(r.decodedBodySize):""))})}
 function ping(sw){
   return new Promise(function(res){
     if(!sw){res(null);return}
@@ -112,8 +121,9 @@ function chkStorage(add){
     var pc=e.quota?Math.round(e.usage*100/e.quota):0;
     add(pc>=80?"warn":"ok",g,"Đã dùng "+kb(e.usage||0)+" / "+kb(e.quota||0)+" ("+pc+"%)")},function(){}));
   if(navigator.storage&&navigator.storage.persisted)p.push(navigator.storage.persisted().then(function(v){
-    add(v?"ok":"info",g,v?"Lưu trữ bền: đã bật (trình duyệt không tự xóa khi thiếu chỗ)":"Lưu trữ bền: chưa bật (trình duyệt có thể xóa cache khi thiếu chỗ)");
-    if(!v)R&&(R.canPersist=true)},function(){}));
+    if(v)add("ok",g,"Lưu trữ bền: đã bật (trình duyệt không tự xóa khi thiếu chỗ)");
+    else if(isApk())add("ok",g,whyNoPersist());
+    else{add("info",g,"Lưu trữ bền: chưa bật. "+whyNoPersist());if(R)R.canPersist=true}},function(){}));
   try{
     var n=0,i,k;
     for(i=0;i<localStorage.length;i++){k=localStorage.key(i);n+=(k.length+(localStorage.getItem(k)||"").length)*2}
@@ -152,7 +162,15 @@ function chkPerf(add){
       var d=Math.round(n.domContentLoadedEventEnd),l=Math.round(n.loadEventEnd);
       add(d>4000?"warn":"ok",g,"DOM sẵn sàng sau "+d+" ms · tải xong sau "+(l||"?")+" ms")}
   }catch(e){}
-  if(B.ltn)add(B.lt>1500?"warn":"info",g,B.ltn+" tác vụ treo giao diện >50 ms, tổng "+Math.round(B.lt)+" ms");
+  var up=Math.round(performance.now()/1000);
+  add("info",g,"Trang đã mở "+(up>=120?Math.round(up/60)+" phút":up+" giây")+" (số tác vụ treo bên dưới tính từ lúc mở)");
+  if(B.ltn){
+    var ls=B.lts||[],worst=0,early=0;
+    ls.forEach(function(x){if(x.d>worst)worst=x.d;if(x.s<5000)early+=x.d});
+    add(worst>1000||B.lt>up*150?"warn":"info",g,B.ltn+" tác vụ treo giao diện >50 ms, tổng "+Math.round(B.lt)+" ms"+(worst?", dài nhất "+worst+" ms":""));
+    if(ls.length){
+      var top=ls.slice().sort(function(a,b){return b.d-a.d}).slice(0,3).map(function(x){return x.d+" ms lúc +"+(x.s/1000).toFixed(1)+"s"}).join(" · ");
+      add("info",g,"Nặng nhất: "+top+" · "+Math.round(early)+" ms nằm trong 5 giây đầu")}}
   var c=navigator.connection||{};
   add("info",g,"Mạng: "+(navigator.onLine===false?"offline":(c.effectiveType||"online"))+(c.saveData?" · tiết kiệm dữ liệu":"")+(navigator.deviceMemory?" · RAM ~"+navigator.deviceMemory+" GB":""))}
 function chkErrors(add){
@@ -161,7 +179,7 @@ function chkErrors(add){
   B.e.slice(-8).forEach(function(x){
     var own=/\/(ck|img|dup|dbg|sw)\.js|index\.html/.test(x.s||"")||x.k==="load";
     var net=NET.test(x.m);
-    var lv=net?"info":(x.k==="load"||own)?"bad":"warn";
+    var lv=net?"info":(x.k==="load"||own)?"bad":"warn";   // lỗi đăng ký service worker (k=sw) chỉ là cảnh báo
     var where=x.s?" ("+x.s.split("/").pop()+(x.l?":"+x.l:"")+")":"";
     add(lv,g,"["+x.k+" +"+(x.t/1000).toFixed(1)+"s] "+x.m+where)})}
 
@@ -245,7 +263,10 @@ function onClick(e){
   var a=b.dataset.act,gd;
   if(a==="run"){rerun();return}
   if(a==="copy"){if(R)copy(report()).then(function(){say("Đã sao chép báo cáo.")},function(){say("Không sao chép được, hãy thử lại.")});return}
-  if(a==="persist"){navigator.storage.persist().then(function(v){say(v?"Đã bật lưu trữ bền.":"Trình duyệt chưa cho phép lưu trữ bền (thường cần cài app ra màn hình chính).");rerun()});return}
+  if(a==="persist"){
+    navigator.storage.persist().then(function(v){
+      var m=v?"Đã bật lưu trữ bền.":"Chưa được cấp. "+whyNoPersist();
+      rerun().then(function(){say(m)})},function(){say("Không gửi được yêu cầu lưu trữ bền.")});return}
   gd=guard();if(gd){say(gd);return}
   if(a==="reset"){
     if(!confirm("Xóa vỏ app đã lưu (không xóa ảnh, dữ liệu Sheet hay cài đặt) và tải lại bản mới nhất?"))return;
@@ -274,7 +295,14 @@ function tapTitle(e){
   var n=Date.now();taps=(n-tapT<1200)?taps+1:1;tapT=n;
   if(taps>=7){taps=0;show()}}
 document.addEventListener("click",tapTitle,true);
+function autoPersist(){
+  try{
+    if(isApk()||!isStandalone()||!navigator.storage||!navigator.storage.persist||sessionStorage.getItem("dbg-persist"))return;
+    sessionStorage.setItem("dbg-persist","1");
+    navigator.storage.persisted().then(function(v){if(!v)return navigator.storage.persist()}).catch(function(){})
+  }catch(e){}}
 function start(){
+  autoPersist();
   var go=function(){run().then(function(){if(/[?&]debug=1/.test(location.search))show()})};
   setTimeout(function(){if(window.requestIdleCallback)requestIdleCallback(go,{timeout:4000});else go()},3000)}
 if(document.readyState==="complete")start();else window.addEventListener("load",start);
