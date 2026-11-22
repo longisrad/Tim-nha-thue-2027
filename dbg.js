@@ -21,7 +21,7 @@ var NI_FN=["imgSrc","findItem","segArr","curSeg","ckWarm","tab","items"];
 var NB_KEYS=["$","IDBM","apiGet","apiPost","apiUrl","capP","hs","netMsg","nrm","refresh","items","canW","pendAdd","bumpVer"];
 var NB_FN=["$","apiGet","apiPost","apiUrl","capP","hs","netMsg","nrm","refresh","pendAdd","bumpVer"];
 var NT_KEYS=["apiGet","apiPost","items","esc","su","imgSrc","addrOf","stName","fmt","ls","openDv","openEdit","canW","idbGet","idbSave","del"];
-var MOD={Ck:["init","renderCk","ckFlush","ckPersist"],Img:["init","openLb","iwGal","iwNow","iwIntent","iwCkNow"],Dup:["pull","init","open","close","sync","closeZoom"],Bk:["init","dirAuto","dirLoad"]};
+var MOD={Ck:["init","renderCk","ckFlush","ckPersist"],Img:["init","openLb","iwGal","iwNow","iwIntent","iwCkNow"],Dup:["pull","init","open","close","sync","closeZoom"],Bk:["init"]};
 var IDS=["list","ckb","lb","lbi","lbc","lbn","lbp","upd","pgCk","bk","bd","bsel","bim","bm"];
 var NET=/failed to fetch|load failed|networkerror|network request|internet connection|mất kết nối|aborted/i;
 var LIM={s:3000,l:700,w:360};   // mặc định; sw.js mới trả đúng số đang dùng
@@ -289,6 +289,11 @@ function chkNative(add){
   add(miss.length?"bad":"ok",g,miss.length?"Thiếu plugin app đang dùng: "+miss.join(", ")+" (chạy lại npm run sync và build lại APK)":"Đủ 5 plugin app đang dùng: "+need.join(", "));
   var extra=names.filter(function(n){return need.indexOf(n)<0});
   add("info",g,"Tất cả plugin đã đăng ký ("+names.length+"): "+names.sort().join(", ")+(extra.length?"":" · không có plugin dịch vụ nền hay plugin riêng nào khác"))}
+function chkMode(add){
+  var g="Thiết bị & mạng";
+  if(isApk()){add("ok",g,"Chế độ chạy: APK (Capacitor)");return}
+  if(isStandalone()){add("ok",g,"Chế độ chạy: PWA đã cài, mở từ màn hình chính");return}
+  add("warn",g,"Chế độ chạy: tab trình duyệt (chưa cài app). Chrome có thể dọn dữ liệu và không cấp lưu trữ bền cho tab; hãy chọn \"Cài đặt ứng dụng\" (menu ⋮) rồi mở từ biểu tượng trên màn hình chính")}
 function chkLink(add){
   var g="Thiết bị & mạng";
   if(!NL.off&&!NL.on){add("ok",g,"Từ lúc mở trang chưa có lần mất/có mạng nào");return}
@@ -487,7 +492,7 @@ function run(){
   return wait().then(function(w){
     chkComponents(add,w);chkBridges(add);chkRes(add);
     return chkSw(add).then(function(){return chkAssets(add)}).then(function(){return chkCaches(add)}).then(function(){return chkStorage(add)}).then(function(){return chkIdb(add)}).then(function(){
-      chkNative(add);chkData(add);chkPerf(add);chkLink(add);chkEnv(add);chkErrors(add)})
+      chkNative(add);chkData(add);chkPerf(add);chkMode(add);chkLink(add);chkEnv(add);chkErrors(add)})
   }).then(fin,function(e){add("bad","Kiểm tra","Chính bộ kiểm tra bị lỗi: "+(e&&e.message||e));return fin()})}
 function allL(){return (S?S.L:[]).concat(R?R.L:[])}
 function cnt(s){return allL().filter(function(x){return x.s===s}).length}

@@ -1,7 +1,7 @@
 /* bk.js: sao lưu / khôi phục dữ liệu (tách khỏi index.html).
-   Sao lưu: lên Drive (server, giữ 30 bản), tải file về máy, hoặc ghi ra thư mục trên máy (Chrome/Edge máy tính).
+   Sao lưu: lên Drive (server, giữ 30 bản) hoặc tải file về máy (APK: chia sẻ qua Share).
    Khôi phục: chọn bản → xem trước số căn thêm/khác → tự sao lưu bản hiện tại → ghi từng đợt nhỏ, không xóa gì.
-   index.html chỉ giữ hộp thoại #bd (HTML), nút #bk, hàm mỏng dirAuto() và cầu nối window.NB.
+   index.html chỉ giữ hộp thoại #bd (HTML), nút #bk và cầu nối window.NB.
    Nạp theo thứ tự nào cũng được: index.html gọi Bk.init(NB) nếu bk.js nạp trước, bk.js tự gọi nếu NB có trước. */
 (function(){
 var inst=null;
@@ -52,7 +52,7 @@ function init(nb){
   $("bk").onclick=function(){
     bkItems=null;bkMeta="";$("bsel").value="";$("bt").value="";$("bplan").textContent="";$("bim").disabled=true;bmsg("");
     if(!$("bd").open)$("bd").showModal();
-    dirInit();refresh(true);bLoad()};
+    refresh(true);bLoad()};
   $("bcl").onclick=function(){$("bd").close()};
   $("bnow").onclick=function(){
     if(bkBusy)return;bkBusy=true;bmsg("Đang sao lưu lên Drive…");
@@ -79,34 +79,6 @@ function init(nb){
       setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},60000);
       bmsg("Đã tải "+name+" ("+arr.length+" căn).")
     }).catch(function(e){bmsg("Chưa tải được: "+netMsg(e),1)})};
-  /* Thư mục trên máy (File System Access API, Chrome/Edge máy tính): ghi bản sao dữ liệu ra file thật */
-  var dirH=null,dirT=0,dirBusy=false;
-  function dirMsg(t,bad){var e=$("bdirm");e.textContent=t||"";e.className="pm"+(bad?" bad":"")}
-  function dirUi(){var on=!!dirH;$("bdirnow").disabled=!on||dirBusy;$("bdiroff").disabled=!on;if(on&&!$("bdirm").textContent)dirMsg("Đang dùng thư mục: "+dirH.name)}
-  function dirLoad(){if(!window.showDirectoryPicker||dirH)return Promise.resolve();return IDBM.get("dir").then(function(h){if(h&&h.kind==="directory")dirH=h},function(){})}
-  function dirInit(){if(!window.showDirectoryPicker)return;$("bdirbox").hidden=false;dirLoad().then(dirUi)}
-  function dirPerm(ask){
-    if(!dirH)return Promise.resolve(false);var o={mode:"readwrite"};
-    return dirH.queryPermission(o).then(function(p){if(p==="granted")return true;if(!ask)return false;return dirH.requestPermission(o).then(function(q){return q==="granted"})}).catch(function(){return false})}
-  function dirFile(name,txt){return dirH.getFileHandle(name,{create:true}).then(function(f){return f.createWritable()}).then(function(w){return w.write(txt).then(function(){return w.close()})})}
-  async function dirPrune(){try{var ds=[];for await(var e of dirH.values()){if(e.kind==="file"&&/^nha-thue_\d{4}-\d\d-\d\d\.json$/.test(e.name))ds.push(e.name)}ds.sort().reverse();for(var i=14;i<ds.length;i++)await dirH.removeEntry(ds[i])}catch(e){}}
-  function dirSave(ask){
-    if(dirBusy||!dirH)return Promise.resolve(false);
-    dirBusy=true;dirUi();
-    return dirPerm(ask).then(function(ok){
-      if(!ok)throw new Error("chưa được phép ghi vào thư mục (bấm “Ghi ngay” rồi chọn Cho phép)");
-      return apiGet("&action=export",45000)}).then(function(d){
-      if(!d.ok)throw new Error(d.error||"Lỗi máy chủ");
-      var arr=d.items||[];if(!arr.length)throw new Error("chưa có dữ liệu");
-      var at=new Date(),pd=function(n){return(n<10?"0":"")+n},day=at.getFullYear()+"-"+pd(at.getMonth()+1)+"-"+pd(at.getDate());
-      var txt=JSON.stringify({app:"nha-thue",v:2,at:at.toISOString(),count:arr.length,items:arr});
-      return dirFile("nha-thue_moi-nhat.json",txt).then(function(){return dirFile("nha-thue_"+day+".json",txt)}).then(dirPrune).then(function(){return arr.length})
-    }).then(function(n){dirBusy=false;dirUi();dirMsg("Đã ghi "+n+" căn vào thư mục “"+dirH.name+"” lúc "+bfmt(new Date().toISOString()));return true},function(e){dirBusy=false;dirUi();dirMsg("Chưa ghi được: "+(e&&e.message?e.message:e),1);return false})}
-  function dirAuto(){if(dirH&&!dirBusy&&Date.now()-dirT>600000){dirT=Date.now();dirSave(false)}}
-  $("bdir").onclick=function(){
-    window.showDirectoryPicker({mode:"readwrite"}).then(function(h){dirH=h;return IDBM.set("dir",h)}).then(function(){dirMsg("");dirUi();return dirSave(true)}).catch(function(e){if(!e||e.name!=="AbortError")dirMsg("Không chọn được thư mục: "+(e&&e.message||e),1)})};
-  $("bdirnow").onclick=function(){dirSave(true)};
-  $("bdiroff").onclick=function(){dirH=null;IDBM.set("dir","").catch(function(){});dirMsg("Đã tắt ghi vào thư mục.");dirUi()};
   $("bsel").onchange=function(){
     var id=this.value;bkItems=null;bPlan();if(!id)return;
     bmsg("Đang đọc bản sao lưu…");
@@ -151,15 +123,10 @@ function init(nb){
       bkBusy=false;N.pendAdd(-1);N.bumpVer();
       return refresh(true)
     }).then(function(){bPlan();bLoad()})};
-  api.dirAuto=dirAuto;api.dirLoad=dirLoad;
   inst=api;
   try{$("bk").dataset.ready="1"}catch(e){}
-  dirLoad().catch(function(){});
+  try{IDBM.set("dir","").catch(function(){})}catch(e){}   // xóa tham chiếu thư mục cũ của tính năng ghi ra thư mục đã bỏ
 }
-window.Bk={
-  init:init,
-  dirAuto:function(){if(inst)inst.dirAuto()},
-  dirLoad:function(){return inst?inst.dirLoad():Promise.resolve()}
-};
+window.Bk={init:init};
 if(window.NB)init(window.NB);
 })();

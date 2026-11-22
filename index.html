@@ -574,12 +574,6 @@ details.sec summary::-webkit-details-marker{display:none}
   <h3 class="bh">Sao lưu</h3>
   <p class="pm">Lưu thẳng lên Drive của bạn (thư mục “Sao lưu nhà thuê”, giữ 30 bản gần nhất), hoặc tải file về máy. Bản sao lưu chứa dữ liệu các căn và mã ảnh, không chứa ảnh.</p>
   <div class="foot2"><button class="btn p" type="button" id="bnow">Sao lưu lên Drive</button><button class="btn" type="button" id="bdl">Tải file về máy</button></div>
-  <div id="bdirbox" hidden>
-    <h3 class="bh">Lưu thêm vào thư mục trên máy</h3>
-    <p class="pm">Chỉ Chrome / Edge trên máy tính. Chọn một thư mục, app ghi file “nha-thue_moi-nhat.json” và mỗi ngày một bản (giữ 14 ngày), không phụ thuộc bộ nhớ trình duyệt. Mỗi lần mở lại trình duyệt có thể phải bấm “Ghi ngay” và chọn Cho phép.</p>
-    <div class="foot2"><button class="btn" type="button" id="bdir">Chọn thư mục…</button><button class="btn" type="button" id="bdirnow" disabled>Ghi ngay</button><button class="btn" type="button" id="bdiroff" disabled>Tắt</button></div>
-    <p class="pm" id="bdirm"></p>
-  </div>
   <div id="brs">
     <h3 class="bh">Khôi phục</h3>
     <select id="bsel" aria-label="Chọn bản sao lưu"></select>
@@ -752,7 +746,7 @@ function refresh(silent){
     if(!r0)enterAnim();
     items=nrm(d.items||[]);dataVer=d.ver;applyRole();render();
     if(tab==="ck"&&!ckDirty&&ckId)ckLoad(ckId);
-    lcSave();setTimeout(ckWarm,600);dirAuto();
+    lcSave();setTimeout(ckWarm,600);
   }).catch(function(){banner("Không kết nối được tới Google Sheets. Kiểm tra mạng hoặc link Web app.")});
 }
 /* Server trả về phiên bản mới + bản nhẹ của căn vừa lưu: nếu không ai khác ghi xen giữa (prev khớp) thì nhận luôn, khỏi tải lại cả danh sách */
@@ -1160,8 +1154,7 @@ function listClick(e){
 }
 $("list").onclick=listClick;
 $("rsel").onchange=render;
-/* Sao lưu / khôi phục: xem bk.js (index.html chỉ giữ hộp thoại #bd, hàm mỏng dirAuto và cầu nối NB) */
-function dirAuto(){if(window.Bk)Bk.dirAuto()}
+/* Sao lưu / khôi phục: xem bk.js (index.html chỉ giữ hộp thoại #bd và cầu nối NB) */
 $("bk").onclick=function(){alert("Chưa nạp được bk.js (chức năng sao lưu). Hãy tải lại trang; nếu vẫn lỗi, mở bảng kiểm tra bằng cách chạm 7 lần vào tiêu đề.")};
 $("im").onchange=function(){
   var fn=$("n").value.trim(),hid=editId||newId;
@@ -1589,7 +1582,7 @@ $("sf").addEventListener("submit",function(e){
     setSm("");$("sd").close();
     enterAnim();applyRole();render();
     if(tab==="ck"&&!ckDirty&&ckId)ckLoad(ckId);
-    lcSave();setTimeout(ckWarm,600);dirAuto();
+    lcSave();setTimeout(ckWarm,600);
   }).catch(function(){
     if(tok!==sfTok)return;
     $("ssv").disabled=false;
