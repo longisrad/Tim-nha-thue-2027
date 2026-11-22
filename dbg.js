@@ -6,6 +6,7 @@
    - Chỉ ĐỌC dữ liệu (ngoại lệ: mỗi phiên xin trình duyệt lưu trữ bền một lần, không hiện hộp thoại, không áp dụng cho APK; và nút "Thử gửi (POST)" do bạn tự bấm, có hỏi xác nhận).
    - Kiểm tra máy chủ chỉ chạy khi bạn bấm (không chạy ngầm): cấu hình, đường truyền tới Google và trang app (tự thử lại 1 lần để tránh báo lỗi oan), tải danh sách, làm mới nhanh 3 lần (đo độ dao động), tải checklist, tải thử 1 ảnh Drive. Toàn bộ chỉ đọc. Báo cáo không chứa link Web app, mã truy cập hay tên căn (chỉ số lượng).
    - Theo dõi thụ động số lần mất/có mạng từ lúc mở trang; kiểm tra đọc được kho IndexedDB của app.
+   - Đồng bộ dữ liệu quét trùng giữa các bản cài (PWA/APK): nhóm "Đồng bộ" đọc kết quả quét (dpm1), hash ảnh (dhc5), danh sách "Không phải trùng" (dign1) và phát hiện mục cũ/lệch cài đặt; in 5 mã đối chiếu ngắn để so PWA với APK; khi bấm kiểm tra máy chủ thì đối chiếu thêm danh sách căn/ảnh và cặp "Không phải trùng" với Sheet. Chỉ đọc.
    - Các nút sửa lỗi đều hỏi xác nhận, không động tới dữ liệu trên Sheet/Drive, và từ chối khi đang có thay đổi chưa lưu hoặc ảnh đang tải lên.
    Cần đoạn bắt lỗi sớm (window.__dbg) trong <head> của index.html; thiếu đoạn đó thì dbg.js vẫn chạy nhưng chỉ thấy lỗi xảy ra sau khi nó nạp. */
 (function(){
@@ -321,6 +322,81 @@ function chkIdb(add){
         }catch(e){try{db.close()}catch(x){}fin(function(){add("warn",g,"IndexedDB: lỗi khi đọc ("+(e&&e.message||e)+")")})}}})
   },function(){})}
 
+/* ---------- Đồng bộ dữ liệu quét trùng giữa các bản cài (PWA/APK). Chỉ ĐỌC ----------
+   Kết quả quét ảnh (dpm1) và hash ảnh (dhc5) chỉ nằm trong IndexedDB của TỪNG bản cài, không đi qua máy chủ.
+   Chỉ danh sách "Không phải trùng" (dign1) được đồng bộ lên Sheet. Nên PWA và APK chỉ ra cùng kết quả khi cùng danh sách căn,
+   cùng cài đặt, cùng hash ảnh. Các mã đối chiếu dưới đây giúp thấy ngay phần nào đang lệch giữa hai bên. */
+function fnv(s){var h=2166136261,i;s=String(s);for(i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return("0000000"+(h>>>0).toString(16)).slice(-8)}
+function imgsOf(it){return(it.im||[]).filter(function(s){return s&&String(s).indexOf("data:")!==0})}
+function fpItems(L){return fnv(L.map(function(it){return it.id+":"+(it.st||"new")+":"+imgsOf(it).slice().sort().join(",")}).sort().join("\n"))}
+function fpKeys(ks){return fnv(ks.slice().sort().join("\n"))}
+function rdKey(k){
+  var T=window.NT,v="";
+  try{v=(T&&T.ls&&T.ls(k))||""}catch(e){}
+  return Promise.resolve(T&&T.idbGet?T.idbGet(k):"").then(function(x){return{ls:v,idb:typeof x==="string"?x:""}},function(){return{ls:v,idb:""}})}
+function pjson(raw){if(!raw)return{o:null};try{var o=JSON.parse(raw);return o&&typeof o==="object"?{o:o}:{o:null,bad:true}}catch(e){return{o:null,bad:true}}}
+function ignRead(){   // giống loadIgnored trong dup.js: ưu tiên localStorage, thiếu thì lấy IndexedDB
+  return Promise.all([rdKey("dign1"),rdKey("dign1q")]).then(function(r){
+    var a=pjson(r[0].ls||r[0].idb),q=pjson(r[1].ls||r[1].idb);
+    return{ign:a.o||{},q:q.o||{},bad:!!(a.bad||q.bad),
+      lsN:r[0].ls?Object.keys(pjson(r[0].ls).o||{}).length:-1,idbN:r[0].idb?Object.keys(pjson(r[0].idb).o||{}).length:-1}})}
+function chkSync(add){
+  var g="Đồng bộ · Dữ liệu quét trùng",g2="Đồng bộ · Mã đối chiếu",T=window.NT,items=[];
+  try{items=(T&&T.items&&T.items())||[]}catch(e){}
+  if(!T||!T.idbGet||!items.length)return Promise.resolve();
+  return Promise.all([rdKey("dpm1"),rdKey("dhc5"),ignRead(),rdKey("dhs1")]).then(function(r){
+    var th=14,skip=true;
+    try{var t=+T.ls("dth");if(t===6||t===10||t===14||t===18)th=t}catch(e){}
+    try{skip=T.ls("dnoout")!=="0"}catch(e){}
+    var pmP=pjson(r[0].idb||r[0].ls),hcP=pjson(r[1].idb||r[1].ls),ig=r[2],pm=pmP.o,hc=hcP.o||{};
+    if(pmP.bad)add("bad",g,"Kết quả quét ảnh (dpm1) bị hỏng, không đọc được. Dùng \"Xóa kết quả quét (giữ hash ảnh)\" rồi quét lại");
+    if(hcP.bad)add("bad",g,"Hash ảnh (dhc5) bị hỏng, không đọc được. Dùng \"Đặt lại dữ liệu quét trùng\"");
+    if(ig.bad)add("bad",g,"Danh sách \"Không phải trùng\" (dign1) bị hỏng, không đọc được");
+    var byId={},allImg={},actImg=[],active;
+    items.forEach(function(it){byId[it.id]=it;imgsOf(it).forEach(function(s){allImg[s]=1})});
+    active=skip?items.filter(function(it){return(it.st||"new")!=="out"}):items;
+    active.forEach(function(it){imgsOf(it).forEach(function(s){actImg.push(s)})});
+    var nImg=Object.keys(allImg).length,noHash=actImg.filter(function(s){return !hc[s]}).length;
+    var pairs=[],stale=0,done={},doneN=0,orphan=0,pend=0,fail=0;
+    if(pm&&pm.done&&pm.pairs){
+      done=pm.done;doneN=Object.keys(done).length;
+      pm.pairs.forEach(function(p){
+        var a=byId[p.a],b=byId[p.b];
+        if(!a||!b||imgsOf(a).indexOf(p.x)<0||imgsOf(b).indexOf(p.y)<0){stale++;return}
+        pairs.push([p.a+"\u0001"+p.x,p.b+"\u0001"+p.y].sort().join("|"))});
+      Object.keys(done).forEach(function(s){if(!allImg[s])orphan++});
+      var seen=pm.seen||{};
+      active.forEach(function(it){
+        var ims=(it.im||[]).filter(Boolean);
+        if(!ims.length)return;
+        if(ims.some(function(s){return !done[s]})||seen[it.id]!==ims.join("|"))pend++});
+      var pf=pm.fail||{};Object.keys(pf).forEach(function(s){var f=pf[s];if(f&&typeof f==="object"&&f.n>=2)fail++});
+      add(pm.th!==th?"warn":"ok",g,"Kết quả quét theo độ nhạy "+pm.th+"/64 bit"+(pm.th!==th?", nhưng cài đặt hiện tại là "+th+": lần mở Kiểm tra trùng tới máy này sẽ quét lại toàn bộ và kết quả có thể khác máy kia":" (khớp cài đặt hiện tại)")+" · "+pairs.length+" cặp ảnh giống nhau · "+doneN+" ảnh đã so");
+      add(pend?"info":"ok",g,pend?pend+"/"+active.length+" căn chưa so ảnh (căn mới, ảnh đổi hoặc chưa quét xong), nên danh sách cặp trùng chưa đầy đủ":"Mọi căn có ảnh đều đã được so");
+      if(stale)add("warn",g,stale+" cặp ảnh trỏ tới căn đã xóa hoặc ảnh đã đổi (kết quả quét cũ chưa dọn). Mở Kiểm tra trùng một lần để app tự dọn, hoặc dùng \"Xóa kết quả quét (giữ hash ảnh)\"");
+      if(orphan)add("info",g,orphan+" ảnh đã so nhưng không còn thuộc căn nào (dữ liệu thừa, không ảnh hưởng kết quả)");
+      if(fail)add("warn",g,fail+" ảnh không tính được hash sau nhiều lần thử (bị bỏ qua 5 phút rồi thử lại). Ảnh Drive lỗi hoặc mạng chặn, có thể làm kết quả thiếu so với máy kia")
+    }else if(!pmP.bad)add("info",g,"Máy này chưa quét ảnh trùng (chưa có kết quả so khớp). Mở Kiểm tra trùng → Quét ảnh trùng");
+    if(noHash)add("info",g,noHash+"/"+actImg.length+" ảnh chưa có hash trên máy này (sẽ tính khi quét)");
+    var hsO=pjson(r[3].idb||r[3].ls).o||{},hsK={};
+    if(hsO.v==="dhc5")String(hsO.k||"").split(",").forEach(function(x){if(x)hsK[x]=1});
+    var unsent=Object.keys(hc).filter(function(s){return !hsK[s]&&s.indexOf("data:")!==0}).length,canW=true;
+    try{canW=!!(T.canW&&T.canW())}catch(e){}
+    if(unsent)add(canW?"warn":"info",g,unsent+" hash ảnh chưa gửi lên máy chủ"+(canW?": máy khác chưa dùng được, nên kết quả quét có thể khác. Mở Kiểm tra trùng và để app tự gửi (cần mạng)":" (máy này chỉ xem nên không gửi được)"));
+    else if(Object.keys(hc).length)add("ok",g,"Mọi hash ảnh trên máy đã có trên máy chủ (đã kéo tới dòng "+(+hsO.n||0)+")");
+    var nq=Object.keys(ig.q).length;
+    if(nq)add("warn",g,nq+" thay đổi \"Không phải trùng\" chưa gửi lên máy chủ: máy khác chưa thấy. Cần có mạng và quyền sửa; mở Kiểm tra trùng rồi đóng lại để gửi");
+    if(ig.lsN>=0&&ig.idbN>=0&&ig.lsN!==ig.idbN)add("info",g,"\"Không phải trùng\": localStorage có "+ig.lsN+" cặp, IndexedDB có "+ig.idbN+" cặp (có thể vừa thay đổi, đang ghi dở)");
+    var igk=Object.keys(ig.ign).filter(function(k){var a=k.split("|");return byId[a[0]]&&byId[a[1]]});
+    var hcFp=fnv(actImg.slice().sort().map(function(s){return s+"="+(hc[s]||"")}).join("\n"));
+    add("info",g2,"So các mã này giữa PWA và APK: mã nào khác là phần đang lệch. Kết quả quét chỉ lưu riêng từng máy, không đồng bộ qua máy chủ");
+    add("info",g2,"Danh sách căn & ảnh: "+fpItems(items)+" · "+items.length+" căn · "+nImg+" ảnh");
+    add("info",g2,"Cài đặt quét: "+fnv(th+"|"+skip)+" · độ nhạy "+th+" · "+(skip?"bỏ qua căn Loại":"gồm cả căn Loại"));
+    add("info",g2,"Hash ảnh: "+hcFp+" · "+(actImg.length-noHash)+"/"+actImg.length+" ảnh đã có hash"+(unsent?" · chờ gửi "+unsent:""));
+    add("info",g2,"Kết quả quét: "+(pm&&pm.pairs?fpKeys(pairs)+" · "+pairs.length+" cặp ảnh · "+doneN+" ảnh đã so":"chưa quét"));
+    add("info",g2,"Không phải trùng: "+fpKeys(igk)+" · "+igk.length+" cặp"+(nq?" (đang chờ gửi "+nq+")":""))
+  },function(){})}
+
 /* ---------- Kiểm tra kết nối máy chủ (Google Apps Script). Chỉ chạy khi bấm nút, toàn bộ là yêu cầu ĐỌC ---------- */
 var S=null,srvBusy=false,stopped=false,ACT=[],PROG=null;
 function sfg(){
@@ -390,6 +466,55 @@ function chkImg(add,g,T){
         return}
       bad.push(src[i][0].split(" ")[0]);return next(i+1)})}
   return next(0)}
+function chkSyncSrv(add,base,d){
+  var g="Máy chủ · Đồng bộ",T=window.NT,loc=[],sv=d.items||[];
+  try{loc=(T&&T.items&&T.items())||[]}catch(e){}
+  if(stopped)return Promise.resolve();
+  var lm={},sm={},onlyL=0,onlyS=0,imD=0,stD=0;
+  loc.forEach(function(x){lm[x.id]=x});sv.forEach(function(x){sm[x.id]=x});
+  Object.keys(lm).forEach(function(k){
+    var s=sm[k];if(!s){onlyL++;return}
+    if((s.st||"new")!==(lm[k].st||"new"))stD++;
+    if(imgsOf(s).slice().sort().join(",")!==imgsOf(lm[k]).slice().sort().join(","))imD++});
+  Object.keys(sm).forEach(function(k){if(!lm[k])onlyS++});
+  var fpS=fpItems(sv),fpL=fpItems(loc);
+  if(fpS===fpL)add("ok",g,"Danh sách căn & ảnh trên máy khớp máy chủ · mã "+fpS+" · "+sv.length+" căn");
+  else{
+    var p=[];
+    if(onlyL)p.push(onlyL+" căn chỉ có trên máy");
+    if(onlyS)p.push(onlyS+" căn chỉ có trên máy chủ");
+    if(imD)p.push(imD+" căn khác danh sách ảnh");
+    if(stD)p.push(stD+" căn khác trạng thái");
+    add("warn",g,"Danh sách trên máy lệch máy chủ (mã máy "+fpL+", máy chủ "+fpS+"): "+(p.join(", ")||"khác thứ tự ảnh")+". Nếu vừa thêm/sửa ở nơi khác thì kéo làm mới danh sách; nếu vẫn lệch, kết quả quét trùng trên máy này sẽ khác máy kia")}
+  pg("5/5 · Đối chiếu cặp Không phải trùng");
+  return tget(base+"&action=dup",{cache:"no-store"},25000,15000).then(function(res){
+    var dd=parseSrv(res,add,g,"Tải cặp Không phải trùng");if(!dd)return;
+    if(!dd.ok){add("bad",g,"Máy chủ từ chối danh sách Không phải trùng: "+(dd.error||"không rõ lý do"));return}
+    return ignRead().then(function(ig){
+      var sp={},nAll=0,svIds={};
+      sv.forEach(function(x){svIds[x.id]=1});
+      (dd.pairs||[]).forEach(function(q){sp[q.k]=1;nAll++});
+      var sk=Object.keys(sp).filter(function(k){var a=k.split("|");return svIds[a[0]]&&svIds[a[1]]});
+      var lk=Object.keys(ig.ign).filter(function(k){var a=k.split("|");return lm[a[0]]&&lm[a[1]]});
+      var onlyLp=lk.filter(function(k){return !sp[k]&&!(ig.q[k]>0)}).length;
+      var onlySp=sk.filter(function(k){return !ig.ign[k]&&ig.q[k]!==0}).length;
+      var fS=fpKeys(sk),fL=fpKeys(lk);
+      if(!onlyLp&&!onlySp)add(Object.keys(ig.q).length?"info":"ok",g,"Cặp Không phải trùng "+(Object.keys(ig.q).length?"(đang chờ gửi "+Object.keys(ig.q).length+" thay đổi) ":"")+"khớp máy chủ · mã "+fS+" · "+sk.length+" cặp");
+      else add("warn",g,"Cặp Không phải trùng lệch máy chủ (mã máy "+fL+", máy chủ "+fS+"): "+(onlyLp?onlyLp+" cặp chỉ có trên máy":"")+(onlyLp&&onlySp?", ":"")+(onlySp?onlySp+" cặp chỉ có trên máy chủ":"")+". Mở Kiểm tra trùng để kéo/gửi lại; nếu máy chỉ xem thì không gửi được");
+      if(nAll>sk.length)add("info",g,(nAll-sk.length)+" cặp trên máy chủ trỏ tới căn không còn (app bỏ qua, không ảnh hưởng)");
+      add("info",g,"So mã danh sách căn & ảnh ở trên với nhóm \"Đồng bộ · Mã đối chiếu\" của từng máy (PWA, APK): mã máy chủ là chuẩn chung")})
+  },function(e){srvFail(add,g,"Tải cặp Không phải trùng",e)}).then(function(){return hashProbe(add,base,g)})}
+function hashProbe(add,base,g){
+  if(stopped)return Promise.resolve();
+  return tget(base+"&action=hash&v=dhc5&count=1",{cache:"no-store"},25000,15000).then(function(res){
+    var d=parseSrv(res,add,g,"Đếm hash ảnh");if(!d)return;
+    if(typeof d.total!=="number"){add("warn",g,"Máy chủ chưa hỗ trợ đồng bộ hash ảnh: dán Code.gs mới vào Apps Script rồi Deploy > Manage deployments > Edit > New version");return}
+    return rdKey("dhs1").then(function(r){
+      var o=pjson(r.idb||r.ls).o||{},n=o.v==="dhc5"?(+o.n||0):0;
+      if(d.total>n)add("warn",g,"Tab Hash trên máy chủ có "+d.total+" dòng, máy mới kéo tới dòng "+n+": còn "+(d.total-n)+" dòng chưa kéo về. Mở Kiểm tra trùng để kéo");
+      else if(d.total<n)add("warn",g,"Máy đã kéo tới dòng "+n+" nhưng tab Hash chỉ còn "+d.total+" dòng (Sheet bị xóa bớt). Mở Kiểm tra trùng để máy gửi lại");
+      else add("ok",g,"Hash ảnh khớp máy chủ: "+d.total+" dòng, máy đã kéo hết")})
+  },function(e){srvFail(add,g,"Đếm hash ảnh",e)})}
 function chkServer(){
   var L=[];function add(s,g,t){L.push({s:s,g:g,t:t})}
   var X={at:Date.now(),L:L},g1="Máy chủ · Cấu hình",g2="Máy chủ · Đường truyền",g3="Máy chủ · Phản hồi",g4="Máy chủ · Ảnh Drive";
@@ -461,13 +586,13 @@ function chkServer(){
       return q.then(function(){
         if(stopped){add("info",g3,"Đã dừng theo yêu cầu");return X}
         var it=null;try{(T.items()||[]).some(function(x){if(x.ck){it=x;return true}})}catch(e){}
-        pg("5/5 · Tải checklist và ảnh");
+        pg("5/5 · Tải checklist, đối chiếu đồng bộ và ảnh");
         var p=it?tget(base+"&action=ck&id="+encodeURIComponent(it.id),{cache:"no-store"},25000,15000).then(function(r3){
           var d3=parseSrv(r3,add,g3,"Tải checklist");if(!d3)return;
           if(!d3.ok)add("bad",g3,"Tải checklist bị từ chối: "+(d3.error||"không rõ lý do")+" · "+r3.ms+" ms");
           else add(r3.retried||r3.ms>6000?"warn":"ok",g3,"Tải checklist 1 căn: "+r3.ms+" ms"+(d3.ck?"":" (căn này chưa có nội dung checklist)")+(r3.retried?" (lần đầu lỗi, thử lại mới được)":""))
         },function(e){srvFail(add,g3,"Tải checklist",e)}):(add("info",g3,"Chưa có căn nào có checklist để thử tải"),Promise.resolve());
-        return p.then(function(){return chkImg(add,g4,T)}).then(function(){return X})})
+        return p.then(function(){return chkSyncSrv(add,base,d)}).then(function(){return chkImg(add,g4,T)}).then(function(){return X})})
     },function(e){srvFail(add,g3,"Tải danh sách",e);return X})})}
 function chkPost(){
   var L=[],g="Máy chủ · Gửi dữ liệu (POST)",cf=sfg();
@@ -494,7 +619,7 @@ function run(force){
   function fin(){R={at:Date.now(),L:L,can:CAN};running=false;badge();var d=G("dbgd");if(d&&d.open)draw();return R}
   return wait().then(function(w){
     chkComponents(add,w);chkBridges(add);chkRes(add);
-    return chkSw(add).then(function(){return (force||assetsDue())?chkAssets(add):0}).then(function(){return chkCaches(add)}).then(function(){return chkStorage(add)}).then(function(){return chkIdb(add)}).then(function(){
+    return chkSw(add).then(function(){return (force||assetsDue())?chkAssets(add):0}).then(function(){return chkCaches(add)}).then(function(){return chkStorage(add)}).then(function(){return chkIdb(add)}).then(function(){return chkSync(add)}).then(function(){
       chkNative(add);chkData(add);chkPerf(add);chkMode(add);chkLink(add);chkEnv(add);chkErrors(add)})
   }).then(fin,function(e){add("bad","Kiểm tra","Chính bộ kiểm tra bị lỗi: "+(e&&e.message||e));return fin()})}
 function allL(){return (S?S.L:[]).concat(R?R.L:[])}
@@ -594,7 +719,7 @@ function draw(){
   G("dbgq").innerHTML=btn("run","Thiết bị")+btn("srv","Máy chủ")+btn("srvpost","Thử gửi (POST)");
   var t=btn("hide","Ẩn nút ⚠ phiên này");
   if(R&&R.can&&navigator.storage&&navigator.storage.persist)t+=btn("persist","Bật lưu trữ bền");
-  t+=btn("reset","Làm mới bản cài app")+btn("img","Xóa cache ảnh")+btn("ck","Xóa checklist đã nhớ")+btn("dup","Đặt lại dữ liệu quét trùng");
+  t+=btn("reset","Làm mới bản cài app")+btn("img","Xóa cache ảnh")+btn("ck","Xóa checklist đã nhớ")+btn("dpm","Xóa kết quả quét (giữ hash ảnh)")+btn("dup","Đặt lại dữ liệu quét trùng");
   G("dbgtl").innerHTML=t;
   G("dbga").innerHTML=btn("all","Kiểm tra toàn bộ","p")+(srvBusy?btn("stop","Dừng"):"")+btn("copy","Sao chép báo cáo");
   Array.prototype.forEach.call(G("dbgd").querySelectorAll("[data-act]"),function(x){var a=x.dataset.act;if(a==="copy"||a==="stop"||a==="flt")return;x.disabled=bs});
@@ -641,6 +766,14 @@ function guard(){
   if(K&&(K.ckDirty||(K.ckUpQ&&K.ckUpQ.length)||(K.ckTrashQ&&K.ckTrashQ.length)))return "Đang có thay đổi chưa lưu hoặc ảnh đang tải lên. Hãy đợi xong rồi thử lại.";
   return ""}
 function reload(){setTimeout(function(){location.reload()},400)}
+/* Xóa khóa trong IndexedDB và chờ ghi xong rồi mới tải lại (idbSave của app có độ trễ 0,7 giây, tải lại ngay sẽ làm lệnh xóa bị mất) */
+function wipeKeys(ks){
+  var T=window.NT||{},M=window.NB&&window.NB.IDBM;
+  return Promise.all(ks.map(function(k){
+    try{if(T.ls)T.ls(k,"")}catch(x){}
+    if(M&&M.set)return M.set(k,"").catch(function(){});
+    try{if(T.idbSave)T.idbSave(k,"")}catch(x){}
+    return new Promise(function(r){setTimeout(r,1200)})}))}
 function onClick(e){
   var b=e.target.closest("[data-act]");if(!b||b.disabled)return;
   var a=b.dataset.act,gd,bs=busy||running||srvBusy;
@@ -679,11 +812,12 @@ function onClick(e){
     say("Đang xóa…");
     try{window.NK.ckC={};window.NK.ckcSave()}catch(x){}
     Promise.resolve(window.NT&&window.NT.idbSave?window.NT.idbSave("ckc1",""):0).catch(function(){}).then(function(){setTimeout(reload,1800)});return}
+  if(a==="dpm"){
+    if(!confirm("Xóa kết quả so khớp ảnh trùng trên máy này? Hash ảnh được giữ nên quét lại rất nhanh. Danh sách \"Không phải trùng\" và dữ liệu trên Sheet không bị ảnh hưởng."))return;
+    say("Đang xóa…");wipeKeys(["dpm1"]).then(reload,reload);return}
   if(a==="dup"){
     if(!confirm("Đặt lại dữ liệu quét ảnh trùng trên máy này? Danh sách \"Không phải trùng\" được giữ nguyên, lần sau cần quét lại."))return;
-    say("Đang đặt lại…");
-    var T=window.NT||{},ks=["dhc5","dpm1"];
-    Promise.all(ks.map(function(k){try{if(T.ls)T.ls(k,"")}catch(x){}return T.idbSave?Promise.resolve(T.idbSave(k,"")).catch(function(){}):0})).then(reload,reload)}}
+    say("Đang đặt lại…");wipeKeys(["dhc5","dpm1","dhs1"]).then(reload,reload)}}
 
 /* ---------- Kích hoạt ---------- */
 function tapTitle(e){

@@ -711,6 +711,78 @@ function loadCache(){
   },function(){cacheLoaded=true;cacheP=null;cache=parseCache(ls(CACHE_KEY));return cache});
   return cacheP}
 function saveCache(){try{var k=Object.keys(cache);if(k.length>30000){var n={},keepN=24000;k.slice(-keepN).forEach(function(x){n[x]=cache[x]});if(pm&&pm.done)k.slice(0,k.length-keepN).forEach(function(x){delete pm.done[x]});cache=n}var raw=JSON.stringify(cache);if(N()&&N().idbSave){N().idbSave(CACHE_KEY,raw);if(ls(CACHE_KEY))ls(CACHE_KEY,"")}else ls(CACHE_KEY,raw)}catch(e){}}
+/* ===== Đồng bộ hash ảnh qua tab "Hash" của Sheet =====
+   Mỗi ảnh chỉ có một hash trên máy chủ (ai ghi trước thì giữ). Mọi bản cài (PWA, APK) kéo hash về dùng, không tự tính lại ảnh đã có,
+   nên cùng danh sách căn + cùng cài đặt thì kết quả quét giống nhau. dhs1 lưu mốc đã kéo (n) và các mã ảnh đã có trên máy chủ (k). */
+var HS_KEY="dhs1",hs=null,hsP=null,hsBusy=false,hsAgain=false,hsPullP=null,hsT=0,hsPendR=null;
+function hsLoad(){
+  if(hs)return Promise.resolve(hs);
+  if(hsP)return hsP;
+  function fin(raw){
+    var o=null,k={};try{o=JSON.parse(raw||"null")}catch(e){}
+    if(o&&typeof o==="object"&&o.v===CACHE_KEY){String(o.k||"").split(",").forEach(function(x){if(x)k[x]=1});hs={n:+o.n||0,k:k}}
+    else hs={n:0,k:{}};
+    hsP=null;return hs}
+  var idb=N()&&N().idbGet;
+  if(!idb)return Promise.resolve(fin(ls(HS_KEY)));
+  hsP=idb(HS_KEY).then(function(v){return fin(typeof v==="string"?v:"")},function(){return fin(ls(HS_KEY))});
+  return hsP}
+function hsSave(){try{var raw=JSON.stringify({v:CACHE_KEY,n:hs.n,k:Object.keys(hs.k).join(",")});if(N()&&N().idbSave)N().idbSave(HS_KEY,raw);else ls(HS_KEY,raw)}catch(e){}}
+/* Hash của máy chủ luôn thắng: ảnh chưa có thì thêm, ảnh có hash khác thì thay */
+function hsApply(rows){
+  var add=0,chg=0;
+  (rows||[]).forEach(function(r){
+    var id=r&&r[0];if(!id)return;
+    var h=r[1]==null?"":String(r[1]);
+    hs.k[id]=1;
+    if(cache[id]===undefined){cache[id]=h;delete sigMemo[id];add++}
+    else if(cache[id]!==h){cache[id]=h;delete sigMemo[id];chg++}});
+  return{add:add,chg:chg}}
+function hsRefresh(r){
+  if(!(r.add||r.chg))return;
+  if(scanning){hsPendR=hsPendR||{add:0,chg:0};hsPendR.add+=r.add;hsPendR.chg+=r.chg;return}   // đang quét: làm sau khi quét xong
+  saveCache();
+  var d=G("dupd");
+  loadPm().then(function(){
+    var had=Object.keys(pm.done).length>0;
+    if(r.chg&&had){pm=pmEmpty();savePm();imgPairs=null}   // hash đổi theo máy chủ: kết quả cũ không còn đúng, tính lại từ hash đã lưu (không tải ảnh)
+    if(d&&d.open&&!scanning){
+      if(imgPairs===null)applyCachedPairs();
+      if(r.chg&&had)scan(true);else autoScan()}})}
+function hsPull(){
+  if(!(N()&&N().apiGet))return Promise.resolve();
+  if(hsPullP)return hsPullP;
+  hsPullP=Promise.all([loadCache(),hsLoad()]).then(function(){
+    if(hs.n>0&&!Object.keys(cache).length)hs={n:0,k:{}};   // hash trên máy đã bị xóa: kéo lại từ đầu
+    var tot={add:0,chg:0};
+    function page(){
+      return N().apiGet("&action=hash&v="+encodeURIComponent(CACHE_KEY)+"&from="+hs.n,20000).then(function(d){
+        if(!d||!d.ok||typeof d.next!=="number")return;
+        if(d.reset)hs={n:0,k:{}};
+        var a=hsApply(d.rows);tot.add+=a.add;tot.chg+=a.chg;
+        hs.n=d.next;hsSave();
+        if(d.more)return page()})}
+    return page().then(function(){hsRefresh(tot);return hsPush()})
+  }).then(function(){hsPullP=null},function(){hsPullP=null});
+  return hsPullP}
+function hsPush(){
+  if(!(N()&&N().apiPost&&canWrite()))return Promise.resolve();
+  if(hsBusy){hsAgain=true;return Promise.resolve()}
+  hsBusy=true;
+  return Promise.all([loadCache(),hsLoad()]).then(function(){
+    var q=Object.keys(cache).filter(function(s){return !hs.k[s]&&String(s).indexOf("data:")!==0&&typeof cache[s]==="string"});
+    function send(){
+      var ch=q.splice(0,300);if(!ch.length)return;
+      return N().apiPost("hashSet",{v:CACHE_KEY,add:ch.map(function(s){return[s,cache[s]]})},30000).then(function(d){
+        ch.forEach(function(s){hs.k[s]=1});
+        var a=hsApply(d&&d.conf);   // máy chủ đã có hash khác cho ảnh này: dùng bản của máy chủ
+        hsSave();
+        if(a.add||a.chg)hsRefresh(a);
+        return send()})}
+    return send()
+  }).then(function(){},function(){}).then(function(){hsBusy=false;if(hsAgain){hsAgain=false;hsPush()}})}
+function hsPushSoon(){clearTimeout(hsT);hsT=setTimeout(function(){hsT=0;hsPush()},3000)}
+function hsFlush(){if(hsT){clearTimeout(hsT);hsT=0}hsPush()}
 function grid9x8(gray,gw,gh,x0,y0,w,h){
   var g=[],gy,gx,cw=w/9,ch=h/8,rx0,rx1,ry0,ry1,x,y,sum,cnt;
   for(gy=0;gy<8;gy++){
@@ -1009,7 +1081,7 @@ function scan(auto){
   scanning=true;stopFlag=false;G("dupimg").disabled=true;G("dupstop").hidden=false;G("dupbar").hidden=false;
   var bar=G("dupbar").firstChild,badSet={},t={ok:0,bad:0,flat:0,nL:0,nP:0,newPairs:0,căn:0};
   function end(){
-    savePm();saveCache();
+    savePm();saveCache();hsPushSoon();
     scanning=false;G("dupimg").disabled=false;G("dupstop").hidden=true;G("dupbar").hidden=true;
     pairsFromPm();
     var r=render(),note=ignImgNote(r),extra=[],np=pendingItems().length;
@@ -1021,7 +1093,8 @@ function scan(auto){
     if(stopFlag)msg("Đã dừng. Đã so "+t["căn"]+" căn; hiện có "+imgPairs.length+" cặp ảnh giống nhau."+note);
     else if(t.bad&&t.ok===0)msg("Hầu hết ảnh không đọc được, chưa so sánh ảnh được.",1);
     else if(!t["căn"])msg("Không có căn mới cần so. Hiện có "+imgPairs.length+" cặp ảnh giống nhau."+note);
-    else msg("Đã so "+t["căn"]+" căn mới ("+t.ok+" ảnh"+exTxt+"): hiện có "+imgPairs.length+" cặp ảnh giống nhau."+note)}
+    else msg("Đã so "+t["căn"]+" căn mới ("+t.ok+" ảnh"+exTxt+"): hiện có "+imgPairs.length+" cặp ảnh giống nhau."+note);
+    if(hsPendR){var pr=hsPendR;hsPendR=null;hsRefresh(pr)}}
   function batch(total){
     if(stopFlag)return Promise.resolve(false);
     var pend=pendingItems(badSet);
@@ -1040,7 +1113,7 @@ function scan(auto){
       }).then(worker)}
     return Promise.all([worker(),worker(),worker()]).then(function(){
       if(stopFlag)return false;
-      saveCache();
+      saveCache();hsPushSoon();
       var oldJ=[];
       activeItems().forEach(function(it){if(Bid[it.id])return;(it.im||[]).forEach(function(s){if(s&&pm.done[s])oldJ.push({it:it,s:s})})});
       Object.keys(got).forEach(function(u){pm.done[u]=1;if(pm.fail)delete pm.fail[u]});
@@ -1190,10 +1263,10 @@ function open(nt){
   items=N().items();cleanImgPairs();limMain=limIgn=LIMIT;openSet={};openImgSet={};pairImgMode={};pairImgMsg={};cmpAll={};zoomCmp=null;showIgn=false;msg(imgPairs&&imgPairs.length?"Đang hiện "+imgPairs.length+" cặp ảnh giống nhau.":"");G("dupbar").hidden=true;G("dupstop").hidden=true;G("dupz").hidden=true;render();
   if(!G("dupd").open)G("dupd").showModal();G("dupd").scrollTop=0;
   loadCache().then(function(){if(G("dupd").open&&!scanning){if(imgPairs===null)applyCachedPairs();autoScan()}});
-  pullIgnored(true)}
+  pullIgnored(true);hsPull()}
 function close(){
   stopFlag=true;zoomCmp=null;undoSt=[];undoUi();
-  flushIgnored();
+  flushIgnored();hsFlush();
   var z=G("dupz"),d=G("dupd");
   if(z)z.hidden=true;
   if(d&&d.open)d.close()}
