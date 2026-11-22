@@ -6,7 +6,7 @@
    - Chỉ ĐỌC dữ liệu (ngoại lệ: mỗi phiên xin trình duyệt lưu trữ bền một lần, không hiện hộp thoại, không áp dụng cho APK; và nút "Thử gửi (POST)" do bạn tự bấm, có hỏi xác nhận).
    - Kiểm tra máy chủ chỉ chạy khi bạn bấm (không chạy ngầm): cấu hình, đường truyền tới Google và trang app (tự thử lại 1 lần để tránh báo lỗi oan), tải danh sách, làm mới nhanh 3 lần (đo độ dao động), tải checklist, tải thử 1 ảnh Drive. Toàn bộ chỉ đọc. Báo cáo không chứa link Web app, mã truy cập hay tên căn (chỉ số lượng).
    - Theo dõi thụ động số lần mất/có mạng từ lúc mở trang; kiểm tra đọc được kho IndexedDB của app.
-   - Đồng bộ dữ liệu quét trùng giữa các bản cài (PWA/APK): nhóm "Đồng bộ" đọc kết quả quét (dpm1), hash ảnh (dhc5), danh sách "Không phải trùng" (dign1) và phát hiện mục cũ/lệch cài đặt; in 5 mã đối chiếu ngắn để so PWA với APK; khi bấm kiểm tra máy chủ thì đối chiếu thêm danh sách căn/ảnh và cặp "Không phải trùng" với Sheet. Chỉ đọc.
+   - Đồng bộ dữ liệu quét trùng giữa các bản cài (PWA/APK): nhóm "Đồng bộ" đọc kết quả quét (dpm2), hash ảnh (dhc6), danh sách "Không phải trùng" (dign1) và phát hiện mục cũ/lệch cài đặt; in 5 mã đối chiếu ngắn để so PWA với APK; khi bấm kiểm tra máy chủ thì đối chiếu thêm danh sách căn/ảnh và cặp "Không phải trùng" với Sheet. Chỉ đọc.
    - Các nút sửa lỗi đều hỏi xác nhận, không động tới dữ liệu trên Sheet/Drive, và từ chối khi đang có thay đổi chưa lưu hoặc ảnh đang tải lên.
    Cần đoạn bắt lỗi sớm (window.__dbg) trong <head> của index.html; thiếu đoạn đó thì dbg.js vẫn chạy nhưng chỉ thấy lỗi xảy ra sau khi nó nạp. */
 (function(){
@@ -328,7 +328,7 @@ function chkIdb(add){
   },function(){})}
 
 /* ---------- Đồng bộ dữ liệu quét trùng giữa các bản cài (PWA/APK). Chỉ ĐỌC ----------
-   Kết quả quét ảnh (dpm1) và hash ảnh (dhc5) chỉ nằm trong IndexedDB của TỪNG bản cài, không đi qua máy chủ.
+   Kết quả quét ảnh (dpm2) và hash ảnh (dhc6) chỉ nằm trong IndexedDB của TỪNG bản cài, không đi qua máy chủ.
    Chỉ danh sách "Không phải trùng" (dign1) được đồng bộ lên Sheet. Nên PWA và APK chỉ ra cùng kết quả khi cùng danh sách căn,
    cùng cài đặt, cùng hash ảnh. Các mã đối chiếu dưới đây giúp thấy ngay phần nào đang lệch giữa hai bên. */
 function fnv(s){var h=2166136261,i;s=String(s);for(i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return("0000000"+(h>>>0).toString(16)).slice(-8)}
@@ -349,13 +349,13 @@ function chkSync(add){
   var g="Đồng bộ · Dữ liệu quét trùng",g2="Đồng bộ · Mã đối chiếu",T=window.NT,items=[];
   try{items=(T&&T.items&&T.items())||[]}catch(e){}
   if(!T||!T.idbGet||!items.length)return Promise.resolve();
-  return Promise.all([rdKey("dpm1"),rdKey("dhc5"),ignRead(),rdKey("dhs1")]).then(function(r){
-    var th=14,skip=true;
-    try{var t=+T.ls("dth");if(t===6||t===10||t===14||t===18)th=t}catch(e){}
+  return Promise.all([rdKey("dpm2"),rdKey("dhc6"),ignRead(),rdKey("dhs1")]).then(function(r){
+    var th=85,skip=true;
+    try{var t=+T.ls("dsim");if(t===92||t===88||t===85||t===80)th=t}catch(e){}
     try{skip=T.ls("dnoout")!=="0"}catch(e){}
     var pmP=pjson(r[0].idb||r[0].ls),hcP=pjson(r[1].idb||r[1].ls),ig=r[2],pm=pmP.o,hc=hcP.o||{};
-    if(pmP.bad)add("bad",g,"Kết quả quét ảnh (dpm1) bị hỏng, không đọc được. Dùng \"Xóa kết quả quét (giữ hash ảnh)\" rồi quét lại");
-    if(hcP.bad)add("bad",g,"Hash ảnh (dhc5) bị hỏng, không đọc được. Dùng \"Đặt lại dữ liệu quét trùng\"");
+    if(pmP.bad)add("bad",g,"Kết quả quét ảnh (dpm2) bị hỏng, không đọc được. Dùng \"Xóa kết quả quét (giữ hash ảnh)\" rồi quét lại");
+    if(hcP.bad)add("bad",g,"Hash ảnh (dhc6) bị hỏng, không đọc được. Dùng \"Đặt lại dữ liệu quét trùng\"");
     if(ig.bad)add("bad",g,"Danh sách \"Không phải trùng\" (dign1) bị hỏng, không đọc được");
     var byId={},allImg={},actImg=[],active;
     items.forEach(function(it){byId[it.id]=it;imgsOf(it).forEach(function(s){allImg[s]=1})});
@@ -376,7 +376,7 @@ function chkSync(add){
         if(!ims.length)return;
         if(ims.some(function(s){return !done[s]})||seen[it.id]!==ims.join("|"))pend++});
       var pf=pm.fail||{};Object.keys(pf).forEach(function(s){var f=pf[s];if(f&&typeof f==="object"&&f.n>=2)fail++});
-      add(pm.th!==th?"warn":"ok",g,"Kết quả quét theo độ nhạy "+pm.th+"/64 bit"+(pm.th!==th?", nhưng cài đặt hiện tại là "+th+": lần mở Kiểm tra trùng tới máy này sẽ quét lại toàn bộ và kết quả có thể khác máy kia":" (khớp cài đặt hiện tại)")+" · "+pairs.length+" cặp ảnh giống nhau · "+doneN+" ảnh đã so");
+      add(pm.th!==th?"warn":"ok",g,"Kết quả quét theo độ nhạy "+pm.th+"%"+(pm.th!==th?", nhưng cài đặt hiện tại là "+th+": lần mở Kiểm tra trùng tới máy này sẽ quét lại toàn bộ và kết quả có thể khác máy kia":" (khớp cài đặt hiện tại)")+" · "+pairs.length+" cặp ảnh giống nhau · "+doneN+" ảnh đã so");
       add(pend?"info":"ok",g,pend?pend+"/"+active.length+" căn chưa so ảnh (căn mới, ảnh đổi hoặc chưa quét xong), nên danh sách cặp trùng chưa đầy đủ":"Mọi căn có ảnh đều đã được so");
       if(stale)add("warn",g,stale+" cặp ảnh trỏ tới căn đã xóa hoặc ảnh đã đổi (kết quả quét cũ chưa dọn). Mở Kiểm tra trùng một lần để app tự dọn, hoặc dùng \"Xóa kết quả quét (giữ hash ảnh)\"");
       if(orphan)add("info",g,orphan+" ảnh đã so nhưng không còn thuộc căn nào (dữ liệu thừa, không ảnh hưởng kết quả)");
@@ -384,7 +384,7 @@ function chkSync(add){
     }else if(!pmP.bad)add("info",g,"Máy này chưa quét ảnh trùng (chưa có kết quả so khớp). Mở Kiểm tra trùng → Quét ảnh trùng");
     if(noHash)add("info",g,noHash+"/"+actImg.length+" ảnh chưa có hash trên máy này (sẽ tính khi quét)");
     var hsO=pjson(r[3].idb||r[3].ls).o||{},hsK={};
-    if(hsO.v==="dhc5")String(hsO.k||"").split(",").forEach(function(x){if(x)hsK[x]=1});
+    if(hsO.v==="dhc6")String(hsO.k||"").split(",").forEach(function(x){if(x)hsK[x]=1});
     var unsent=Object.keys(hc).filter(function(s){return !hsK[s]&&s.indexOf("data:")!==0}).length,canW=true;
     try{canW=!!(T.canW&&T.canW())}catch(e){}
     if(unsent)add(canW?"warn":"info",g,unsent+" hash ảnh chưa gửi lên máy chủ"+(canW?": máy khác chưa dùng được, nên kết quả quét có thể khác. Mở Kiểm tra trùng và để app tự gửi (cần mạng)":" (máy này chỉ xem nên không gửi được)"));
@@ -511,11 +511,11 @@ function chkSyncSrv(add,base,d){
   },function(e){srvFail(add,g,"Tải cặp Không phải trùng",e)}).then(function(){return hashProbe(add,base,g)})}
 function hashProbe(add,base,g){
   if(stopped)return Promise.resolve();
-  return tget(base+"&action=hash&v=dhc5&count=1",{cache:"no-store"},25000,15000).then(function(res){
+  return tget(base+"&action=hash&v=dhc6&count=1",{cache:"no-store"},25000,15000).then(function(res){
     var d=parseSrv(res,add,g,"Đếm hash ảnh");if(!d)return;
     if(typeof d.total!=="number"){add("warn",g,"Máy chủ chưa hỗ trợ đồng bộ hash ảnh: dán Code.gs mới vào Apps Script rồi Deploy > Manage deployments > Edit > New version");return}
     return rdKey("dhs1").then(function(r){
-      var o=pjson(r.idb||r.ls).o||{},n=o.v==="dhc5"?(+o.n||0):0;
+      var o=pjson(r.idb||r.ls).o||{},n=o.v==="dhc6"?(+o.n||0):0;
       if(d.total>n)add("warn",g,"Tab Hash trên máy chủ có "+d.total+" dòng, máy mới kéo tới dòng "+n+": còn "+(d.total-n)+" dòng chưa kéo về. Mở Kiểm tra trùng để kéo");
       else if(d.total<n)add("warn",g,"Máy đã kéo tới dòng "+n+" nhưng tab Hash chỉ còn "+d.total+" dòng (Sheet bị xóa bớt). Mở Kiểm tra trùng để máy gửi lại");
       else add("ok",g,"Hash ảnh khớp máy chủ: "+d.total+" dòng, máy đã kéo hết")})
@@ -819,10 +819,10 @@ function onClick(e){
     Promise.resolve(window.NT&&window.NT.idbSave?window.NT.idbSave("ckc1",""):0).catch(function(){}).then(function(){setTimeout(reload,1800)});return}
   if(a==="dpm"){
     if(!confirm("Xóa kết quả so khớp ảnh trùng trên máy này? Hash ảnh được giữ nên quét lại rất nhanh. Danh sách \"Không phải trùng\" và dữ liệu trên Sheet không bị ảnh hưởng."))return;
-    say("Đang xóa…");wipeKeys(["dpm1"]).then(reload,reload);return}
+    say("Đang xóa…");wipeKeys(["dpm2"]).then(reload,reload);return}
   if(a==="dup"){
     if(!confirm("Đặt lại dữ liệu quét ảnh trùng trên máy này? Danh sách \"Không phải trùng\" được giữ nguyên, lần sau cần quét lại."))return;
-    say("Đang đặt lại…");wipeKeys(["dhc5","dpm1","dhs1"]).then(reload,reload)}}
+    say("Đang đặt lại…");wipeKeys(["dhc6","dpm2","dhs1"]).then(reload,reload)}}
 
 /* ---------- Kích hoạt ---------- */
 function tapTitle(e){

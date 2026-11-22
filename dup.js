@@ -98,8 +98,8 @@ var CSS2=[
 "@media (max-width:420px){.dpa .dpv{margin-left:0;flex-basis:100%;text-align:left}.dpset{grid-template-columns:minmax(0,1fr)}}",
 "@media (prefers-reduced-motion:reduce){.dpz,.dpz *,.dpimgs,.dpl,.dpth img,.dpm img,.dpip img,.dpzstage::after{animation:none!important;transition:none!important}}"
 ].join("\n");
-var DLG="<dialog id=\"dupd\"><div class=\"form\" id=\"dupmain\">\n  <h2>Kiểm tra trùng</h2>\n  <p class=\"pm\" id=\"dupsum\"></p>\n  <div class=\"dpbar2\" id=\"duplinks\" hidden><button type=\"button\" class=\"link\" id=\"duptog\" hidden></button><button type=\"button\" class=\"dpignbtn\" id=\"dupigntog\" hidden></button></div>\n  <div class=\"dpset\"><div class=\"dpsens\"><label for=\"dupsens\">Độ nhạy ảnh</label><select id=\"dupsens\"><option value=\"6\">Ít nhầm (6/64 bit)</option><option value=\"10\">Bình thường (10/64 bit)</option><option value=\"14\" selected>Nhạy (14/64 bit — mặc định)</option><option value=\"18\">Rất nhạy (18/64 bit)</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupvf\">Kiểm tra lần hai (so điểm ảnh)</label><select id=\"dupvf\"><option value=\"0\">Tắt (chỉ dùng hash)</option><option value=\"1\" selected>Vừa (mặc định)</option><option value=\"2\">Chặt (ít nhầm nhất)</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupimgv\">Cách xem ảnh</label><select id=\"dupimgv\"><option value=\"manual\" selected>Đóng sẵn · bấm “Xem ảnh” ở từng cặp</option><option value=\"both\">Mở sẵn · so sánh 2 căn cạnh nhau</option><option value=\"stack\">Mở sẵn · xếp dọc từng căn</option></select></div></div>\n  <div class=\"dpact\"><label class=\"dpopt\"><input type=\"checkbox\" id=\"dupnoout\"><span>Bỏ qua căn đã “Loại”</span></label>\n  <div class=\"foot2\"><button class=\"btn p\" type=\"button\" id=\"dupimg\">Quét ảnh trùng</button><button class=\"btn\" type=\"button\" id=\"dupstop\" hidden>Dừng</button></div></div>\n  <div class=\"dpb\" id=\"dupbar\" hidden><i></i></div>\n  <p class=\"pm\" id=\"dupm\" role=\"status\"></p>\n  <div id=\"dupl\"></div>\n  <div class=\"foot\"><button class=\"btn p\" type=\"button\" id=\"dupx\">Đóng</button></div>\n</div><div class=\"form\" id=\"dupignview\" hidden>\n  <div class=\"dphead\"><button type=\"button\" class=\"btn\" id=\"dupback\">← Quay lại</button><h2>Không phải trùng</h2></div>\n  <p class=\"pm\" id=\"dupignsum\"></p>\n  <button type=\"button\" class=\"link\" id=\"dupignclr\" hidden>Khôi phục tất cả về danh sách kiểm tra</button>\n  <div id=\"dupignl\"></div>\n  <div class=\"foot\"><button class=\"btn\" type=\"button\" id=\"dupback2\">← Quay lại</button><button class=\"btn p\" type=\"button\" id=\"dupx2\">Đóng</button></div>\n</div><div class=\"dpz\" id=\"dupz\" hidden><div class=\"dpzb\"><div class=\"dpzhdr\"><p class=\"dpzt\" id=\"dupzt\"></p><button type=\"button\" class=\"dpzlay\" id=\"dupzlay\">Xếp dọc</button><button type=\"button\" class=\"dpzcls\" id=\"dupzx2\" aria-label=\"Đóng\">×</button></div><div class=\"dpzm\" id=\"dupzm\" hidden></div><div class=\"dpzg\" id=\"dupzg\"><div class=\"dpzcol\"><div class=\"dpzstage\"><img id=\"dupz1\" alt=\"Ảnh căn 1\"><span class=\"dpzempty\" id=\"dupze1\" hidden>Chưa có ảnh</span></div><div class=\"dpzmeta\"><b id=\"dupz1n\"></b><small id=\"dupz1m\"></small></div><div class=\"dpzctrl\" id=\"dupzc1\" hidden><button type=\"button\" id=\"dupz1prev\" aria-label=\"Ảnh trước căn 1\">‹</button><span id=\"dupz1c\"></span><button type=\"button\" id=\"dupz1next\" aria-label=\"Ảnh sau căn 1\">›</button></div></div><div class=\"dpzcol\"><div class=\"dpzstage\"><img id=\"dupz2\" alt=\"Ảnh căn 2\"><span class=\"dpzempty\" id=\"dupze2\" hidden>Chưa có ảnh</span></div><div class=\"dpzmeta\"><b id=\"dupz2n\"></b><small id=\"dupz2m\"></small></div><div class=\"dpzctrl\" id=\"dupzc2\" hidden><button type=\"button\" id=\"dupz2prev\" aria-label=\"Ảnh trước căn 2\">‹</button><span id=\"dupz2c\"></span><button type=\"button\" id=\"dupz2next\" aria-label=\"Ảnh sau căn 2\">›</button></div></div></div><div class=\"foot\"><button class=\"btn p\" type=\"button\" id=\"dupzx\">Đóng</button></div></div></div><div class=\"dpundo\" id=\"dupundo\" hidden><span id=\"dupundot\"></span><button type=\"button\" id=\"dupundob\">↶ Hoàn tác</button><button type=\"button\" class=\"x\" id=\"dupundox\" aria-label=\"Ẩn\">✕</button></div></dialog>";
-var TH=14,VL=1,MIN=2,imgPairs=null,scanning=false,stopFlag=false,cache={},cacheLoaded=false,cacheP=null,inflight={},LIMIT=50,limMain=50,limIgn=50,memo=null,syncT=0,showOne=false,showIgn=false,skipOut=true,skipLoaded=false,imgAutoMode="manual",imgModeLoaded=false,viewList=[],openSet={},openImgSet={},pairImgMode={},ignored={},ignLoaded=false,pairImgMsg={},zoomCmp=null;
+var DLG="<dialog id=\"dupd\"><div class=\"form\" id=\"dupmain\">\n  <h2>Kiểm tra trùng</h2>\n  <p class=\"pm\" id=\"dupsum\"></p>\n  <div class=\"dpbar2\" id=\"duplinks\" hidden><button type=\"button\" class=\"link\" id=\"duptog\" hidden></button><button type=\"button\" class=\"dpignbtn\" id=\"dupigntog\" hidden></button></div>\n  <div class=\"dpset\"><div class=\"dpsens\"><label for=\"dupsens\">Độ nhạy ảnh (DINOv2)</label><select id=\"dupsens\"><option value=\"92\">Ít nhầm (≥92%)</option><option value=\"88\">Bình thường (≥88%)</option><option value=\"85\" selected>Nhạy (≥85% — mặc định)</option><option value=\"80\">Rất nhạy (≥80%)</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupimgv\">Cách xem ảnh</label><select id=\"dupimgv\"><option value=\"manual\" selected>Đóng sẵn · bấm “Xem ảnh” ở từng cặp</option><option value=\"both\">Mở sẵn · so sánh 2 căn cạnh nhau</option><option value=\"stack\">Mở sẵn · xếp dọc từng căn</option></select></div></div>\n  <div class=\"dpact\"><label class=\"dpopt\"><input type=\"checkbox\" id=\"dupnoout\"><span>Bỏ qua căn đã “Loại”</span></label>\n  <div class=\"foot2\"><button class=\"btn p\" type=\"button\" id=\"dupimg\">Quét ảnh trùng</button><button class=\"btn\" type=\"button\" id=\"dupstop\" hidden>Dừng</button></div></div>\n  <div class=\"dpb\" id=\"dupbar\" hidden><i></i></div>\n  <p class=\"pm\" id=\"dupm\" role=\"status\"></p>\n  <div id=\"dupl\"></div>\n  <div class=\"foot\"><button class=\"btn p\" type=\"button\" id=\"dupx\">Đóng</button></div>\n</div><div class=\"form\" id=\"dupignview\" hidden>\n  <div class=\"dphead\"><button type=\"button\" class=\"btn\" id=\"dupback\">← Quay lại</button><h2>Không phải trùng</h2></div>\n  <p class=\"pm\" id=\"dupignsum\"></p>\n  <button type=\"button\" class=\"link\" id=\"dupignclr\" hidden>Khôi phục tất cả về danh sách kiểm tra</button>\n  <div id=\"dupignl\"></div>\n  <div class=\"foot\"><button class=\"btn\" type=\"button\" id=\"dupback2\">← Quay lại</button><button class=\"btn p\" type=\"button\" id=\"dupx2\">Đóng</button></div>\n</div><div class=\"dpz\" id=\"dupz\" hidden><div class=\"dpzb\"><div class=\"dpzhdr\"><p class=\"dpzt\" id=\"dupzt\"></p><button type=\"button\" class=\"dpzlay\" id=\"dupzlay\">Xếp dọc</button><button type=\"button\" class=\"dpzcls\" id=\"dupzx2\" aria-label=\"Đóng\">×</button></div><div class=\"dpzm\" id=\"dupzm\" hidden></div><div class=\"dpzg\" id=\"dupzg\"><div class=\"dpzcol\"><div class=\"dpzstage\"><img id=\"dupz1\" alt=\"Ảnh căn 1\"><span class=\"dpzempty\" id=\"dupze1\" hidden>Chưa có ảnh</span></div><div class=\"dpzmeta\"><b id=\"dupz1n\"></b><small id=\"dupz1m\"></small></div><div class=\"dpzctrl\" id=\"dupzc1\" hidden><button type=\"button\" id=\"dupz1prev\" aria-label=\"Ảnh trước căn 1\">‹</button><span id=\"dupz1c\"></span><button type=\"button\" id=\"dupz1next\" aria-label=\"Ảnh sau căn 1\">›</button></div></div><div class=\"dpzcol\"><div class=\"dpzstage\"><img id=\"dupz2\" alt=\"Ảnh căn 2\"><span class=\"dpzempty\" id=\"dupze2\" hidden>Chưa có ảnh</span></div><div class=\"dpzmeta\"><b id=\"dupz2n\"></b><small id=\"dupz2m\"></small></div><div class=\"dpzctrl\" id=\"dupzc2\" hidden><button type=\"button\" id=\"dupz2prev\" aria-label=\"Ảnh trước căn 2\">‹</button><span id=\"dupz2c\"></span><button type=\"button\" id=\"dupz2next\" aria-label=\"Ảnh sau căn 2\">›</button></div></div></div><div class=\"foot\"><button class=\"btn p\" type=\"button\" id=\"dupzx\">Đóng</button></div></div></div><div class=\"dpundo\" id=\"dupundo\" hidden><span id=\"dupundot\"></span><button type=\"button\" id=\"dupundob\">↶ Hoàn tác</button><button type=\"button\" class=\"x\" id=\"dupundox\" aria-label=\"Ẩn\">✕</button></div></dialog>";
+var TH=85,VL=0,MIN=2,imgPairs=null,scanning=false,stopFlag=false,cache={},cacheLoaded=false,cacheP=null,inflight={},LIMIT=50,limMain=50,limIgn=50,memo=null,syncT=0,showOne=false,showIgn=false,skipOut=true,skipLoaded=false,imgAutoMode="manual",imgModeLoaded=false,viewList=[],openSet={},openImgSet={},pairImgMode={},ignored={},ignLoaded=false,pairImgMsg={},zoomCmp=null;
 
 /* ---------- Lưu danh sách "không phải trùng" vào localStorage ---------- */
 var undoSt=[],zlay=null,cmpAll={};
@@ -225,12 +225,12 @@ function priceDiffOver20(a,b){
 }
 var WT={"Cùng link tin đăng":2};
 function sc(o){var t=0;o.why.forEach(function(l){t+=WT[l]||1});return t}
-function sigOf(it){return[it.id,it.n,it.a,it.w,it.d,it.p,it.ar,it.lk,it.mp,it.ph,it.sp].join("\u0001")}
+function itSig(it){return[it.id,it.n,it.a,it.w,it.d,it.p,it.ar,it.lk,it.mp,it.ph,it.sp].join("\u0001")}
 function loadSkip(){if(skipLoaded)return;skipLoaded=true;try{skipOut=ls("dnoout")!=="0"}catch(e){skipOut=true}}
 function activeItems(){loadSkip();return skipOut?items.filter(function(it){return (it.st||"new")!=="out"}):items}
 /* Phần so thông tin là O(n²): chỉ tính lại khi dữ liệu liên quan thật sự đổi */
 function textPairs(src){
-  var sig=(skipOut?"1:":"0:")+src.map(sigOf).join("\u0002");
+  var sig=(skipOut?"1:":"0:")+src.map(itSig).join("\u0002");
   if(memo&&memo.sig===sig)return memo.list;
   var F=src.map(feat),out=[],i,j,w,a,b;
   for(i=0;i<F.length;i++)for(j=i+1;j<F.length;j++){w=cmp(F[i],F[j]);if(w.length){a=F[i].it;b=F[j].it;out.push(a.id<b.id?{a:a.id,b:b.id,why:w}:{a:b.id,b:a.id,why:w})}}
@@ -257,19 +257,8 @@ function build(){
   }}
 function pc(x){x=x-((x>>>1)&0x55555555);x=(x&0x33333333)+((x>>>2)&0x33333333);return(((x+(x>>>4))&0x0f0f0f0f)*0x01010101)>>>24}
 function simText(d,k,ori,n){
-  var parts=[];
-  if(ori==="LP")parts.push("ngang ↔ dọc");
-  else if(ori==="L")parts.push("ảnh ngang");
-  else if(ori==="P")parts.push("ảnh dọc");
-  if(k==="m"||k==="lpm")parts.push("lật ngang");
-  else if(k==="c")parts.push("vùng giữa");
-  else if(k==="cm")parts.push("lật + vùng giữa");
-  else if(k==="lpt")parts.push("cắt viền màn hình");
-  else if(k==="lptm")parts.push("cắt viền + lật");
-  if(d===0&&(!k||k==="lp"))return"Giống 100%"+(parts.length?" ("+parts.join(" · ")+")":"");
-  parts.push("lệch "+d+"/64 bit");
-  if(n!=null)parts.push("điểm ảnh khớp "+n+"%");
-  return"Giống "+Math.round((64-d)/64*100)+"% ("+parts.join(" · ")+")"}
+  var p=n!=null?n:Math.max(0,100-d);
+  return p>=99?"Giống ~100% (DINOv2)":"Giống "+p+"% (DINOv2)"}
 function txtH(v){return v?esc(v):'<span class="dpe">Không có</span>'}
 function linkH(u){var s=su(u);if(s)return'<a href="'+esc(s)+'" target="_blank" rel="noopener noreferrer">'+esc(s)+'</a>';return txtH(u)}
 function paText(it){var a=[];if(it.p!=null)a.push(fmt(it.p)+" tr");if(it.ar)a.push(fmt(it.ar)+" m²");return a.join(" · ")}
@@ -300,7 +289,7 @@ function detailH(o,idx){
   }
   return h;
 }
-function loadImgMode(){if(imgModeLoaded)return;imgModeLoaded=true;try{var v=ls("dimgv");imgAutoMode=(v==="both"||v==="stack")?v:"manual"}catch(e){imgAutoMode="manual"}try{var t=+ls("dth");if(t===6||t===10||t===14||t===18)TH=t;var vv=ls("dvf");if(vv==="0"||vv==="1"||vv==="2")VL=+vv;var z=ls("dzl");zlay=(z==="1"||z==="0")?z:null}catch(e){}}
+function loadImgMode(){if(imgModeLoaded)return;imgModeLoaded=true;try{var v=ls("dimgv");imgAutoMode=(v==="both"||v==="stack")?v:"manual"}catch(e){imgAutoMode="manual"}try{var t=+ls("dsim");if(t===92||t===88||t===85||t===80)TH=t;var z=ls("dzl");zlay=(z==="1"||z==="0")?z:null}catch(e){}}
 function isImgOpen(k){return openImgSet[k]!==undefined?!!openImgSet[k]:imgAutoMode!=="manual"}
 function modeFor(k){return pairImgMode[k]||(imgAutoMode==="stack"?"stack":"both")}
 function houseImgs(it){
@@ -440,7 +429,7 @@ function checkPairImg(el){
   }
   pairImgMsg[k]={busy:true,text:"Đang kiểm tra "+aIm.length+" ảnh vs "+bIm.length+" ảnh…"};
   render();
-  Promise.all([loadCache(),loadPm()]).then(function(){
+  Promise.all([loadCache(),loadPm(),dinoLoad()]).then(function(){
     var uniq={},list=[];
     aIm.concat(bIm).forEach(function(s){if(!uniq[s]){uniq[s]=1;list.push(s)}});
     var map={},doneSet={},bad=0,pos=0;
@@ -456,10 +445,10 @@ function checkPairImg(el){
         for(j=0;j<bIm.length;j++){
           sb=bIm[j];hb=map[sb];
           if(sa!==sb&&(!ha||!hb))continue;
-          m=sa===sb?{d:0,k:"",o:(ha||hb)?(ha||hb).ori:""}:cmpSig(ha,hb,TH);
+          m=sa===sb?{d:0,n:100,k:"",o:(ha||hb)?(ha||hb).ori:""}:cmpSig(ha,hb,TH);
           if(m){
             var pk=sa+"|"+sb;
-            if(!seen[pk]){seen[pk]=1;found.push({a:o.a,b:o.b,x:sa,y:sb,d:m.d,k:m.k,o:m.o||""})}
+            if(!seen[pk]){seen[pk]=1;found.push({a:o.a,b:o.b,x:sa,y:sb,d:m.d,k:m.k,o:m.o||"",n:m.n})}
           }
         }
       }
@@ -487,7 +476,7 @@ function checkPairImg(el){
       render();
       });
     });
-  })}
+  },function(e){pairImgMsg[k]={bad:true,text:"Không tải được mô hình DINOv2 (cần mạng ở lần đầu): "+(e&&e.message||e)};render()})}
 function afterDel(id){
   loadIgnored();var changed=false;
   Object.keys(ignored).forEach(function(k){var ids=k.split("|");if(ids[0]===id||ids[1]===id){delete ignored[k];ignDirty[k]=0;changed=true}});
@@ -643,7 +632,7 @@ function renderCmpZoom(k){
   var zm=G("dupzm");
   if(o.img.length){
     zm.hidden=false;
-    zm.innerHTML=o.img.map(function(m,i){return '<button type="button" class="dpzj'+(i===mi?' cur':'')+'" data-zjump="'+i+'">Trùng '+(i+1)+' · '+Math.round((64-m.d)/64*100)+'%</button>'}).join("");
+    zm.innerHTML=o.img.map(function(m,i){return '<button type="button" class="dpzj'+(i===mi?' cur':'')+'" data-zjump="'+i+'">Trùng '+(i+1)+' · '+(m.n!=null?m.n:Math.max(0,100-m.d))+'%</button>'}).join("");
   }else{zm.hidden=true;zm.innerHTML=""}
   markAct();
   ["a","b"].forEach(function(sd){
@@ -692,11 +681,11 @@ function zJump(i){
 function closeZoom(){zoomCmp=null;zT++;zt={};var z=G("dupz");if(z&&!z.hidden){z.hidden=true;return true}return false}
 function msg(t,bad){var m=G("dupm");m.textContent=t||"";m.className="pm"+(bad?" bad":"")}
 
-/* ---------- Thuật toán quét ảnh 3 nhánh (Cách 1): Ngang↔Ngang (L:144x104), Dọc↔Dọc (P:108x144), và Ngang↔Dọc (vuông 1:1 + cắt viền màn hình) ---------- */
-var CACHE_KEY="dhc5";
+/* ---------- Quét ảnh bằng DINOv2 (embedding + cosine), thay cho dHash 3 nhánh cũ ---------- */
+var CACHE_KEY="dhc6";
 function parseCache(raw){try{var o=JSON.parse(raw||"{}");return(o&&typeof o==="object")?o:{}}catch(e){return{}}}
 function clearOldCaches(){
-  ["dhc1","dhc2","dhc3","dhc4"].forEach(function(k){
+  ["dhc1","dhc2","dhc3","dhc4","dhc5","dpm1"].forEach(function(k){
     try{if(ls(k))ls(k,"")}catch(e){}
     if(N()&&N().idbSave)N().idbSave(k,"");
   });
@@ -789,38 +778,23 @@ function hsPush(){
 function hsWait(){return hsPhase?Promise.race([hsPhase,new Promise(function(r){setTimeout(r,15000)})]):Promise.resolve()}
 function hsPushSoon(){clearTimeout(hsT);hsT=setTimeout(function(){hsT=0;hsPush()},3000)}
 function hsFlush(){if(hsT){clearTimeout(hsT);hsT=0}hsPush()}
-function grid9x8(gray,gw,gh,x0,y0,w,h){
-  var g=[],gy,gx,cw=w/9,ch=h/8,rx0,rx1,ry0,ry1,x,y,sum,cnt;
-  for(gy=0;gy<8;gy++){
-    ry0=Math.round(y0+gy*ch);ry1=Math.min(gh,Math.max(ry0+1,Math.round(y0+(gy+1)*ch)));
-    for(gx=0;gx<9;gx++){
-      rx0=Math.round(x0+gx*cw);rx1=Math.min(gw,Math.max(rx0+1,Math.round(x0+(gx+1)*cw)));
-      sum=0;cnt=0;
-      for(y=ry0;y<ry1;y++)for(x=rx0;x<rx1;x++){sum+=gray[y*gw+x];cnt++}
-      g.push(cnt?sum/cnt:0);
-    }
-  }
-  return g}
-function dhOf(g,mirror){
-  var hx="",bits="",x,y,i,a,b;
-  for(y=0;y<8;y++)for(x=0;x<8;x++){
-    a=mirror?g[y*9+(8-x)]:g[y*9+x];
-    b=mirror?g[y*9+(7-x)]:g[y*9+x+1];
-    bits+=a>b?"1":"0";
-  }
-  for(i=0;i<64;i+=4)hx+=parseInt(bits.substr(i,4),2).toString(16);
-  return{hx:hx,ones:bits.split("1").length-1}}
-function hex2(n){var s=Math.max(0,Math.min(255,Math.round(n))).toString(16);return s.length<2?"0"+s:s}
-function colorHex(px,gw,x0,y0,qw,qh){
-  var qs=[[x0,y0],[x0+qw,y0],[x0,y0+qh],[x0+qw,y0+qh]],area=qw*qh,out="",qi,x,y,r,g,b,p;
-  for(qi=0;qi<4;qi++){
-    r=g=b=0;
-    for(y=qs[qi][1];y<qs[qi][1]+qh;y++)for(x=qs[qi][0];x<qs[qi][0]+qw;x++){
-      p=(y*gw+x)*4;r+=px[p];g+=px[p+1];b+=px[p+2];
-    }
-    out+=hex2(r/area)+hex2(g/area)+hex2(b/area);
-  }
-  return out}
+/* ===== DINOv2 (thay cho dHash 3 nhánh) =====
+   Mỗi ảnh -> 1 vector 384 chiều (token CLS của dinov2-small, int8 + base64), so bằng cosine.
+   Chuỗi lưu: "E<L|P>:<vec>" hoặc "E<L|P>:<vec>:<vec cắt viền>" (ảnh chụp màn hình có viền đen/trắng thì nhúng thêm bản đã cắt viền).
+   Chuỗi rỗng "" = ảnh trơn/ít chi tiết (bỏ qua); null = không đọc được ảnh.
+   Mô hình chạy ngay trong máy bằng transformers.js (WASM, bản lượng tử hóa q8 ~25 MB), tải lần đầu từ CDN rồi được trình duyệt lưu lại. */
+var DINO_LIB="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.6",DINO_ID="Xenova/dinov2-small",DINO_DEV="wasm",DINO_DT="q8";
+var DS=224,DIM=384,DINO={p:null,m:null,T:null},dinoErr=null,inferQ=Promise.resolve();
+function dinoLoad(){
+  if(DINO.p)return DINO.p;
+  msg("Đang tải mô hình DINOv2 (~25 MB, chỉ lần đầu)…");
+  DINO.p=import(DINO_LIB).then(function(L){
+    L.env.allowLocalModels=false;
+    return L.AutoModel.from_pretrained(DINO_ID,{dtype:DINO_DT,device:DINO_DEV,progress_callback:function(p){
+      if(p&&p.status==="progress"&&/\.onnx$/.test(p.file||""))msg("Đang tải mô hình DINOv2… "+Math.round(p.progress||0)+"%")}
+    }).then(function(m){DINO.m=m;DINO.T=L.Tensor;return m})
+  }).catch(function(e){DINO.p=null;DINO.m=null;throw e});
+  return DINO.p}
 function lumaStats(px,npx){
   var gray=[],i,sum=0,sum2=0,l;
   for(i=0;i<npx;i++){l=px[i*4]*.299+px[i*4+1]*.587+px[i*4+2]*.114;gray.push(l);sum+=l;sum2+=l*l}
@@ -858,12 +832,55 @@ function detectBars(gray,gw,gh,ori,iw,ih){
     }
   }
   return null}
+
+function encVec(h){
+  var dm=h.dims,D=dm[dm.length-1];
+  if(D!==DIM)throw new Error("mô hình trả vector "+D+" chiều, cần "+DIM);
+  var d=h.data,i,q=0,u=new Uint8Array(DIM),x;
+  for(i=0;i<DIM;i++)q+=d[i]*d[i];   /* token đầu tiên (CLS) = DIM số đầu của last_hidden_state */
+  q=Math.sqrt(q)||1;
+  for(i=0;i<DIM;i++){x=Math.round(d[i]/q*250);u[i]=(x>127?127:x<-127?-127:x)&255}
+  return btoa(String.fromCharCode.apply(null,u))}
+function decVec(b64){
+  var t=atob(b64),v=new Float32Array(DIM),i,x,q=0;
+  if(t.length!==DIM)return null;
+  for(i=0;i<DIM;i++){x=t.charCodeAt(i);if(x>127)x-=256;v[i]=x/250;q+=v[i]*v[i]}
+  q=Math.sqrt(q)||1;for(i=0;i<DIM;i++)v[i]/=q;
+  return v}
+function inferPx(px){
+  var r=inferQ.then(function(){
+    var n=DS*DS,b=new Float32Array(3*n),i,p;
+    for(i=0;i<n;i++){p=i*4;b[i]=(px[p]/255-.485)/.229;b[n+i]=(px[p+1]/255-.456)/.224;b[2*n+i]=(px[p+2]/255-.406)/.225}
+    return new Promise(function(ok){setTimeout(ok,0)}).then(function(){   /* nhường giao diện giữa các ảnh */
+      return DINO.m({pixel_values:new DINO.T("float32",b,[1,3,DS,DS])})}).then(function(o){
+      var h=o.last_hidden_state||o.pooler_output||o[Object.keys(o)[0]];
+      return encVec(h)})});
+  inferQ=r.then(function(){},function(){});
+  return r}
+function grab(cx,im,sx,sy,sw,sh){cx.clearRect(0,0,DS,DS);cx.drawImage(im,sx,sy,sw,sh,0,0,DS,DS);return cx.getImageData(0,0,DS,DS).data}
+/* Trả về Promise<chuỗi>: "" nếu ảnh trơn; ném lỗi nếu ảnh hỏng/mô hình lỗi */
+function embedImg(im){
+  var iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height;
+  if(!iw||!ih)return Promise.reject(new Error("ảnh rỗng"));
+  var ori=iw>=ih?"L":"P",gw=ori==="L"?144:108,gh=ori==="L"?104:144,cv=document.createElement("canvas"),cx;
+  cv.width=gw;cv.height=gh;cx=cv.getContext("2d",{willReadFrequently:true});
+  cx.drawImage(im,0,0,gw,gh);
+  var st=lumaStats(cx.getImageData(0,0,gw,gh).data,gw*gh);
+  if(st.v<12)return Promise.resolve("");   /* ảnh trắng trơn / đen đặc */
+  var bar=detectBars(st.gray,gw,gh,ori,iw,ih);
+  cv.width=DS;cv.height=DS;
+  return inferPx(grab(cx,im,0,0,iw,ih)).then(function(full){
+    var out="E"+ori+":"+full;
+    if(!bar)return out;
+    var pb=grab(cx,im,bar.sx,bar.sy,bar.sw,bar.sh);
+    if(lumaStats(pb,DS*DS).v<16)return out;
+    return inferPx(pb).then(function(tr){return out+":"+tr})})}
 function hashOf(s){
   if(cache[s]!==undefined)return Promise.resolve(cache[s]);
   if(inflight[s])return inflight[s];
   var p=new Promise(function(res){
-    var s0=imgSrc(s,64),isLh=s0.indexOf("https://lh3.googleusercontent.com/")===0;
-    var tries=isLh?[s0+"?dh=1",imgSrc(s,120)+"?dh=2",imgSrc(s,200)]:[s0];
+    var u0=imgSrc(s,256),isLh=u0.indexOf("https://lh3.googleusercontent.com/")===0;
+    var tries=isLh?[u0+"?dh=3",imgSrc(s,320)+"?dh=4",imgSrc(s,300)]:[u0];
     var step=0,done=false;
     function fin(h){if(done)return;done=true;if(h!==null&&String(s).indexOf("data:")!==0){if(hs&&hs.k[s]&&cache[s]!==undefined)h=cache[s];else cache[s]=h}delete inflight[s];res(h)}
     function next(){
@@ -877,207 +894,43 @@ function hashOf(s){
       function fail(){if(settled||done)return;settled=true;clearTimeout(t);dropIm();setTimeout(next,step===1?400:700)}
       im.onload=function(){
         if(settled||done)return;settled=true;clearTimeout(t);
-        try{
-          var iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height;
-          if(!iw||!ih){dropIm();setTimeout(next,400);return}
-          var ori=iw>=ih?"L":"P";
-          var gw=ori==="L"?144:108,gh=ori==="L"?104:144;
-          var cv=document.createElement("canvas");cv.width=gw;cv.height=gh;
-          var cx=cv.getContext("2d",{willReadFrequently:true});
-          cx.drawImage(im,0,0,gw,gh);
-          var px=cx.getImageData(0,0,gw,gh).data,st=lumaStats(px,gw*gh);
-          if(st.v<12){dropIm();return fin("")}          /* ảnh trắng trơn / đen đặc không có chi tiết: bỏ qua */
-          var gF=grid9x8(st.gray,gw,gh,0,0,gw,gh),f=dhOf(gF,false);
-          if(f.ones===0||f.ones===64){dropIm();return fin("")} /* ảnh chuyển sắc hoàn toàn đơn điệu: bỏ qua */
-          var fm=dhOf(gF,true);
-          var cx0=18,cy0=ori==="L"?12:16,cw=ori==="L"?108:72,ch=ori==="L"?80:112;
-          var gC=grid9x8(st.gray,gw,gh,cx0,cy0,cw,ch),c=dhOf(gC,false),cm=dhOf(gC,true);
-          var col=colorHex(px,gw,cx0,cy0,cw/2,ch/2);
-          /* Nhánh phụ L↔P (1): vùng vuông 1:1 trung tâm không méo tỷ lệ */
-          var side=Math.min(iw,ih),sx0=Math.floor((iw-side)/2),sy0=Math.floor((ih-side)/2);
-          cv.width=72;cv.height=72;
-          cx.drawImage(im,sx0,sy0,side,side,0,0,72,72);
-          var pxS=cx.getImageData(0,0,72,72).data,stS=lumaStats(pxS,5184),sqH="",sqmH="",sqCol="";
-          if(stS.v>=24){
-            var gS=grid9x8(stS.gray,72,72,0,0,72,72),sqF=dhOf(gS,false);
-            if(sqF.ones>=4&&sqF.ones<=60){sqH=sqF.hx;sqmH=dhOf(gS,true).hx;sqCol=colorHex(pxS,72,8,8,28,28)}
-          }
-          /* Nhánh phụ L↔P (2): cắt viền đen/trắng nếu là ảnh chụp màn hình chứa ảnh chiều ngược lại */
-          var bar=detectBars(st.gray,gw,gh,ori,iw,ih),trH="",trmH="",trCol="";
-          if(bar){
-            cv.width=bar.tgw;cv.height=bar.tgh;
-            cx.drawImage(im,bar.sx,bar.sy,bar.sw,bar.sh,0,0,bar.tgw,bar.tgh);
-            var pxT=cx.getImageData(0,0,bar.tgw,bar.tgh).data,stT=lumaStats(pxT,bar.tgw*bar.tgh);
-            if(stT.v>=16){
-              var gT=grid9x8(stT.gray,bar.tgw,bar.tgh,0,0,bar.tgw,bar.tgh),tF=dhOf(gT,false);
-              if(tF.ones>=3&&tF.ones<=61){
-                trH=tF.hx;trmH=dhOf(gT,true).hx;
-                var tx0=18,ty0=bar.tgw===144?12:16,tcw=bar.tgw===144?108:72,tch=bar.tgw===144?80:112;
-                trCol=colorHex(pxT,bar.tgw,tx0,ty0,tcw/2,tch/2);
-              }
-            }
-          }
-          dropIm();
-          fin([ori,f.hx,fm.hx,c.hx,cm.hx,col,sqH,sqmH,sqCol,trH,trmH,trCol].join(":"))
-        }catch(e){dropIm();setTimeout(next,400)}};
+        embedImg(im).then(function(h){dropIm();fin(h)},function(e){dropIm();if(e&&e.message==="ảnh rỗng")setTimeout(next,400);else fin(null)})};
       im.onerror=fail;
       im.src=u}
     next()});
   inflight[s]=p;return p}
-function hx2(h){return h?[parseInt(h.slice(0,8),16)>>>0,parseInt(h.slice(8,16),16)>>>0]:null}
-function colArr(h){if(!h||h.length<24)return null;var col=[],i;for(i=0;i<24;i+=2)col.push(parseInt(h.slice(i,i+2),16)||0);return col}
 function parseSig(raw){
   if(!raw||typeof raw!=="string")return null;
-  var p=raw.split(":");if(p.length<12||(p[0]!=="L"&&p[0]!=="P"))return null;
-  return{ori:p[0],f:hx2(p[1]),fm:hx2(p[2]),c:hx2(p[3]),cm:hx2(p[4]),col:colArr(p[5]),sq:hx2(p[6]),sqm:hx2(p[7]),sqcol:colArr(p[8]),tr:hx2(p[9]),trm:hx2(p[10]),trcol:colArr(p[11])}}
-function hd(x,y){return pc(x[0]^y[0])+pc(x[1]^y[1])}
-function colorDiff(c1,c2,mirror){
-  if(!c1||!c2)return 0;
-  var s1=0,s2=0,i;for(i=0;i<12;i++){s1+=c1[i];s2+=c2[i]}
-  var sh=(s1-s2)/12;if(sh>75)sh=75;else if(sh<-75)sh=-75;
-  var d=0;
-  for(i=0;i<12;i++){
-    var j=mirror?(i<6?(i<3?i+3:i-3):(i<9?i+3:i-3)):i;
-    d+=Math.abs((c1[i]-sh)-c2[j]);
-  }
-  return d/12}
+  var p=raw.split(":");
+  if(!/^E[LP]$/.test(p[0])||!p[1])return null;
+  var v=decVec(p[1]);if(!v)return null;
+  var t=p[2]?decVec(p[2]):null;
+  return{ori:p[0].charAt(1),v:v,t:t}}
+function dotV(a,b){var s=0,i;for(i=0;i<DIM;i++)s+=a[i]*b[i];return s}
+/* th: ngưỡng cosine theo %. Trả về {d,k,o,n}: n = độ giống %, d = 100-n (giữ tên trường cũ cho phần hiển thị/lưu trữ) */
 function cmpSig(a,b,th){
   if(!a||!b)return null;
-  var best=null,boost=Math.max(0,th-10)*1.5;
-  function tryM(h1,h2,c1,c2,lim,mirror,clim,cmin,k,o){
-    if(!h1||!h2)return;
-    var d=hd(h1,h2);
-    if(d>lim)return;
-    if(d>cmin&&colorDiff(c1,c2,mirror)>clim+boost)return;
-    if(!best||d<best.d||(d===best.d&&(k===""||k==="lpt")))best={d:d,k:k,o:o};
-  }
-  if(a.ori===b.ori){
-    /* Trường hợp 1 & 2: Ngang-Ngang (L-L) hoặc Dọc-Dọc (P-P) */
-    var ct=Math.max(4,th-2),cmt=Math.max(4,th-2),cMin=Math.max(4,Math.floor(th*0.5));
-    tryM(a.f,b.f,a.col,b.col,th,false,66,cMin,"",a.ori);
-    tryM(a.f,b.fm,a.col,b.col,Math.max(4,th-1),true,64,cMin,"m",a.ori);
-    tryM(a.c,b.c,a.col,b.col,ct,false,72,cMin,"c",a.ori);
-    tryM(a.c,b.f,a.col,b.col,ct,false,72,cMin,"c",a.ori);
-    tryM(a.f,b.c,a.col,b.col,ct,false,72,cMin,"c",a.ori);
-    tryM(a.c,b.cm,a.col,b.col,cmt,true,68,cMin,"cm",a.ori);
-    tryM(a.c,b.fm,a.col,b.col,cmt,true,68,cMin,"cm",a.ori);
-    tryM(a.f,b.cm,a.col,b.col,cmt,true,68,cMin,"cm",a.ori);
-    return best;
-  }
-  /* Trường hợp 3: Ngang-Dọc (L-P) — ưu tiên cắt viền màn hình, sau đó vùng vuông 1:1 trung tâm */
-  var trLim=Math.max(4,th-2),sqLim=Math.max(3,th-3);
-  if(a.tr){
-    tryM(a.tr,b.f,a.trcol,b.col,trLim,false,62,3,"lpt","LP");
-    tryM(a.trm,b.f,a.trcol,b.col,trLim,true,60,3,"lptm","LP");
-  }
-  if(b.tr){
-    tryM(a.f,b.tr,a.col,b.trcol,trLim,false,62,3,"lpt","LP");
-    tryM(a.f,b.trm,a.col,b.trcol,trLim,true,60,3,"lptm","LP");
-  }
-  if(a.sq&&b.sq){
-    tryM(a.sq,b.sq,a.sqcol,b.sqcol,sqLim,false,48,2,"lp","LP");
-    tryM(a.sq,b.sqm,a.sqcol,b.sqcol,sqLim,true,46,2,"lpm","LP");
-  }
-  return best}
-/* ===== Kiểm tra lần hai: so điểm ảnh sau khi hash đã chọn cặp ứng viên =====
-   Hash dHash chỉ giữ dấu chiều sáng nên hai phòng khác nhau cùng bố cục sáng/tối vẫn có thể khớp.
-   Ở đây mỗi ảnh được thu về bản xám 32×32, bỏ phần sáng tối nền (trừ trung bình cục bộ 7×7) rồi so
-   tương quan chuẩn hóa (-1..1): chỉ ảnh có cùng đường nét mới cao. Chỉ chạy cho cặp ứng viên, không chạy cho mọi cặp. */
-var PIX=32,pixMemo={},VTHR=[null,{f:.45,c:.30,s:.30},{f:.65,c:.40,s:.40}];
-function pixTry(s){
-  var s0=imgSrc(s,64),isLh=s0.indexOf("https://lh3.googleusercontent.com/")===0;
-  return isLh?[s0+"?dh=1",imgSrc(s,120)+"?dh=2",imgSrc(s,200)]:[s0]}
-function normVec(px){
-  var n=PIX*PIX,g=new Float32Array(n),h=new Float32Array(n),i,x,y,dx,dy,xx,yy,m,q=0,k=3,t;
-  for(i=0;i<n;i++)g[i]=px[i*4]*.299+px[i*4+1]*.587+px[i*4+2]*.114;
-  for(y=0;y<PIX;y++)for(x=0;x<PIX;x++){
-    m=0;
-    for(dy=-k;dy<=k;dy++){yy=y+dy;yy=yy<0?0:yy>=PIX?PIX-1:yy;
-      for(dx=-k;dx<=k;dx++){xx=x+dx;xx=xx<0?0:xx>=PIX?PIX-1:xx;m+=g[yy*PIX+xx]}}
-    h[y*PIX+x]=g[y*PIX+x]-m/((2*k+1)*(2*k+1))}
-  m=0;for(i=0;i<n;i++)m+=h[i];m/=n;
-  for(i=0;i<n;i++){t=h[i]-m;h[i]=t;q+=t*t}
-  if(q<n)return null;   /* gần như phẳng: không đủ nét để so */
-  q=Math.sqrt(q);for(i=0;i<n;i++)h[i]/=q;
-  return h}
-function pixOf(s){
-  if(pixMemo[s]!==undefined)return Promise.resolve(pixMemo[s]);
-  return new Promise(function(res){
-    var tries=pixTry(s),step=0;
-    function next(){
-      if(step>=tries.length){res(null);return}
-      var u=tries[step++],im=new Image(),settled=false,t;
-      if(u.indexOf("https://lh3.googleusercontent.com/")===0)im.crossOrigin="anonymous";
-      im.referrerPolicy="no-referrer";
-      function drop(){im.onload=im.onerror=null;try{im.src=""}catch(e){}}
-      function fail(){if(settled)return;settled=true;clearTimeout(t);drop();setTimeout(next,300)}
-      t=setTimeout(fail,12000);
-      im.onload=function(){
-        if(settled)return;settled=true;clearTimeout(t);
-        try{
-          var iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height;
-          if(!iw||!ih){drop();setTimeout(next,300);return}
-          var L=iw>=ih,cv=document.createElement("canvas");cv.width=cv.height=PIX;
-          var cx=cv.getContext("2d",{willReadFrequently:true}),side=Math.min(iw,ih);
-          var grab=function(sx,sy,sw,sh){cx.clearRect(0,0,PIX,PIX);cx.drawImage(im,sx,sy,sw,sh,0,0,PIX,PIX);return normVec(cx.getImageData(0,0,PIX,PIX).data)};
-          var v={F:grab(0,0,iw,ih),
-                 C:L?grab(iw*18/144,ih*12/104,iw*108/144,ih*80/104):grab(iw*18/108,ih*16/144,iw*72/108,ih*112/144),
-                 S:grab(Math.floor((iw-side)/2),Math.floor((ih-side)/2),side,side)};
-          drop();pixMemo[s]=v;res(v)
-        }catch(e){drop();setTimeout(next,300)}};
-      im.onerror=fail;im.src=u}
-    next()})}
-function dotV(a,b,flip){
-  var s=0,n=PIX*PIX,i,y,x;
-  if(!flip){for(i=0;i<n;i++)s+=a[i]*b[i];return s}
-  for(y=0;y<PIX;y++)for(x=0;x<PIX;x++)s+=a[y*PIX+x]*b[y*PIX+PIX-1-x];
-  return s}
-function bestDot(pa,pb,keys,flip){
-  var best=-2,i,a,b,v;
-  for(i=0;i<keys.length;i++){a=pa[keys[i][0]];b=pb[keys[i][1]];if(!a||!b)continue;v=dotV(a,b,flip);if(v>best)best=v}
-  return best}
-/* Trả về {ok,n}: n là điểm khớp 0..100 (null nếu không kiểm tra được); không đọc được ảnh thì giữ kết quả của hash */
-function verOne(m,sa,sb){
-  var T=VTHR[VL];
-  if(!T||m.k==="lpt"||m.k==="lptm"||(m.d<=3&&!m.k))return Promise.resolve({ok:true,n:null});
-  return Promise.all([pixOf(sa),pixOf(sb)]).then(function(r){
-    var pa=r[0],pb=r[1];
-    if(!pa||!pb)return{ok:true,n:null};
-    var k=m.k,n,thr,CC=[["C","C"],["C","F"],["F","C"]];
-    if(k===""){n=bestDot(pa,pb,[["F","F"]],false);thr=T.f}
-    else if(k==="m"){n=bestDot(pa,pb,[["F","F"]],true);thr=T.f}
-    else if(k==="c"){n=bestDot(pa,pb,CC,false);thr=T.c}
-    else if(k==="cm"){n=bestDot(pa,pb,CC,true);thr=T.c}
-    else if(k==="lp"){n=bestDot(pa,pb,[["S","S"]],false);thr=T.s}
-    else if(k==="lpm"){n=bestDot(pa,pb,[["S","S"]],true);thr=T.s}
-    else return{ok:true,n:null};
-    if(n<=-2)return{ok:true,n:null};
-    return{ok:n>=thr,n:Math.max(0,Math.round(n*100))}})}
-function verifyList(list){
-  if(!VTHR[VL]||!list.length){list.rej=0;return Promise.resolve(list)}
-  var res=new Array(list.length),i=0;
-  function worker(){
-    if(i>=list.length)return Promise.resolve();
-    var j=i++,r=list[j];
-    return verOne(r,r.x,r.y).then(function(v){res[j]=v}).then(worker)}
-  return Promise.all([worker(),worker(),worker()]).then(function(){
-    var out=[],rej=0;
-    list.forEach(function(r,j){var v=res[j];if(v&&v.ok){if(v.n!==null)r.n=v.n;out.push(r)}else rej++});
-    out.rej=rej;return out})}
+  var m=dotV(a.v,b.v),x;
+  if(a.t){x=dotV(a.t,b.v);if(x>m)m=x}
+  if(b.t){x=dotV(a.v,b.t);if(x>m)m=x}
+  var n=Math.min(100,Math.round(m*100));
+  return n>=th?{d:100-n,k:"",o:"",n:n}:null}
+/* Không còn bước kiểm tra lần hai theo điểm ảnh (DINOv2 đã so theo nội dung); giữ hàm rỗng để các chỗ gọi không phải đổi */
+function verifyList(list){list.rej=0;return Promise.resolve(list)}
 function matchJobs(jobs,Hm){
   var out=[],seen={},i,j,A=jobs.map(function(x){return Hm[x.s]}),m,k;
   for(i=0;i<jobs.length;i++)for(j=i+1;j<jobs.length;j++){
     if(jobs[i].it.id===jobs[j].it.id)continue;
-    if(jobs[i].s===jobs[j].s)m={d:0,k:"",o:(A[i]||A[j])?(A[i]||A[j]).ori:""};
+    if(jobs[i].s===jobs[j].s)m={d:0,n:100,k:"",o:(A[i]||A[j])?(A[i]||A[j]).ori:""};
     else if(A[i]&&A[j])m=cmpSig(A[i],A[j],TH);else continue;
-    if(m){k=jobs[i].it.id+"|"+jobs[j].it.id+"|"+jobs[i].s+"|"+jobs[j].s;if(!seen[k]){seen[k]=1;out.push({a:jobs[i].it,b:jobs[j].it,x:jobs[i].s,y:jobs[j].s,d:m.d,k:m.k,o:m.o||""})}}}
+    if(m){k=jobs[i].it.id+"|"+jobs[j].it.id+"|"+jobs[i].s+"|"+jobs[j].s;if(!seen[k]){seen[k]=1;out.push({a:jobs[i].it,b:jobs[j].it,x:jobs[i].s,y:jobs[j].s,d:m.d,k:m.k,o:m.o||"",n:m.n})}}}
   return out}
 function ignImgNote(r){
   if(!r||!r.ign||!r.ign.length)return"";
   var n=0;r.ign.forEach(function(o){if(o.img&&o.img.length)n++});
   return n?" ("+n+" cặp đang ở mục “Không phải trùng”).":""}
 /* ===== So khớp ảnh theo từng lượt BATCH căn, lưu kết quả để lần sau chỉ so ảnh mới ===== */
-var BATCH=20,FAIL_TTL=300000,PM_KEY="dpm1",pm=null,pmLoaded=false,pmP=null,sigMemo={};
+var BATCH=20,FAIL_TTL=300000,PM_KEY="dpm2",pm=null,pmLoaded=false,pmP=null,sigMemo={};
 function sigOf(s){var v=sigMemo[s];if(v!==undefined)return v;var c=cache[s];v=c?parseSig(c):null;if(c!==undefined)sigMemo[s]=v;return v}
 function pmEmpty(){return{th:TH,vf:VL,done:{},pairs:[],seen:{},fail:{}}}
 function pmStale(){return pm.th!==TH||(pm.vf||0)!==VL}
@@ -1133,9 +986,9 @@ function matchInc(newJ,oldJ){
       for(j=0;j<p;j++){
         a=allJ[j];
         if(a.it.id===b.it.id)continue;
-        if(a.s===b.s)m={d:0,k:"",o:(A[j]||A[p])?(A[j]||A[p]).ori:""};
+        if(a.s===b.s)m={d:0,n:100,k:"",o:(A[j]||A[p])?(A[j]||A[p]).ori:""};
         else if(A[j]&&A[p])m=cmpSig(A[j],A[p],TH);else continue;
-        if(m){k=a.it.id+"|"+b.it.id+"|"+a.s+"|"+b.s;if(!seen[k]){seen[k]=1;out.push({a:a.it,b:b.it,x:a.s,y:b.s,d:m.d,k:m.k,o:m.o||""})}}
+        if(m){k=a.it.id+"|"+b.it.id+"|"+a.s+"|"+b.s;if(!seen[k]){seen[k]=1;out.push({a:a.it,b:b.it,x:a.s,y:b.s,d:m.d,k:m.k,o:m.o||"",n:m.n})}}
       }
     }
     if(p<allJ.length)return new Promise(function(r){setTimeout(r,0)}).then(step);
@@ -1182,7 +1035,8 @@ function scan(auto){
     if(t.bad)extra.push(t.bad+" ảnh không đọc được");
     if(t.flat)extra.push(t.flat+" ảnh trơn ít chi tiết");
     var exTxt=extra.length?" ("+extra.join(" · ")+")":"";
-    if(stopFlag)msg("Đã dừng. Đã so "+t["căn"]+" căn; hiện có "+imgPairs.length+" cặp ảnh giống nhau."+note);
+    if(dinoErr){msg("Không tải được mô hình DINOv2 (cần mạng ở lần đầu): "+(dinoErr.message||dinoErr),1);dinoErr=null}
+    else if(stopFlag)msg("Đã dừng. Đã so "+t["căn"]+" căn; hiện có "+imgPairs.length+" cặp ảnh giống nhau."+note);
     else if(t.bad&&t.ok===0)msg("Hầu hết ảnh không đọc được, chưa so sánh ảnh được.",1);
     else if(!t["căn"])msg("Không có căn mới cần so. Hiện có "+imgPairs.length+" cặp ảnh giống nhau."+note);
     else msg("Đã so "+t["căn"]+" căn mới ("+t.ok+" ảnh"+exTxt+"): hiện có "+imgPairs.length+" cặp ảnh giống nhau."+note);
@@ -1229,8 +1083,7 @@ function scan(auto){
     if(!auto)pm.fail={};
     var total=pendingItems().length;
     if(!total){return}
-    msg("Đang so ảnh: 0/"+total+" căn…");
-    return run(total)
+    return dinoLoad().then(function(){msg("Đang so ảnh: 0/"+total+" căn…");return run(total)},function(e){dinoErr=e||new Error("lỗi không rõ")})
   }).then(end,function(){end()})}
 function onPairClick(e){
   var mo=e.target.closest("[data-more]");if(mo){if(mo.dataset.more==="ign")limIgn+=LIMIT;else limMain+=LIMIT;render();return}
@@ -1319,8 +1172,7 @@ function init(nt){
     if(closeZoom()){e.preventDefault();return}
     if(showIgn){e.preventDefault();goMain()}
   });
-  G("dupsens").onchange=function(){TH=+this.value||14;try{ls("dth",String(TH))}catch(e){}rescanFromCache()};
-  G("dupvf").onchange=function(){VL=+this.value||0;try{ls("dvf",String(VL))}catch(e){}rescanFromCache()};
+  G("dupsens").onchange=function(){TH=+this.value||85;try{ls("dsim",String(TH))}catch(e){}rescanFromCache()};
   G("dupimgv").onchange=function(){
     var v=this.value;
     imgAutoMode=(v==="both"||v==="stack")?v:"manual";
@@ -1353,7 +1205,6 @@ function open(nt){
   loadSkip();
   loadImgMode();
   G("dupsens").value=String(TH);
-  G("dupvf").value=String(VL);
   G("dupimgv").value=imgAutoMode;
   G("dupnoout").checked=skipOut;
   items=N().items();cleanImgPairs();limMain=limIgn=LIMIT;openSet={};openImgSet={};pairImgMode={};pairImgMsg={};cmpAll={};zoomCmp=null;showIgn=false;msg(imgPairs&&imgPairs.length?"Đang hiện "+imgPairs.length+" cặp ảnh giống nhau.":"");G("dupbar").hidden=true;G("dupstop").hidden=true;G("dupz").hidden=true;render();
