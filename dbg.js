@@ -89,7 +89,12 @@ function chkSw(add){
   if(!("serviceWorker" in navigator)){add("info",g,"Không được hỗ trợ ở môi trường này");return Promise.resolve()}
   if(!/^https?:$/i.test(location.protocol)){add("info",g,"Không chạy ở giao thức "+location.protocol);return Promise.resolve()}
   return navigator.serviceWorker.getRegistration().then(function(reg){
-    if(!reg){add("warn",g,"Chưa đăng ký (ảnh chưa được lưu bền)");return}
+    if(!reg){
+      add("warn",g,"Chưa đăng ký (ảnh chưa được lưu bền)");
+      if(B.swCall===undefined)add("bad",g,"Mã đăng ký service worker chưa từng được gọi (trang tải xong trước khi đoạn đăng ký kịp chạy)");
+      else add("info",g,"Đã gọi đăng ký lúc +"+(B.swCall/1000).toFixed(1)+"s"+(B.swOk!==undefined?", hoàn tất lúc +"+(B.swOk/1000).toFixed(1)+"s":", chưa hoàn tất (xem mục Lỗi đã ghi)"));
+      return}
+    if(B.swCall!==undefined)add("info",g,"Đăng ký được gọi lúc +"+(B.swCall/1000).toFixed(1)+"s"+(B.swOk!==undefined?", sẵn sàng lúc +"+(B.swOk/1000).toFixed(1)+"s":""));
     var sw=reg.active;
     add(sw?"ok":"warn",g,"Đăng ký rồi · "+(sw?sw.state:reg.installing?"đang cài":reg.waiting?"đang chờ":"?")+" · phạm vi "+reg.scope.replace(location.origin,""));
     if(!navigator.serviceWorker.controller)add("warn",g,"Chưa kiểm soát trang này: ảnh chưa được lưu bền. Mở lại trang một lần nữa.");
