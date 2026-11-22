@@ -280,6 +280,15 @@ var NL=B.nl||(B.nl={off:0,on:0,t:0,ev:[]});
 function nlog(k){NL[k]++;NL.t=Date.now();if(NL.ev.length<30)NL.ev.push({k:k,t:Date.now()-B.t})}
 window.addEventListener("offline",function(){nlog("off")});
 window.addEventListener("online",function(){nlog("on")});
+function chkNative(add){
+  var g="Plugin Android (APK)",C=window.Capacitor,names=[];
+  if(!isApk()||!C)return;
+  try{(C.PluginHeaders||[]).forEach(function(h){if(h&&h.name)names.push(h.name)})}catch(e){}
+  if(!names.length){add("warn",g,"Không đọc được danh sách plugin gốc (Capacitor.PluginHeaders trống)");return}
+  var need=["App","StatusBar","Filesystem","Share","SplashScreen"],miss=need.filter(function(n){return names.indexOf(n)<0});
+  add(miss.length?"bad":"ok",g,miss.length?"Thiếu plugin app đang dùng: "+miss.join(", ")+" (chạy lại npm run sync và build lại APK)":"Đủ 5 plugin app đang dùng: "+need.join(", "));
+  var extra=names.filter(function(n){return need.indexOf(n)<0});
+  add("info",g,"Tất cả plugin đã đăng ký ("+names.length+"): "+names.sort().join(", ")+(extra.length?"":" · không có plugin dịch vụ nền hay plugin riêng nào khác"))}
 function chkLink(add){
   var g="Thiết bị & mạng";
   if(!NL.off&&!NL.on){add("ok",g,"Từ lúc mở trang chưa có lần mất/có mạng nào");return}
@@ -478,7 +487,7 @@ function run(){
   return wait().then(function(w){
     chkComponents(add,w);chkBridges(add);chkRes(add);
     return chkSw(add).then(function(){return chkAssets(add)}).then(function(){return chkCaches(add)}).then(function(){return chkStorage(add)}).then(function(){return chkIdb(add)}).then(function(){
-      chkData(add);chkPerf(add);chkLink(add);chkEnv(add);chkErrors(add)})
+      chkNative(add);chkData(add);chkPerf(add);chkLink(add);chkEnv(add);chkErrors(add)})
   }).then(fin,function(e){add("bad","Kiểm tra","Chính bộ kiểm tra bị lỗi: "+(e&&e.message||e));return fin()})}
 function allL(){return (S?S.L:[]).concat(R?R.L:[])}
 function cnt(s){return allL().filter(function(x){return x.s===s}).length}
