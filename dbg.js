@@ -355,8 +355,8 @@ function chkSync(add){
   try{items=(T&&T.items&&T.items())||[]}catch(e){}
   if(!T||!T.idbGet||!items.length)return Promise.resolve();
   return Promise.all([rdKey(KP()),rdKey(KH()),ignRead(),rdKey("dhs1")]).then(function(r){
-    var th=82,skip=true;
-    try{var t=+T.ls("dsim");if(t===92||t===88||t===85||t===82||t===80)th=t}catch(e){}
+    var th=81,skip=true;
+    try{var t=+T.ls("dsim");if(t>0)th=t>=86?87:t>=79?81:t>=75?77:73}catch(e){}
     try{skip=T.ls("dnoout")!=="0"}catch(e){}
     var pmP=pjson(r[0].idb||r[0].ls),hcP=pjson(r[1].idb||r[1].ls),ig=r[2],pm=pmP.o,hc=hcP.o||{};
     if(pmP.bad)add("bad",g,"Kết quả quét ảnh (dpm2) bị hỏng, không đọc được. Dùng \"Xóa kết quả quét (giữ hash ảnh)\" rồi quét lại");
