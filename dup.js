@@ -864,7 +864,7 @@ function dinoWorkerMain(){
     var dts=d==="webgpu"?(f32?["fp32"]:["fp16","fp32"]):["q8","fp32"];
     function go(i){
       var o={device:d==="webgpu"?"webgpu":"wasm",dtype:dts[i]};
-      o.progress_callback=function(p){if(p&&p.status==="initiate")say({t:"stage",s:"tải "+String(p.file||"").split("/").pop()});if(p&&p.status==="progress"&&/\.onnx$/.test(p.file||""))say({t:"prog",p:Math.round(p.progress||0)})};
+      o.progress_callback=function(p){if(p&&p.status==="initiate")say({t:"stage",s:"tải "+String(p.file||"").split("/").pop()});if(p&&p.status==="progress"&&/\.onnx(_data)?$/.test(p.file||""))say({t:"prog",p:Math.round(p.progress||0)})};
       return L.AutoModel.from_pretrained(C.id,o).then(function(m){M=m;dev=d;dt=dts[i];return m},function(e){if(i+1<dts.length)return go(i+1);throw e})}
     return go(0)}
   function infer(list){
@@ -929,7 +929,7 @@ function loadMain(){
   return import(DINO_LIB).then(function(L){
     L.env.allowLocalModels=false;
     function go(dtype){return L.AutoModel.from_pretrained(DINO_ID,{dtype:dtype,device:"wasm",progress_callback:function(p){
-      if(p&&p.status==="progress"&&/\.onnx$/.test(p.file||""))msg("Đang tải DINOv3… "+Math.round(p.progress||0)+"%")}
+      if(p&&p.status==="progress"&&/\.onnx(_data)?$/.test(p.file||""))msg("Đang tải DINOv3… "+Math.round(p.progress||0)+"%")}
     })}
     return go("q8").catch(function(){return go("fp32")}).then(function(m){DINO.m=m;DINO.T=L.Tensor;return m})})}
 function dinoLoad(){
@@ -1214,7 +1214,7 @@ function scan(auto){
     if(!pend.length)return Promise.resolve(false);
     var B=pend.slice(0,BATCH),newJ=[],urls=[],seenU={},Bid={},now=Date.now();
     B.forEach(function(it){Bid[it.id]=1;(it.im||[]).forEach(function(s){if(!s)return;newJ.push({it:it,s:s});if(!pm.done[s]&&!badSet[s]&&!isFailCool(pm.fail&&pm.fail[s],now)&&!seenU[s]){seenU[s]=1;urls.push(s)}})});
-    var idx=0,got={},flat={};
+    var idx=0,got={},flat={},dn=0;
     function worker(){
       if(stopFlag||idx>=urls.length)return Promise.resolve();
       var u=urls[idx++];
@@ -1222,7 +1222,7 @@ function scan(auto){
         if(h){var sg=sigOf(u)||parseSig(h);if(sg){got[u]=1;t.ok++;if(sg.ori==="L")t.nL++;else t.nP++}}
         else if(h===null){badSet[u]=1;t.bad++;pm.fail=pm.fail||{};var cf=pm.fail[u];pm.fail[u]={n:(cf&&typeof cf==="object"?cf.n:0)+1,t:Date.now()}}
         else{flat[u]=1;t.flat++}
-        msg("Đang so ảnh "+t["căn"]+"/"+total+" căn…")
+        dn++;msg("Đang so ảnh · "+t["căn"]+"/"+total+" căn · ảnh "+dn+"/"+urls.length+"…");bar.style.width=Math.min(100,(t["căn"]+B.length*dn/Math.max(1,urls.length))/total*100)+"%"
       }).then(worker)}
     return Promise.all(spawnW(worker)).then(function(){
       if(stopFlag)return false;
