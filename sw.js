@@ -4,10 +4,11 @@
      trì hoãn syncNext 2,5 giây để không tranh băng thông với dữ liệu Google Sheets và ảnh đầu trang.
    - APK Capacitor (đăng ký với ?app=1): file app đã nằm sẵn trong APK nên KHÔNG cache vỏ app, chỉ cache ảnh Drive.
    Đổi VERSION khi đổi font/icon/manifest. Sửa index.html thì không cần đổi (tự cập nhật mỗi lần mở). */
-const VERSION = 'v28';
+const VERSION = 'v29';
 const SHELL = 'shell-' + VERSION;
 const RUNTIME = 'runtime-' + VERSION;
 const NEXT = 'next-' + VERSION;   // bản mới tải về, chờ lần mở trang kế tiếp mới áp dụng (tránh lệch index.html cũ + ck.js mới)
+const LIB = 'lib-v1';            // runtime DINOv2 (transformers.js + onnxruntime-web từ jsDelivr): KHÔNG gắn VERSION, để chạy offline sau lần đầu
 const IMG = 'img-v1';            // KHÔNG gắn VERSION: đổi VERSION không làm mất ảnh đã tải
 const APP_MODE = new URL(self.location.href).searchParams.get('app') === '1';
 const INDEX = './index.html';
@@ -65,7 +66,7 @@ self.addEventListener('install', function (e) {
 self.addEventListener('activate', function (e) {
   e.waitUntil(
     caches.keys().then(function (keys) {
-      return Promise.all(keys.filter(function (k) { return k !== SHELL && k !== RUNTIME && k !== IMG && k !== NEXT; })
+      return Promise.all(keys.filter(function (k) { return k !== SHELL && k !== RUNTIME && k !== IMG && k !== NEXT && k !== LIB; })
         .map(function (k) { return caches.delete(k); }));
     }).then(function () { return self.clients.claim(); })
   );
@@ -82,13 +83,35 @@ self.addEventListener('fetch', function (e) {
     if (m) e.respondWith(image(e, url, m[1], +m[2]));
     return;
   }
+  // Thư viện DINOv2 trên jsDelivr (transformers.js, onnxruntime-web .mjs/.wasm): bất biến theo phiên bản, cache trước
+  if (url.hostname === 'cdn.jsdelivr.net' && /^\/npm\/(@huggingface\/transformers|onnxruntime-web)@/.test(url.pathname)) {
+    e.respondWith(lib(e, req));
+    return;
+  }
   // API Apps Script và mọi nguồn Google khác: luôn lấy dữ liệu mới
   if (url.origin !== location.origin) return;
+  // Model tự host (./models/...): transformers.js tự lưu bằng Cache API, không để lọt vào RUNTIME (giới hạn 30 mục)
+  if (url.pathname.indexOf('/models/') !== -1) return;
   if (APP_MODE) return;            // APK/App: file app lấy thẳng từ gói app
 
   if (req.mode === 'navigate') { e.respondWith(openPage(e)); return; }
   e.respondWith(asset(e, req));
 });
+
+/* ---------- Thư viện DINOv2: cache trước, chỉ lưu phản hồi CORS hợp lệ ---------- */
+function lib(e, req) {
+  var work = caches.open(LIB).then(function (c) {
+    return c.match(req).then(function (hit) {
+      if (hit) return { res: hit };
+      return fetch(req).then(function (res) {
+        var saved = (res && res.ok && res.type !== 'opaque') ? c.put(req, res.clone()).catch(noop) : null;
+        return { res: res, saved: saved };
+      });
+    });
+  });
+  e.waitUntil(work.then(function (w) { return w.saved; }).catch(noop));
+  return work.then(function (w) { return w.res; }).catch(function () { return fetch(req); });
+}
 
 /* ---------- Ảnh Drive: cache trước, không hỏi lại mạng (ảnh theo id là bất biến) ---------- */
 var putN = 0;

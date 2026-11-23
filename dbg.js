@@ -23,6 +23,8 @@ var NI_FN=["imgSrc","findItem","segArr","curSeg","ckWarm","tab","items"];
 var NB_KEYS=["$","IDBM","apiGet","apiPost","apiUrl","capP","hs","netMsg","nrm","refresh","items","canW","pendAdd","bumpVer"];
 var NB_FN=["$","apiGet","apiPost","apiUrl","capP","hs","netMsg","nrm","refresh","pendAdd","bumpVer"];
 var NT_KEYS=["apiGet","apiPost","items","esc","su","imgSrc","addrOf","stName","fmt","ls","openDv","openEdit","canW","idbGet","idbSave","del"];
+function KH(){try{return window.Dup.keys().h}catch(e){return"dhc6"}}   /* khóa hash ảnh đang dùng (dhc6, hoặc dhc6r168 khi đổi độ phân giải) */
+function KP(){try{return window.Dup.keys().p}catch(e){return"dpm2"}}   /* khóa kết quả quét */
 var MOD={Ck:["init","renderCk","ckFlush","ckPersist"],Img:["init","openLb","iwGal","iwNow","iwIntent","iwCkNow"],Dup:["pull","init","open","close","sync","closeZoom"],Bk:["init"]};
 var IDS=["list","ckb","lb","lbi","lbc","lbn","lbp","upd","pgCk","bk","bd","bsel","bim","bm"];
 var NET=/failed to fetch|load failed|networkerror|network request|internet connection|mất kết nối|aborted/i;
@@ -267,6 +269,9 @@ function chkEnv(add){
   if(dm)add(dm<=1?"warn":"info",g,"RAM máy: "+(dm>=8?"từ 8 GB trở lên (trình duyệt chỉ báo tối đa 8)":"khoảng "+dm+" GB")+". Số đã làm tròn xuống theo bậc 0,5/1/2/4/8, là tổng RAM chứ không phải RAM còn trống");
   else add("info",g,"Trình duyệt không cho biết RAM máy (chỉ Chrome/Edge/Opera và chỉ trên https)");
   if(navigator.hardwareConcurrency)add("info",g,"Số nhân CPU: "+navigator.hardwareConcurrency);
+  var wg=!!navigator.gpu;
+  add("info",g,"WebGPU: "+(wg?"có (DINOv2 sẽ chạy bằng GPU nếu qua bước thử)":"không có (DINOv2 chạy WASM)")+" · crossOriginIsolated: "+(window.crossOriginIsolated?"bật":"tắt"));
+  try{if(window.Dup&&typeof window.Dup.dino==="function")add("info",g,"DINOv2: "+window.Dup.dino())}catch(e){}
   var m=null;try{m=performance.memory}catch(e){}
   if(m&&m.jsHeapSizeLimit){
     var pc=Math.round(m.usedJSHeapSize*100/m.jsHeapSizeLimit);
@@ -349,7 +354,7 @@ function chkSync(add){
   var g="Đồng bộ · Dữ liệu quét trùng",g2="Đồng bộ · Mã đối chiếu",T=window.NT,items=[];
   try{items=(T&&T.items&&T.items())||[]}catch(e){}
   if(!T||!T.idbGet||!items.length)return Promise.resolve();
-  return Promise.all([rdKey("dpm2"),rdKey("dhc6"),ignRead(),rdKey("dhs1")]).then(function(r){
+  return Promise.all([rdKey(KP()),rdKey(KH()),ignRead(),rdKey("dhs1")]).then(function(r){
     var th=85,skip=true;
     try{var t=+T.ls("dsim");if(t===92||t===88||t===85||t===80)th=t}catch(e){}
     try{skip=T.ls("dnoout")!=="0"}catch(e){}
@@ -384,7 +389,7 @@ function chkSync(add){
     }else if(!pmP.bad)add("info",g,"Máy này chưa quét ảnh trùng (chưa có kết quả so khớp). Mở Kiểm tra trùng → Quét ảnh trùng");
     if(noHash)add("info",g,noHash+"/"+actImg.length+" ảnh chưa có hash trên máy này (sẽ tính khi quét)");
     var hsO=pjson(r[3].idb||r[3].ls).o||{},hsK={};
-    if(hsO.v==="dhc6")String(hsO.k||"").split(",").forEach(function(x){if(x)hsK[x]=1});
+    if(hsO.v===KH())String(hsO.k||"").split(",").forEach(function(x){if(x)hsK[x]=1});
     var unsent=Object.keys(hc).filter(function(s){return !hsK[s]&&s.indexOf("data:")!==0}).length,canW=true;
     try{canW=!!(T.canW&&T.canW())}catch(e){}
     if(unsent)add(canW?"warn":"info",g,unsent+" hash ảnh chưa gửi lên máy chủ"+(canW?": máy khác chưa dùng được, nên kết quả quét có thể khác. Mở Kiểm tra trùng và để app tự gửi (cần mạng)":" (máy này chỉ xem nên không gửi được)"));
@@ -511,11 +516,11 @@ function chkSyncSrv(add,base,d){
   },function(e){srvFail(add,g,"Tải cặp Không phải trùng",e)}).then(function(){return hashProbe(add,base,g)})}
 function hashProbe(add,base,g){
   if(stopped)return Promise.resolve();
-  return tget(base+"&action=hash&v=dhc6&count=1",{cache:"no-store"},25000,15000).then(function(res){
+  return tget(base+"&action=hash&v="+encodeURIComponent(KH())+"&count=1",{cache:"no-store"},25000,15000).then(function(res){
     var d=parseSrv(res,add,g,"Đếm hash ảnh");if(!d)return;
     if(typeof d.total!=="number"){add("warn",g,"Máy chủ chưa hỗ trợ đồng bộ hash ảnh: dán Code.gs mới vào Apps Script rồi Deploy > Manage deployments > Edit > New version");return}
     return rdKey("dhs1").then(function(r){
-      var o=pjson(r.idb||r.ls).o||{},n=o.v==="dhc6"?(+o.n||0):0;
+      var o=pjson(r.idb||r.ls).o||{},n=o.v===KH()?(+o.n||0):0;
       if(d.total>n)add("warn",g,"Tab Hash trên máy chủ có "+d.total+" dòng, máy mới kéo tới dòng "+n+": còn "+(d.total-n)+" dòng chưa kéo về. Mở Kiểm tra trùng để kéo");
       else if(d.total<n)add("warn",g,"Máy đã kéo tới dòng "+n+" nhưng tab Hash chỉ còn "+d.total+" dòng (Sheet bị xóa bớt). Mở Kiểm tra trùng để máy gửi lại");
       else add("ok",g,"Hash ảnh khớp máy chủ: "+d.total+" dòng, máy đã kéo hết")})
@@ -819,10 +824,10 @@ function onClick(e){
     Promise.resolve(window.NT&&window.NT.idbSave?window.NT.idbSave("ckc1",""):0).catch(function(){}).then(function(){setTimeout(reload,1800)});return}
   if(a==="dpm"){
     if(!confirm("Xóa kết quả so khớp ảnh trùng trên máy này? Hash ảnh được giữ nên quét lại rất nhanh. Danh sách \"Không phải trùng\" và dữ liệu trên Sheet không bị ảnh hưởng."))return;
-    say("Đang xóa…");wipeKeys(["dpm2"]).then(reload,reload);return}
+    say("Đang xóa…");wipeKeys([KP()]).then(reload,reload);return}
   if(a==="dup"){
     if(!confirm("Đặt lại dữ liệu quét ảnh trùng trên máy này? Danh sách \"Không phải trùng\" được giữ nguyên, lần sau cần quét lại."))return;
-    say("Đang đặt lại…");wipeKeys(["dhc6","dpm2","dhs1"]).then(reload,reload)}}
+    say("Đang đặt lại…");wipeKeys([KH(),KP(),"dhs1"]).then(reload,reload)}}
 
 /* ---------- Kích hoạt ---------- */
 function tapTitle(e){

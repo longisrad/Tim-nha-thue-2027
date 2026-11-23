@@ -437,7 +437,7 @@ function checkPairImg(el){
       if(pos>=list.length)return Promise.resolve();
       var s=list[pos++];
       return hashOf(s).then(function(h){if(h!==null){doneSet[s]=1;if(h){var sg=sigOf(s)||parseSig(h);if(sg)map[s]=sg}}else bad++}).then(worker)}
-    return Promise.all([worker(),worker(),worker()]).then(function(){
+    return Promise.all(spawnW(worker)).then(function(){
       saveCache();
       var found=[],seen={},i,j,sa,sb,ha,hb,m;
       for(i=0;i<aIm.length;i++){
@@ -682,7 +682,8 @@ function closeZoom(){zoomCmp=null;zT++;zt={};var z=G("dupz");if(z&&!z.hidden){z.
 function msg(t,bad){var m=G("dupm");m.textContent=t||"";m.className="pm"+(bad?" bad":"")}
 
 /* ---------- Quét ảnh bằng DINOv2 (embedding + cosine), thay cho dHash 3 nhánh cũ ---------- */
-var CACHE_KEY="dhc6";
+var DS=(function(){var r=+window.DUP_DINO_RES;return(r>=112&&r<=224&&r%14===0)?r:224})();   /* 224 = mặc định (tương thích cache cũ); đặt window.DUP_DINO_RES=168 trước khi nạp dup.js để nhanh ~1.8x (cache tách riêng) */
+var CACHE_KEY="dhc6"+(DS===224?"":"r"+DS);
 function parseCache(raw){try{var o=JSON.parse(raw||"{}");return(o&&typeof o==="object")?o:{}}catch(e){return{}}}
 function clearOldCaches(){
   ["dhc1","dhc2","dhc3","dhc4","dhc5","dpm1"].forEach(function(k){
@@ -783,21 +784,104 @@ function hsFlush(){if(hsT){clearTimeout(hsT);hsT=0}hsPush()}
    Chuỗi lưu: "E<L|P>:<vec>" hoặc "E<L|P>:<vec>:<vec cắt viền>" (ảnh chụp màn hình có viền đen/trắng thì nhúng thêm bản đã cắt viền).
    Chuỗi rỗng "" = ảnh trơn/ít chi tiết (bỏ qua); null = không đọc được ảnh.
    Mô hình chạy ngay trong máy bằng transformers.js (WASM, bản lượng tử hóa q8 ~25 MB), tải lần đầu từ CDN rồi được trình duyệt lưu lại. */
-var DINO_LIB="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.6",DINO_ID="Xenova/dinov2-small",DINO_DEV="wasm",DINO_DT="q8";
-var DS=224,DIM=384,DINO={p:null,m:null,T:null},dinoErr=null,inferQ=Promise.resolve();
+var DINO_LIB="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.6",DINO_ID="Xenova/dinov2-small",DINO_LOCAL="models/",DINO_GPU=window.DUP_DINO_GPU!==false,FETCH_CONC=6;
+var DIM=384,DINO={p:null,m:null,T:null},dinoErr=null,DW={w:null,dev:"",seq:0,pend:{},q:[],busy:false,tm:0},BN=DS<=168?8:4;
+/* Worker (nhúng bằng Blob, không cần file riêng): WebGPU fp16 nếu có, không thì WASM q8 (đa luồng khi crossOriginIsolated).
+   Có kiểm tra thử 1 lần lúc khởi tạo; lỗi/NaN trên WebGPU tự lùi về WASM. Có thể tự host model tại ./models/Xenova/dinov2-small/ */
+function dinoWorkerMain(){
+  var L=null,M=null,T=null,dev="",C=null;
+  function say(m,tr){self.postMessage(m,tr||[])}
+  function build(d){
+    var o=d==="webgpu"?{device:"webgpu",dtype:"fp16"}:{device:"wasm",dtype:"q8"};
+    o.progress_callback=function(p){if(p&&p.status==="progress"&&/\.onnx$/.test(p.file||""))say({t:"prog",p:Math.round(p.progress||0)})};
+    return L.AutoModel.from_pretrained(C.id,o).then(function(m){M=m;dev=d;return m})}
+  function infer(list){
+    var n=list.length,S=C.S,sz=S*S,f=new Float32Array(n*3*sz),k,i,p,u,o;
+    for(k=0;k<n;k++){u=new Uint8ClampedArray(list[k]);o=k*3*sz;
+      for(i=0;i<sz;i++){p=i*4;f[o+i]=(u[p]/255-.485)/.229;f[o+sz+i]=(u[p+1]/255-.456)/.224;f[o+2*sz+i]=(u[p+2]/255-.406)/.225}}
+    return M({pixel_values:new T("float32",f,[n,3,S,S])}).then(function(r){
+      var h=r.last_hidden_state||r.pooler_output||r[Object.keys(r)[0]],dm=h.dims,D=dm[dm.length-1],tk=dm.length===3?dm[1]:1,d=h.data,out=[],v,j,bad=false;
+      for(k=0;k<n;k++){v=new Float32Array(D);for(j=0;j<D;j++){v[j]=d[k*tk*D+j];if(v[j]!==v[j])bad=true}out.push(v)}
+      if(bad)throw new Error("NaN");
+      return out})}
+  function safe(list){
+    return infer(list).catch(function(e){
+      if(dev!=="webgpu")throw e;
+      return build("wasm").then(function(){return infer(list)})})}
+  function probe(c){
+    if(!c.localBase)return Promise.resolve(false);
+    return fetch(c.localBase+c.id+"/config.json").then(function(r){return r.ok?r.json().then(function(){return true},function(){return false}):false},function(){return false})}
+  function gpuOk(c){
+    if(!c.gpu||!self.navigator||!navigator.gpu)return Promise.resolve(false);
+    return navigator.gpu.requestAdapter().then(function(a){return !!a},function(){return false})}
+  function init(c){
+    C=c;
+    return import(c.lib).then(function(x){
+      L=x;T=x.Tensor;
+      var w=x.env.backends&&x.env.backends.onnx&&x.env.backends.onnx.wasm;
+      if(w)w.numThreads=self.crossOriginIsolated?Math.max(1,Math.min(4,self.navigator.hardwareConcurrency||2)):1;
+      return probe(c)}).then(function(loc){
+      L.env.allowLocalModels=!!loc;
+      if(loc)L.env.localModelPath=c.localBase;
+      return gpuOk(c)}).then(function(g){
+      return build(g?"webgpu":"wasm").catch(function(e){if(!g)throw e;return build("wasm")})}).then(function(){
+      if(dev!=="webgpu")return;
+      var z=[new Uint8ClampedArray(C.S*C.S*4).fill(127).buffer];
+      return infer(z).catch(function(){return build("wasm")})})}
+  self.onmessage=function(e){
+    var m=e.data||{};
+    if(m.t==="init")init(m.cfg).then(function(){say({t:"ready",dev:dev})},function(err){say({t:"initerr",msg:String(err&&err.message||err)})});
+    else if(m.t==="run")safe(m.px).then(function(v){say({t:"res",id:m.id,v:v},v.map(function(x){return x.buffer}))},function(err){say({t:"err",id:m.id,msg:String(err&&err.message||err)})})}}
+function failPend(e){var p=DW.pend;DW.pend={};Object.keys(p).forEach(function(k){p[k].bad(e)})}
+function killWorker(){if(DW.w){try{DW.w.terminate()}catch(e){}DW.w=null}}
+function onWorkerMsg(e){
+  var m=e.data||{},p=DW.pend[m.id];
+  if(!p)return;
+  delete DW.pend[m.id];
+  if(m.t==="res")p.ok(m.v);else p.bad(new Error(m.msg||"lỗi suy luận"))}
+function onWorkerErr(e){failPend(new Error(e&&e.message||"worker lỗi"));killWorker();DINO.p=null}
+function loadWorker(){
+  return new Promise(function(ok,bad){
+    var w,done=false;
+    try{w=new Worker(URL.createObjectURL(new Blob(["("+dinoWorkerMain.toString()+")()"],{type:"text/javascript"})))}catch(e){bad(e);return}
+    w.onmessage=function(e){
+      var m=e.data||{};
+      if(m.t==="prog")msg("Đang tải mô hình DINOv2… "+m.p+"%");
+      else if(m.t==="ready"){done=true;DW.w=w;DW.dev=m.dev;w.onmessage=onWorkerMsg;w.onerror=onWorkerErr;ok(w)}
+      else if(m.t==="initerr"){done=true;try{w.terminate()}catch(_){}bad(new Error(m.msg))}};
+    w.onerror=function(e){if(done)return;done=true;try{w.terminate()}catch(_){}bad(new Error(e&&e.message||"worker lỗi"))};
+    w.postMessage({t:"init",cfg:{lib:DINO_LIB,id:DINO_ID,S:DS,gpu:DINO_GPU,localBase:new URL(DINO_LOCAL,location.href).href}})})}
+function loadMain(){
+  return import(DINO_LIB).then(function(L){
+    L.env.allowLocalModels=false;
+    return L.AutoModel.from_pretrained(DINO_ID,{dtype:"q8",device:"wasm",progress_callback:function(p){
+      if(p&&p.status==="progress"&&/\.onnx$/.test(p.file||""))msg("Đang tải mô hình DINOv2… "+Math.round(p.progress||0)+"%")}
+    }).then(function(m){DINO.m=m;DINO.T=L.Tensor;return m})})}
 function dinoLoad(){
   if(DINO.p)return DINO.p;
   msg("Đang tải mô hình DINOv2 (~25 MB, chỉ lần đầu)…");
-  DINO.p=import(DINO_LIB).then(function(L){
-    L.env.allowLocalModels=false;
-    return L.AutoModel.from_pretrained(DINO_ID,{dtype:DINO_DT,device:DINO_DEV,progress_callback:function(p){
-      if(p&&p.status==="progress"&&/\.onnx$/.test(p.file||""))msg("Đang tải mô hình DINOv2… "+Math.round(p.progress||0)+"%")}
-    }).then(function(m){DINO.m=m;DINO.T=L.Tensor;return m})
-  }).catch(function(e){DINO.p=null;DINO.m=null;throw e});
+  DINO.p=loadWorker().catch(function(){return loadMain()}).catch(function(e){DINO.p=null;DINO.m=null;killWorker();throw e});
   return DINO.p}
+function mainRun(list){
+  return new Promise(function(ok){setTimeout(ok,0)}).then(function(){   /* nhường giao diện (chỉ dùng khi không có worker) */
+    var n=list.length,S=DS,sz=S*S,f=new Float32Array(n*3*sz),k,i,p,u,o;
+    for(k=0;k<n;k++){u=list[k];o=k*3*sz;
+      for(i=0;i<sz;i++){p=i*4;f[o+i]=(u[p]/255-.485)/.229;f[o+sz+i]=(u[p+1]/255-.456)/.224;f[o+2*sz+i]=(u[p+2]/255-.406)/.225}}
+    return DINO.m({pixel_values:new DINO.T("float32",f,[n,3,S,S])})}).then(function(r){
+    var h=r.last_hidden_state||r.pooler_output||r[Object.keys(r)[0]],dm=h.dims,D=dm[dm.length-1],tk=dm.length===3?dm[1]:1,out=[],k;
+    for(k=0;k<list.length;k++)out.push(Float32Array.from(h.data.subarray(k*tk*D,k*tk*D+D)));
+    return out})}
+function runBatch(list){
+  if(DW.w)return new Promise(function(ok,bad){
+    var id=++DW.seq,bufs=list.map(function(u){return u.buffer});
+    DW.pend[id]={ok:ok,bad:bad};
+    DW.w.postMessage({t:"run",id:id,px:bufs},bufs)});
+  if(DINO.m)return mainRun(list);
+  return dinoLoad().then(function(){return runBatch(list)})}
+function spawnW(f){var a=[],i;for(i=0;i<FETCH_CONC;i++)a.push(f());return a}
 function lumaStats(px,npx){
-  var gray=[],i,sum=0,sum2=0,l;
-  for(i=0;i<npx;i++){l=px[i*4]*.299+px[i*4+1]*.587+px[i*4+2]*.114;gray.push(l);sum+=l;sum2+=l*l}
+  var gray=new Float32Array(npx),i,sum=0,sum2=0,l;
+  for(i=0;i<npx;i++){l=px[i*4]*.299+px[i*4+1]*.587+px[i*4+2]*.114;gray[i]=l;sum+=l;sum2+=l*l}
   var mean=sum/npx;
   return{gray:gray,v:sum2/npx-mean*mean}}
 function detectBars(gray,gw,gh,ori,iw,ih){
@@ -833,11 +917,11 @@ function detectBars(gray,gw,gh,ori,iw,ih){
   }
   return null}
 
-function encVec(h){
-  var dm=h.dims,D=dm[dm.length-1];
-  if(D!==DIM)throw new Error("mô hình trả vector "+D+" chiều, cần "+DIM);
-  var d=h.data,i,q=0,u=new Uint8Array(DIM),x;
-  for(i=0;i<DIM;i++)q+=d[i]*d[i];   /* token đầu tiên (CLS) = DIM số đầu của last_hidden_state */
+function encVec(d){
+  if(!d||d.length<DIM)throw new Error("mô hình trả vector sai kích thước, cần "+DIM);
+  var i,q=0,u=new Uint8Array(DIM),x;
+  for(i=0;i<DIM;i++)q+=d[i]*d[i];
+  if(!isFinite(q))throw new Error("vector lỗi");
   q=Math.sqrt(q)||1;
   for(i=0;i<DIM;i++){x=Math.round(d[i]/q*250);u[i]=(x>127?127:x<-127?-127:x)&255}
   return btoa(String.fromCharCode.apply(null,u))}
@@ -848,15 +932,16 @@ function decVec(b64){
   q=Math.sqrt(q)||1;for(i=0;i<DIM;i++)v[i]/=q;
   return v}
 function inferPx(px){
-  var r=inferQ.then(function(){
-    var n=DS*DS,b=new Float32Array(3*n),i,p;
-    for(i=0;i<n;i++){p=i*4;b[i]=(px[p]/255-.485)/.229;b[n+i]=(px[p+1]/255-.456)/.224;b[2*n+i]=(px[p+2]/255-.406)/.225}
-    return new Promise(function(ok){setTimeout(ok,0)}).then(function(){   /* nhường giao diện giữa các ảnh */
-      return DINO.m({pixel_values:new DINO.T("float32",b,[1,3,DS,DS])})}).then(function(o){
-      var h=o.last_hidden_state||o.pooler_output||o[Object.keys(o)[0]];
-      return encVec(h)})});
-  inferQ=r.then(function(){},function(){});
-  return r}
+  return new Promise(function(ok,bad){DW.q.push({px:px,ok:ok,bad:bad});pump()}).then(encVec)}
+function pump(){
+  if(DW.busy||!DW.q.length)return;
+  if(DW.q.length>=BN){flush();return}
+  if(!DW.tm)DW.tm=setTimeout(flush,12)}
+function flush(){
+  if(DW.tm){clearTimeout(DW.tm);DW.tm=0}
+  if(DW.busy||!DW.q.length)return;
+  var b=DW.q.splice(0,BN);DW.busy=true;
+  runBatch(b.map(function(x){return x.px})).then(function(vs){b.forEach(function(x,i){x.ok(vs[i])})},function(e){b.forEach(function(x){x.bad(e)})}).then(function(){DW.busy=false;pump()})}
 function grab(cx,im,sx,sy,sw,sh){cx.clearRect(0,0,DS,DS);cx.drawImage(im,sx,sy,sw,sh,0,0,DS,DS);return cx.getImageData(0,0,DS,DS).data}
 /* Trả về Promise<chuỗi>: "" nếu ảnh trơn; ném lỗi nếu ảnh hỏng/mô hình lỗi */
 function embedImg(im){
@@ -869,12 +954,9 @@ function embedImg(im){
   if(st.v<12)return Promise.resolve("");   /* ảnh trắng trơn / đen đặc */
   var bar=detectBars(st.gray,gw,gh,ori,iw,ih);
   cv.width=DS;cv.height=DS;
-  return inferPx(grab(cx,im,0,0,iw,ih)).then(function(full){
-    var out="E"+ori+":"+full;
-    if(!bar)return out;
-    var pb=grab(cx,im,bar.sx,bar.sy,bar.sw,bar.sh);
-    if(lumaStats(pb,DS*DS).v<16)return out;
-    return inferPx(pb).then(function(tr){return out+":"+tr})})}
+  var pf=grab(cx,im,0,0,iw,ih),pb=null;
+  if(bar){pb=grab(cx,im,bar.sx,bar.sy,bar.sw,bar.sh);if(lumaStats(pb,DS*DS).v<16)pb=null}
+  return Promise.all([inferPx(pf),pb?inferPx(pb):null]).then(function(r){var out="E"+ori+":"+r[0];return r[1]?out+":"+r[1]:out})}
 function hashOf(s){
   if(cache[s]!==undefined)return Promise.resolve(cache[s]);
   if(inflight[s])return inflight[s];
@@ -906,7 +988,7 @@ function parseSig(raw){
   var v=decVec(p[1]);if(!v)return null;
   var t=p[2]?decVec(p[2]):null;
   return{ori:p[0].charAt(1),v:v,t:t}}
-function dotV(a,b){var s=0,i;for(i=0;i<DIM;i++)s+=a[i]*b[i];return s}
+function dotV(a,b){var s0=0,s1=0,s2=0,s3=0,i;for(i=0;i<DIM;i+=4){s0+=a[i]*b[i];s1+=a[i+1]*b[i+1];s2+=a[i+2]*b[i+2];s3+=a[i+3]*b[i+3]}return s0+s1+s2+s3}
 /* th: ngưỡng cosine theo %. Trả về {d,k,o,n}: n = độ giống %, d = 100-n (giữ tên trường cũ cho phần hiển thị/lưu trữ) */
 function cmpSig(a,b,th){
   if(!a||!b)return null;
@@ -930,7 +1012,7 @@ function ignImgNote(r){
   var n=0;r.ign.forEach(function(o){if(o.img&&o.img.length)n++});
   return n?" ("+n+" cặp đang ở mục “Không phải trùng”).":""}
 /* ===== So khớp ảnh theo từng lượt BATCH căn, lưu kết quả để lần sau chỉ so ảnh mới ===== */
-var BATCH=20,FAIL_TTL=300000,PM_KEY="dpm2",pm=null,pmLoaded=false,pmP=null,sigMemo={};
+var BATCH=20,FAIL_TTL=300000,PM_KEY="dpm2"+(DS===224?"":"r"+DS),pm=null,pmLoaded=false,pmP=null,sigMemo={};
 function sigOf(s){var v=sigMemo[s];if(v!==undefined)return v;var c=cache[s];v=c?parseSig(c):null;if(c!==undefined)sigMemo[s]=v;return v}
 function pmEmpty(){return{th:TH,vf:VL,done:{},pairs:[],seen:{},fail:{}}}
 function pmStale(){return pm.th!==TH||(pm.vf||0)!==VL}
@@ -1057,7 +1139,7 @@ function scan(auto){
         else{flat[u]=1;t.flat++}
         msg("Đang so ảnh: "+t["căn"]+"/"+total+" căn (đọc ảnh "+Math.min(idx,urls.length)+"/"+urls.length+")…")
       }).then(worker)}
-    return Promise.all([worker(),worker(),worker()]).then(function(){
+    return Promise.all(spawnW(worker)).then(function(){
       if(stopFlag)return false;
       saveCache();hsPushSoon();
       var oldJ=[];
@@ -1228,7 +1310,7 @@ function sync(){
     if(cacheLoaded&&!scanning)autoScan()
   },120)}
 
-window.Dup={pull:function(f){var p=pullIgnored(f);if(f)hsPull();return p},init:init,open:open,close:close,sync:sync,closeZoom:closeZoom};
+window.Dup={keys:function(){return{h:CACHE_KEY,p:PM_KEY}},dino:function(){return DW.w?"worker/"+DW.dev+" x"+BN+" res"+DS:DINO.m?"main/wasm":"chưa tải"},pull:function(f){var p=pullIgnored(f);if(f)hsPull();return p},init:init,open:open,close:close,sync:sync,closeZoom:closeZoom};
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",function(){init()});
 else init();
 })();
