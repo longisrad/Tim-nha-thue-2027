@@ -754,7 +754,7 @@ function dlBar(p){if(!scanning)return;if(p>=100)barInd("Khởi tạo mô hình�
 function msg(t,bad){var m=G("dupm");m.textContent=t||"";m.className="pm"+(bad?" bad":"")}
 
 /* ---------- Quét ảnh bằng DINOv3 (embedding + cosine), thay cho dHash 3 nhánh cũ ---------- */
-var DS=(function(){var r=+window.DUP_DINO_RES;return(r>=112&&r<=224&&r%16===0)?r:224})();   /* DINOv3 patch 16: độ phân giải phải chia hết cho 16. 224 = mặc định; đặt window.DUP_DINO_RES=160 trước khi nạp dup.js để nhanh ~2x (cache tách riêng) */
+var DS=(function(){var r=+window.DUP_DINO_RES;return(r>=112&&r<=224&&r%16===0)?r:160})();   /* DINOv3 patch 16: độ phân giải phải chia hết cho 16. 160 = mặc định (nhẹ, nhanh); đặt window.DUP_DINO_RES=224 trước khi nạp dup.js để chính xác hơn ~2x (cache tách riêng) */
 var CACHE_KEY="dhc7"+(DS===224?"":"r"+DS);
 function parseCache(raw){try{var o=JSON.parse(raw||"{}");return(o&&typeof o==="object")?o:{}}catch(e){return{}}}
 function clearOldCaches(){
@@ -857,22 +857,23 @@ function hsFlush(){if(hsT){clearTimeout(hsT);hsT=0}hsPush()}
    Chuỗi lưu: "E<L|P>:<vec>" hoặc "E<L|P>:<vec>:<vec cắt viền>" (ảnh chụp màn hình có viền đen/trắng thì nhúng thêm bản đã cắt viền).
    Chuỗi rỗng "" = ảnh trơn/ít chi tiết (bỏ qua); null = không đọc được ảnh.
    Mô hình chạy ngay trong máy bằng transformers.js (WASM, bản fp32 ~90 MB vì repo không có q8), tải lần đầu từ CDN rồi được trình duyệt lưu lại. */
-var DINO_LIB="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.6",DINO_ID="onnx-community/dinov3-vits16-pretrain-lvd1689m-ONNX",DINO_LOCAL="models/",DINO_GPU=window.DUP_DINO_GPU!==false,DINO_GDT=window.DUP_DINO_DTYPE||"q4f16",FETCH_CONC=6;
-var DIM=384,DINO={p:null,m:null,T:null,err:null},dinoErr=null,DW={w:null,dev:"",seq:0,pend:{},q:[],busy:false,tm:0},BN=DS<=176?8:4;
-/* Worker (nhúng bằng Blob, không cần file riêng): WebGPU q4f16 nếu có (đặt window.DUP_DINO_DTYPE="fp32" để về fp32), không thì WASM fp32 (đa luồng khi crossOriginIsolated).
-   Có kiểm tra thử 1 lần lúc khởi tạo; lỗi/NaN trên WebGPU tự lùi: q4f16 -> WebGPU fp32 -> WASM. Có thể tự host model tại ./models/onnx-community/dinov3-vits16-pretrain-lvd1689m-ONNX/ */
+var DINO_LIB="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.6",DINO_ID="onnx-community/dinov3-vits16-pretrain-lvd1689m-ONNX",DINO_LOCAL="models/",DINO_GPU=window.DUP_DINO_GPU!==false,DINO_GDT="fp32",FETCH_CONC=6;
+var DIM=384,DINO={p:null,m:null,T:null,err:null},dinoErr=null,DW={w:null,dev:"",seq:0,pend:{},q:[],busy:false,tm:0},BN=DS<=176?4:2;
+/* Worker (nhúng bằng Blob, không cần file riêng): WebGPU fp32 nếu có, không thì WASM fp32 (đa luồng khi crossOriginIsolated).
+   Có kiểm tra thử 1 lần lúc khởi tạo; lỗi/NaN trên WebGPU tự lùi: WebGPU fp32 -> WASM fp32. Có thể tự host model tại ./models/onnx-community/dinov3-vits16-pretrain-lvd1689m-ONNX/ */
 function dinoWorkerMain(){
-  var L=null,M=null,T=null,dev="",dt="",C=null,F16=false;
+  var L=null,M=null,T=null,dev="",dt="",C=null,F16=false,WHY=[];
+  function why(x){x=String(x&&x.message||x).slice(0,100);if(WHY.indexOf(x)<0)WHY.push(x);try{console.warn("[DINO]",x)}catch(_){}}
   function say(m,tr){self.postMessage(m,tr||[])}
-  /* WebGPU: dtype gdt (mặc định q4f16: trọng số 4-bit + kích hoạt fp16, nhẹ nhất cho GPU). Lỗi tải hoặc ra NaN thì thử WebGPU fp32, cuối cùng WASM fp32.
-     WASM luôn fp32 (~86 MB; repo không có q8, và q4f16 cần fp16 mà WASM CPU không có). Trọng số nằm ở file *.onnx_data nên phải tính tiến trình cả file này. */
+  /* Luôn fp32 (~86 MB). WebGPU trước, lỗi tải hoặc ra NaN thì lùi sang WASM fp32.
+     Trọng số nằm ở file *.onnx_data nên phải tính tiến trình cả file này. */
   function build(d,only){
-    var dts=d==="webgpu"?(only?[only]:(C.gdt&&C.gdt!=="fp32"&&(F16||!/f16/.test(C.gdt))?[C.gdt,"fp32"]:["fp32"])):["fp32"];   /* q4f16 cần shader-f16 trên GPU */
+    var dts=["fp32"];   /* chỉ fp32 (WebGPU hoặc WASM) */
     function go(i){
       var o={device:d==="webgpu"?"webgpu":"wasm",dtype:dts[i]};
       say({t:"note",s:"Đang nạp mô hình ("+(d==="webgpu"?"GPU":"CPU")+" · "+dts[i]+")…"});
       o.progress_callback=function(p){if(p&&p.status==="progress"&&/\.onnx(_data)?$/.test(p.file||"")&&(!p.total||p.total>1048576))say({t:"prog",p:Math.round(p.progress||0),mb:p.total?Math.round(p.total/1048576):0})};
-      return L.AutoModel.from_pretrained(C.id,o).then(function(m){M=m;dev=d;dt=dts[i];return m},function(e){if(i+1<dts.length)return go(i+1);throw e})}
+      return L.AutoModel.from_pretrained(C.id,o).then(function(m){M=m;dev=d;dt=dts[i];return m},function(e){why(d+"/"+dts[i]+": "+(e&&e.message||e));if(i+1<dts.length)return go(i+1);throw e})}
     return go(0)}
   function infer(list){
     var n=list.length,S=C.S,sz=S*S,f=new Float32Array(n*3*sz),k,i,p,u,o;
@@ -886,15 +887,15 @@ function dinoWorkerMain(){
   function safe(list){
     return infer(list).catch(function(e){
       if(dev!=="webgpu")throw e;
-      say({t:"note",s:"GPU báo lỗi, thử lại…"});
+      why("webgpu/"+dt+" infer: "+(e&&e.message||e));say({t:"note",s:"GPU báo lỗi, thử lại…"});
       var p=dt!=="fp32"?build("webgpu","fp32").then(function(){return infer(list)}):Promise.reject(e);
       return p.catch(function(){return build("wasm").then(function(){return infer(list)})})})}
   function probe(c){
     if(!c.localBase)return Promise.resolve(false);
     return fetch(c.localBase+c.id+"/config.json").then(function(r){return r.ok?r.json().then(function(){return true},function(){return false}):false},function(){return false})}
   function gpuOk(c){
-    if(!c.gpu||!self.navigator||!navigator.gpu)return Promise.resolve(false);
-    return navigator.gpu.requestAdapter().then(function(a){F16=!!(a&&a.features&&a.features.has&&a.features.has("shader-f16"));return !!a},function(){return false})}
+    if(!c.gpu||!self.navigator||!navigator.gpu){why(!c.gpu?"GPU bị tắt (DUP_DINO_GPU=false)":"không có navigator.gpu (secure="+self.isSecureContext+")");return Promise.resolve(false)}
+    return navigator.gpu.requestAdapter().then(function(a){F16=!!(a&&a.features&&a.features.has&&a.features.has("shader-f16"));if(!a)why("requestAdapter() = null");return !!a},function(e){why("requestAdapter lỗi: "+(e&&e.message||e));return false})}
   function init(c){
     C=c;
     return import(c.lib).then(function(x){
@@ -905,14 +906,14 @@ function dinoWorkerMain(){
       L.env.allowLocalModels=!!loc;
       if(loc)L.env.localModelPath=c.localBase;
       return gpuOk(c)}).then(function(g){
-      return build(g?"webgpu":"wasm").catch(function(e){if(!g)throw e;return build("wasm")})}).then(function(){
+      return build(g?"webgpu":"wasm").catch(function(e){if(!g)throw e;why("webgpu bỏ: "+(e&&e.message||e));return build("wasm")})}).then(function(){
       say({t:"note",s:"Đang khởi tạo mô hình…"});
       if(dev!=="webgpu")return;
       var z=[new Uint8ClampedArray(C.S*C.S*4).fill(127).buffer];
       return safe(z).then(function(){})})}
   self.onmessage=function(e){
     var m=e.data||{};
-    if(m.t==="init")init(m.cfg).then(function(){say({t:"ready",dev:dev+(dt?"/"+dt:"")})},function(err){say({t:"initerr",msg:String(err&&err.message||err)})});
+    if(m.t==="init")init(m.cfg).then(function(){say({t:"ready",dev:dev+(dt?"/"+dt:""),why:WHY.join(" | ")})},function(err){say({t:"initerr",msg:String(err&&err.message||err)})});
     else if(m.t==="run")safe(m.px).then(function(v){say({t:"res",id:m.id,v:v},v.map(function(x){return x.buffer}))},function(err){say({t:"err",id:m.id,msg:String(err&&err.message||err)})})}}
 function failPend(e){var p=DW.pend;DW.pend={};Object.keys(p).forEach(function(k){p[k].bad(e)})}
 function killWorker(){if(DW.w){try{DW.w.terminate()}catch(e){}DW.w=null}}
@@ -932,7 +933,7 @@ function loadWorker(ov){
       var m=e.data||{};
       if(m.t==="prog"){arm();dlBar(m.p);msg(m.p>=100?"Đã tải xong, đang khởi tạo DINOv3 (vài giây)…":"Đang tải DINOv3… "+m.p+"%"+(m.mb?" ("+m.mb+" MB)":""))}
       else if(m.t==="note"){arm();msg(m.s)}
-      else if(m.t==="ready"){done=true;clearTimeout(tmr);DW.w=w;DW.dev=m.dev;w.onmessage=onWorkerMsg;w.onerror=onWorkerErr;ok(w)}
+      else if(m.t==="ready"){done=true;clearTimeout(tmr);DW.w=w;DW.dev=m.dev;if(m.why)DINO.wErr=(DINO.wErr?DINO.wErr+" | ":"")+m.why;w.onmessage=onWorkerMsg;w.onerror=onWorkerErr;ok(w)}
       else if(m.t==="initerr"){done=true;clearTimeout(tmr);try{w.terminate()}catch(_){}bad(new Error(m.msg))}};
     w.onerror=function(e){if(done)return;done=true;clearTimeout(tmr);try{w.terminate()}catch(_){}bad(new Error(e&&e.message||"worker lỗi"))};
     w.postMessage({t:"init",cfg:{lib:DINO_LIB,id:DINO_ID,S:DS,gpu:ov.gpu!==undefined?ov.gpu:DINO_GPU,gdt:ov.gdt||DINO_GDT,localBase:new URL(DINO_LOCAL,location.href).href}});arm()})}
@@ -948,7 +949,7 @@ function dinoLoad(){
   msg("Đang tải DINOv3 (lần đầu ~90 MB, tải 1 lần rồi dùng lại)…");
   DINO.wErr="";
   function wf(e){var x=String(e&&e.message||e).slice(0,140);if(DINO.wErr.indexOf(x)<0)DINO.wErr+=(DINO.wErr?" | ":"")+x}
-  /* worker lỗi (GPU/q4f16...) -> thử lại worker chỉ CPU fp32 -> cuối cùng mới chạy luồng chính */
+  /* worker lỗi (GPU...) -> thử lại worker chỉ CPU fp32 -> cuối cùng mới chạy luồng chính */
   DINO.p=loadWorker().catch(function(e){wf(e);if(!DINO_GPU)throw e;msg("GPU lỗi, thử lại bằng CPU…");return loadWorker({gpu:false,gdt:"fp32"})}).catch(function(e){wf(e);return loadMain()}).then(function(r){DINO.err=null;return r}).catch(function(e){DINO.p=null;DINO.m=null;killWorker();DINO.err=String(e&&e.message||e);throw e});
   return DINO.p}
 function mainRun(list){
