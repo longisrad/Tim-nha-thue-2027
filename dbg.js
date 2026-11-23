@@ -271,8 +271,8 @@ function chkEnv(add){
   if(navigator.hardwareConcurrency)add("info",g,"Số nhân CPU: "+navigator.hardwareConcurrency);
   var wg=!!navigator.gpu;
   add("info",g,"WebGPU: "+(wg?"có (DINOv2 sẽ chạy bằng GPU nếu qua bước thử)":"không có (DINOv2 chạy WASM)")+" · crossOriginIsolated: "+(window.crossOriginIsolated?"bật":"tắt"));
-  try{if(window.Dup&&typeof window.Dup.dino==="function")add("info",g,"DINOv2: "+window.Dup.dino())}catch(e){}
-  try{if(window.Dup&&typeof window.Dup.smart==="function"){var sm=window.Dup.smart();add("info",g,"Ngưỡng thông minh: mức "+sm.th+"% → chặt "+sm.ts+"% · rộng "+sm.tl+"% (nâng theo "+sm.np+" cặp Không trùng, từ 8 cặp mới nâng) · phiên này giữ thêm "+sm.kept+" cặp yếu, bỏ "+sm.cut+" cặp yếu lẻ")}}catch(e){}
+  try{if(window.Dup&&typeof window.Dup.dino==="function")(function(){var ds=window.Dup.dino(),nc=typeof window.Dup.cached==="function"?window.Dup.cached():-1,lazy=/^chưa tải/.test(ds);add(lazy&&nc>0?"info":"info",g,"DINOv2: "+ds+(nc>=0?" · hash ảnh đã có trên máy: "+nc+"":""))})()}catch(e){}
+  try{if(window.Dup&&typeof window.Dup.smart==="function"){var sm=window.Dup.smart();add("info",g,"Ngưỡng ảnh: mạnh "+sm.ts+"% · yếu "+sm.tl+"% · giữ "+sm.kept+" · bỏ "+sm.cut+" cặp yếu")}}catch(e){}
   var m=null;try{m=performance.memory}catch(e){}
   if(m&&m.jsHeapSizeLimit){
     var pc=Math.round(m.usedJSHeapSize*100/m.jsHeapSizeLimit);
@@ -664,6 +664,8 @@ var CSS="#dbgd .form{gap:10px}"+
 "#dbgd .dbgr i{flex:none;font-style:normal;width:18px;text-align:center}"+
 "#dbgd .dbgr span{min-width:0;overflow-wrap:anywhere}"+
 "#dbgd .dbgr.bad i,#dbgd .dbgr.bad span{color:var(--danger)}#dbgd .dbgr.bad span{font-weight:700}#dbgd .dbgr.info span{color:var(--mute)}"+
+"#dbgd .dbgn{min-width:0;flex:1}#dbgd .dbgn summary{display:block;cursor:pointer;list-style:none;overflow-wrap:anywhere}#dbgd .dbgn summary::after{margin-left:6px;font-size:11px}#dbgd .dbgn p{margin:4px 0 0;color:var(--mute);font-size:var(--fs-xs);overflow-wrap:anywhere}"+
+"#dbgd .dbgr.bad summary{color:var(--danger);font-weight:700}#dbgd .dbgr.info summary{color:var(--mute)}"+
 "#dbgd .dbgem{text-align:center;color:var(--mute);font-size:var(--fs-m);padding:18px 0}"+
 "#dbgd details.dbgt>summary{cursor:pointer;color:var(--mute);font-size:var(--fs-m);font-weight:600;min-height:36px;display:flex;align-items:center;gap:8px}"+
 "#dbgd .foot{justify-content:flex-start;flex-wrap:wrap}"+
@@ -713,10 +715,15 @@ function groupsH(L){
     var op=OPEN[o.g]!==undefined?OPEN[o.g]:iss>0;
     var em=o.b?"✕ "+o.b+(o.w?" · ⚠ "+o.w:""):o.w?"⚠ "+o.w:o.L.length+" mục";
     h+='<details class="dbgg" data-g="'+esc(o.g)+'"'+(op?" open":"")+'><summary><i class="st '+lv+'">'+ICON[lv]+'</i><span>'+esc(o.g)+'</span><em>'+em+'</em></summary>';
-    rows.forEach(function(x){h+='<div class="dbgr '+x.s+'"><i>'+ICON[x.s]+'</i><span>'+esc(x.t)+'</span></div>'});
+    rows.forEach(function(x){h+=rowH(x)});
     h+='</details>'});
   if(!shown)h=!L.length?'<div class="dbgem">Chưa có kết quả</div>':'<div class="dbgem">Không có vấn đề nào. Chọn "Tất cả" để xem chi tiết.</div>';
   return h}
+function rowH(x){
+  var t=String(x.t),m=/^([\s\S]{16,}?[.;])\s+(\S[\s\S]*)$/.exec(t),h='<div class="dbgr '+x.s+'"><i>'+ICON[x.s]+'</i>';
+  if(m&&m[2].length>8)h+='<details class="dbgn"><summary>'+esc(m[1])+'</summary><p>'+esc(m[2])+'</p></details>';
+  else h+='<span>'+esc(t)+'</span>';
+  return h+'</div>'}
 function btn(a,t,cls,extra){return '<button type="button" class="btn'+(cls?" "+cls:"")+'" data-act="'+a+'"'+(extra||"")+'>'+t+'</button>'}
 function draw(){
   panel();
