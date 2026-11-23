@@ -76,6 +76,10 @@ var CSS2=[
 ".dpz.stk.side .dpzmeta{right:6px;max-width:calc(100% - 12px)}",
 ".dpz.stk.side .dpzcol:has(.dpzctrl:not([hidden])) .dpzmeta{bottom:42px}",
 ".dpz.stk.side .dpzcol+.dpzcol{box-shadow:-1px 0 0 rgba(255,255,255,.18)}",
+".dpzact{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:8px}",
+".dpzact [hidden]{display:none}",
+".dpzact button{min-height:34px}",
+".dpz.stk .dpzact{flex:none;margin:0;padding:6px 8px}",
 "#dupsum{font-size:var(--fs-b);font-weight:700;color:var(--ink);margin:2px 0 8px}",
 "#dupsum:empty,#dupm:empty,#dupignsum:empty{display:none}",
 "#dupm{margin:6px 0 4px}",
@@ -98,7 +102,7 @@ var CSS2=[
 "@media (max-width:420px){.dpa .dpv{margin-left:0;flex-basis:100%;text-align:left}.dpset{grid-template-columns:minmax(0,1fr)}}",
 "@media (prefers-reduced-motion:reduce){.dpz,.dpz *,.dpimgs,.dpl,.dpth img,.dpm img,.dpip img,.dpzstage::after{animation:none!important;transition:none!important}}"
 ].join("\n");
-var DLG="<dialog id=\"dupd\"><div class=\"form\" id=\"dupmain\">\n  <h2>Kiểm tra trùng</h2>\n  <p class=\"pm\" id=\"dupsum\"></p>\n  <div class=\"dpbar2\" id=\"duplinks\" hidden><button type=\"button\" class=\"link\" id=\"duptog\" hidden></button><button type=\"button\" class=\"dpignbtn\" id=\"dupigntog\" hidden></button></div>\n  <div class=\"dpset\"><div class=\"dpsens\"><label for=\"dupsens\">Độ nhạy ảnh (DINOv2)</label><select id=\"dupsens\"><option value=\"87\">Ít nhầm (≥87%)</option><option value=\"81\" selected>Bình thường (≥81% — mặc định)</option><option value=\"77\">Nhạy (≥77%)</option><option value=\"73\">Rất nhạy (≥73%)</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupimgv\">Cách xem ảnh</label><select id=\"dupimgv\"><option value=\"manual\" selected>Đóng sẵn · bấm “Xem ảnh” ở từng cặp</option><option value=\"both\">Mở sẵn · so sánh 2 căn cạnh nhau</option><option value=\"stack\">Mở sẵn · xếp dọc từng căn</option></select></div></div>\n  <div class=\"dpact\"><label class=\"dpopt\"><input type=\"checkbox\" id=\"dupnoout\"><span>Bỏ qua căn đã “Loại”</span></label>\n  <div class=\"foot2\"><button class=\"btn p\" type=\"button\" id=\"dupimg\">Quét ảnh trùng</button><button class=\"btn\" type=\"button\" id=\"dupstop\" hidden>Dừng</button></div></div>\n  <div class=\"dpb\" id=\"dupbar\" hidden><i></i></div>\n  <p class=\"pm\" id=\"dupm\" role=\"status\"></p>\n  <div id=\"dupl\"></div>\n  <div class=\"foot\"><button class=\"btn p\" type=\"button\" id=\"dupx\">Đóng</button></div>\n</div><div class=\"form\" id=\"dupignview\" hidden>\n  <div class=\"dphead\"><button type=\"button\" class=\"btn\" id=\"dupback\">← Quay lại</button><h2>Không phải trùng</h2></div>\n  <p class=\"pm\" id=\"dupignsum\"></p>\n  <button type=\"button\" class=\"link\" id=\"dupignclr\" hidden>Khôi phục tất cả về danh sách kiểm tra</button>\n  <div id=\"dupignl\"></div>\n  <div class=\"foot\"><button class=\"btn\" type=\"button\" id=\"dupback2\">← Quay lại</button><button class=\"btn p\" type=\"button\" id=\"dupx2\">Đóng</button></div>\n</div><div class=\"dpz\" id=\"dupz\" hidden><div class=\"dpzb\"><div class=\"dpzhdr\"><p class=\"dpzt\" id=\"dupzt\"></p><button type=\"button\" class=\"dpzlay\" id=\"dupzlay\">Xếp dọc</button><button type=\"button\" class=\"dpzcls\" id=\"dupzx2\" aria-label=\"Đóng\">×</button></div><div class=\"dpzm\" id=\"dupzm\" hidden></div><div class=\"dpzg\" id=\"dupzg\"><div class=\"dpzcol\"><div class=\"dpzstage\"><img id=\"dupz1\" alt=\"Ảnh căn 1\"><span class=\"dpzempty\" id=\"dupze1\" hidden>Chưa có ảnh</span></div><div class=\"dpzmeta\"><b id=\"dupz1n\"></b><small id=\"dupz1m\"></small></div><div class=\"dpzctrl\" id=\"dupzc1\" hidden><button type=\"button\" id=\"dupz1prev\" aria-label=\"Ảnh trước căn 1\">‹</button><span id=\"dupz1c\"></span><button type=\"button\" id=\"dupz1next\" aria-label=\"Ảnh sau căn 1\">›</button></div></div><div class=\"dpzcol\"><div class=\"dpzstage\"><img id=\"dupz2\" alt=\"Ảnh căn 2\"><span class=\"dpzempty\" id=\"dupze2\" hidden>Chưa có ảnh</span></div><div class=\"dpzmeta\"><b id=\"dupz2n\"></b><small id=\"dupz2m\"></small></div><div class=\"dpzctrl\" id=\"dupzc2\" hidden><button type=\"button\" id=\"dupz2prev\" aria-label=\"Ảnh trước căn 2\">‹</button><span id=\"dupz2c\"></span><button type=\"button\" id=\"dupz2next\" aria-label=\"Ảnh sau căn 2\">›</button></div></div></div><div class=\"foot\"><button class=\"btn p\" type=\"button\" id=\"dupzx\">Đóng</button></div></div></div><div class=\"dpundo\" id=\"dupundo\" hidden><span id=\"dupundot\"></span><button type=\"button\" id=\"dupundob\">↶ Hoàn tác</button><button type=\"button\" class=\"x\" id=\"dupundox\" aria-label=\"Ẩn\">✕</button></div></dialog>";
+var DLG="<dialog id=\"dupd\"><div class=\"form\" id=\"dupmain\">\n  <h2>Kiểm tra trùng</h2>\n  <p class=\"pm\" id=\"dupsum\"></p>\n  <div class=\"dpbar2\" id=\"duplinks\" hidden><button type=\"button\" class=\"link\" id=\"duptog\" hidden></button><button type=\"button\" class=\"dpignbtn\" id=\"dupigntog\" hidden></button></div>\n  <div class=\"dpset\"><div class=\"dpsens\"><label for=\"dupsens\">Độ nhạy ảnh (DINOv2)</label><select id=\"dupsens\"><option value=\"87\">Ít nhầm (≥87%)</option><option value=\"81\" selected>Bình thường (≥81% — mặc định)</option><option value=\"77\">Nhạy (≥77%)</option><option value=\"73\">Rất nhạy (≥73%)</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupimgv\">Cách xem ảnh</label><select id=\"dupimgv\"><option value=\"manual\" selected>Đóng sẵn · bấm “Xem ảnh” ở từng cặp</option><option value=\"both\">Mở sẵn · so sánh 2 căn cạnh nhau</option><option value=\"stack\">Mở sẵn · xếp dọc từng căn</option></select></div>\n  <div class=\"dpsens\"><button type=\"button\" class=\"btn\" id=\"duprst\">Đặt lại cài đặt DINO</button></div></div>\n  <div class=\"dpact\"><label class=\"dpopt\"><input type=\"checkbox\" id=\"dupnoout\"><span>Bỏ qua căn đã “Loại”</span></label>\n  <div class=\"foot2\"><button class=\"btn p\" type=\"button\" id=\"dupimg\">Quét ảnh trùng</button><button class=\"btn\" type=\"button\" id=\"dupstop\" hidden>Dừng</button></div></div>\n  <div class=\"dpb\" id=\"dupbar\" hidden><i></i></div>\n  <p class=\"pm\" id=\"dupm\" role=\"status\"></p>\n  <div id=\"dupl\"></div>\n  <div class=\"foot\"><button class=\"btn p\" type=\"button\" id=\"dupx\">Đóng</button></div>\n</div><div class=\"form\" id=\"dupignview\" hidden>\n  <div class=\"dphead\"><button type=\"button\" class=\"btn\" id=\"dupback\">← Quay lại</button><h2>Không phải trùng</h2></div>\n  <p class=\"pm\" id=\"dupignsum\"></p>\n  <button type=\"button\" class=\"link\" id=\"dupignclr\" hidden>Khôi phục tất cả về danh sách kiểm tra</button>\n  <div id=\"dupignl\"></div>\n  <div class=\"foot\"><button class=\"btn\" type=\"button\" id=\"dupback2\">← Quay lại</button><button class=\"btn p\" type=\"button\" id=\"dupx2\">Đóng</button></div>\n</div><div class=\"dpz\" id=\"dupz\" hidden><div class=\"dpzb\"><div class=\"dpzhdr\"><p class=\"dpzt\" id=\"dupzt\"></p><button type=\"button\" class=\"dpzlay\" id=\"dupzlay\">Xếp dọc</button><button type=\"button\" class=\"dpzcls\" id=\"dupzx2\" aria-label=\"Đóng\">×</button></div><div class=\"dpzm\" id=\"dupzm\" hidden></div><div class=\"dpzg\" id=\"dupzg\"><div class=\"dpzcol\"><div class=\"dpzstage\"><img id=\"dupz1\" alt=\"Ảnh căn 1\"><span class=\"dpzempty\" id=\"dupze1\" hidden>Chưa có ảnh</span></div><div class=\"dpzmeta\"><b id=\"dupz1n\"></b><small id=\"dupz1m\"></small></div><div class=\"dpzctrl\" id=\"dupzc1\" hidden><button type=\"button\" id=\"dupz1prev\" aria-label=\"Ảnh trước căn 1\">‹</button><span id=\"dupz1c\"></span><button type=\"button\" id=\"dupz1next\" aria-label=\"Ảnh sau căn 1\">›</button></div></div><div class=\"dpzcol\"><div class=\"dpzstage\"><img id=\"dupz2\" alt=\"Ảnh căn 2\"><span class=\"dpzempty\" id=\"dupze2\" hidden>Chưa có ảnh</span></div><div class=\"dpzmeta\"><b id=\"dupz2n\"></b><small id=\"dupz2m\"></small></div><div class=\"dpzctrl\" id=\"dupzc2\" hidden><button type=\"button\" id=\"dupz2prev\" aria-label=\"Ảnh trước căn 2\">‹</button><span id=\"dupz2c\"></span><button type=\"button\" id=\"dupz2next\" aria-label=\"Ảnh sau căn 2\">›</button></div></div></div><div class=\"dpzact\" id=\"dupzact\"><button type=\"button\" class=\"dpno\" id=\"dupzign\">Không phải trùng</button><button type=\"button\" class=\"dpdel\" id=\"dupzdel1\">Xóa căn 1</button><button type=\"button\" class=\"dpdel\" id=\"dupzdel2\">Xóa căn 2</button></div><div class=\"foot\"><button class=\"btn p\" type=\"button\" id=\"dupzx\">Đóng</button></div></div></div><div class=\"dpundo\" id=\"dupundo\" hidden><span id=\"dupundot\"></span><button type=\"button\" id=\"dupundob\">↶ Hoàn tác</button><button type=\"button\" class=\"x\" id=\"dupundox\" aria-label=\"Ẩn\">✕</button></div></dialog>";
 var TH=81,VL=1,MIN=2,imgPairs=null,scanning=false,stopFlag=false,cache={},cacheLoaded=false,cacheP=null,inflight={},LIMIT=50,limMain=50,limIgn=50,memo=null,syncT=0,showOne=false,showIgn=false,skipOut=true,skipLoaded=false,imgAutoMode="manual",imgModeLoaded=false,viewList=[],openSet={},openImgSet={},pairImgMode={},ignored={},ignLoaded=false,pairImgMsg={},zoomCmp=null;
 
 /* ---------- Lưu danh sách "không phải trùng" vào localStorage ---------- */
@@ -517,14 +521,14 @@ function afterDel(id){
   Object.keys(ignored).forEach(function(k){var ids=k.split("|");if(ids[0]===id||ids[1]===id){delete ignored[k];ignDirty[k]=0;changed=true}});
   if(changed)saveIgnored();
   sync()}
-function delItem(el){
+function delItem(el,cb){
   var p=String(el.dataset.del||"").split(":"),o=viewList[+p[0]],it=o&&o[p[1]];
   if(!it)return;
   if(!canWrite()){alert("Bạn chỉ có quyền xem, không thể xóa.");return}
   if(N().del){
     if(!confirm('Xóa căn "'+it.n+'"? Thư mục ảnh của căn trên Drive cũng sẽ được chuyển vào thùng rác.'))return;
-    el.disabled=true;el.textContent="Đang xóa…";
-    N().del(it.id).then(function(){afterDel(it.id)},function(){if(document.contains(el)){el.disabled=false;el.textContent="Xóa"}});
+    var t0=el.textContent;el.disabled=true;el.textContent="Đang xóa…";
+    N().del(it.id).then(function(){afterDel(it.id);if(cb)cb()},function(){if(document.contains(el)){el.disabled=false;el.textContent=t0}});
     return;
   }
   /* Dùng trực tiếp luồng Xóa có sẵn của index.html khi window.NT chưa khai báo del */
@@ -542,7 +546,7 @@ function delItem(el){
   }finally{
     dv.style.visibility="";dlg.style.visibility="";
   }
-  if(!N().items().some(function(x){return x.id===it.id}))afterDel(it.id)}
+  if(!N().items().some(function(x){return x.id===it.id})){afterDel(it.id);if(cb)cb()}}
 function editItem(id){
   if(!canWrite()){alert("Bạn chỉ có quyền xem, không thể sửa.");return}
   if(N().openEdit){N().openEdit(id);return}
@@ -669,6 +673,12 @@ function renderCmpZoom(k){
     zm.hidden=false;
     zm.innerHTML=o.img.map(function(m,i){return '<button type="button" class="dpzj'+(i===mi?' cur':'')+'" data-zjump="'+i+'">Trùng '+(i+1)+' · '+(m.n!=null?m.n:Math.max(0,100-m.d))+'%</button>'}).join("");
   }else{zm.hidden=true;zm.innerHTML=""}
+  var zk=o.a.id+"|"+o.b.id,zi=G("dupzign"),zd1=G("dupzdel1"),zd2=G("dupzdel2"),zw=canWrite();
+  loadIgnored();
+  zi.textContent=ignored[zk]?"Khôi phục nghi trùng":"Không phải trùng";
+  zd1.hidden=zd2.hidden=!zw;
+  zd1.dataset.del=zoomCmp.idx+":a";zd2.dataset.del=zoomCmp.idx+":b";
+  zd1.title=o.a.n||"";zd2.title=o.b.n||"";
   markAct();
   ["a","b"].forEach(function(sd){
     var cur=sd==="a"?imA:imB,s=cur?cur.s:"";
@@ -713,6 +723,13 @@ function zJump(i){
   var a=idxOf(z.imgsA,m.x),b=idxOf(z.imgsB,m.y);if(a<0||b<0)return;
   var k={};if(a!==z.ia)k.a="open";if(b!==z.ib)k.b="open";
   z.ia=a;z.ib=b;renderCmpZoom(k)}
+function zoomIgnore(){
+  var o=zoomCmp&&viewList[zoomCmp.idx];if(!o)return;
+  loadIgnored();
+  var isIgn=!!ignored[o.a.id+"|"+o.b.id],idx=zoomCmp.idx;
+  closeZoom();
+  ignorePair(isIgn?{dataset:{unign:idx}}:{dataset:{ign:idx}},!isIgn)}
+function zoomDel(el){delItem(el,function(){closeZoom()})}
 function closeZoom(){zoomCmp=null;zT++;zt={};var z=G("dupz");if(z&&!z.hidden){z.hidden=true;return true}return false}
 function msg(t,bad){var m=G("dupm");m.textContent=t||"";m.className="pm"+(bad?" bad":"")}
 
@@ -1305,6 +1322,9 @@ function init(nt){
       G("dupzlay").textContent=sk?"Cạnh nhau":"Xếp dọc";zlay=sk?"1":"0";try{ls("dzl",zlay)}catch(e){}
     }
   };
+  G("dupzign").onclick=zoomIgnore;
+  G("dupzdel1").onclick=function(){zoomDel(this)};
+  G("dupzdel2").onclick=function(){zoomDel(this)};
   G("dupz1").onclick=function(){stepCmpZoom("a",1)};
   G("dupz2").onclick=function(){stepCmpZoom("b",1)};
   G("dupz1prev").onclick=function(){stepCmpZoom("a",-1)};
@@ -1343,6 +1363,12 @@ function init(nt){
     openImgSet={};pairImgMode={};render();
   };
   G("dupnoout").onchange=function(){skipOut=this.checked;try{ls("dnoout",skipOut?"1":"0")}catch(e){}limMain=LIMIT;if(imgPairs!==null)rescanFromCache();else{render();applyCachedPairs()}};
+  G("duprst").onclick=function(){
+    TH=81;imgAutoMode="manual";zlay=null;
+    try{ls("dsim","");ls("dimgv","");ls("dzl","")}catch(e){}
+    G("dupsens").value="81";G("dupimgv").value="manual";
+    openImgSet={};pairImgMode={};SM.key="";
+    if(imgPairs!==null)rescanFromCache();else{render();msg("Đã đặt lại cài đặt DINO về mặc định (ngưỡng 81%, ảnh đóng sẵn).")}};
   G("dupimg").onclick=function(){items=N().items();scan()};
   G("dupstop").onclick=function(){stopFlag=true};
   G("duptog").onclick=function(){showOne=!showOne;render()};
