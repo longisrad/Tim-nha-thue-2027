@@ -6,7 +6,7 @@
    - Chỉ ĐỌC dữ liệu (ngoại lệ: mỗi phiên xin trình duyệt lưu trữ bền một lần, không hiện hộp thoại, không áp dụng cho APK; và nút "Thử gửi (POST)" do bạn tự bấm, có hỏi xác nhận).
    - Kiểm tra máy chủ chỉ chạy khi bạn bấm (không chạy ngầm): cấu hình, đường truyền tới Google và trang app (tự thử lại 1 lần để tránh báo lỗi oan), tải danh sách, làm mới nhanh 3 lần (đo độ dao động), tải checklist, tải thử 1 ảnh Drive. Toàn bộ chỉ đọc. Báo cáo không chứa link Web app, mã truy cập hay tên căn (chỉ số lượng).
    - Theo dõi thụ động số lần mất/có mạng từ lúc mở trang; kiểm tra đọc được kho IndexedDB của app.
-   - Đồng bộ dữ liệu quét trùng giữa các bản cài (PWA/APK): nhóm "Đồng bộ" đọc kết quả quét (dpm2), hash ảnh (dhc6), danh sách "Không phải trùng" (dign1) và phát hiện mục cũ/lệch cài đặt; in 5 mã đối chiếu ngắn để so PWA với APK; khi bấm kiểm tra máy chủ thì đối chiếu thêm danh sách căn/ảnh và cặp "Không phải trùng" với Sheet. Chỉ đọc.
+   - Đồng bộ dữ liệu quét trùng giữa các bản cài (PWA/APK): nhóm "Đồng bộ" đọc kết quả quét (dpm3), hash ảnh (dhc7), danh sách "Không phải trùng" (dign1) và phát hiện mục cũ/lệch cài đặt; in 5 mã đối chiếu ngắn để so PWA với APK; khi bấm kiểm tra máy chủ thì đối chiếu thêm danh sách căn/ảnh và cặp "Không phải trùng" với Sheet. Chỉ đọc.
    - Các nút sửa lỗi đều hỏi xác nhận, không động tới dữ liệu trên Sheet/Drive, và từ chối khi đang có thay đổi chưa lưu hoặc ảnh đang tải lên.
    Cần đoạn bắt lỗi sớm (window.__dbg) trong <head> của index.html; thiếu đoạn đó thì dbg.js vẫn chạy nhưng chỉ thấy lỗi xảy ra sau khi nó nạp. */
 (function(){
@@ -23,8 +23,8 @@ var NI_FN=["imgSrc","findItem","segArr","curSeg","ckWarm","tab","items"];
 var NB_KEYS=["$","IDBM","apiGet","apiPost","apiUrl","capP","hs","netMsg","nrm","refresh","items","canW","pendAdd","bumpVer"];
 var NB_FN=["$","apiGet","apiPost","apiUrl","capP","hs","netMsg","nrm","refresh","pendAdd","bumpVer"];
 var NT_KEYS=["apiGet","apiPost","items","esc","su","imgSrc","addrOf","stName","fmt","ls","openDv","openEdit","canW","idbGet","idbSave","del"];
-function KH(){try{return window.Dup.keys().h}catch(e){return"dhc6"}}   /* khóa hash ảnh đang dùng (dhc6, hoặc dhc6r168 khi đổi độ phân giải) */
-function KP(){try{return window.Dup.keys().p}catch(e){return"dpm2"}}   /* khóa kết quả quét */
+function KH(){try{return window.Dup.keys().h}catch(e){return"dhc7"}}   /* khóa hash ảnh đang dùng (dhc7, hoặc dhc7r160 khi đổi độ phân giải) */
+function KP(){try{return window.Dup.keys().p}catch(e){return"dpm3"}}   /* khóa kết quả quét */
 var MOD={Ck:["init","renderCk","ckFlush","ckPersist"],Img:["init","openLb","iwGal","iwNow","iwIntent","iwCkNow"],Dup:["pull","init","open","close","sync","closeZoom"],Bk:["init"]};
 var IDS=["list","ckb","lb","lbi","lbc","lbn","lbp","upd","pgCk","bk","bd","bsel","bim","bm"];
 var NET=/failed to fetch|load failed|networkerror|network request|internet connection|mất kết nối|aborted/i;
@@ -270,8 +270,8 @@ function chkEnv(add){
   else add("info",g,"Trình duyệt không cho biết RAM máy (chỉ Chrome/Edge/Opera và chỉ trên https)");
   if(navigator.hardwareConcurrency)add("info",g,"Số nhân CPU: "+navigator.hardwareConcurrency);
   var wg=!!navigator.gpu;
-  add("info",g,"WebGPU: "+(wg?"có (DINOv2 sẽ chạy bằng GPU nếu qua bước thử)":"không có (DINOv2 chạy WASM)")+" · crossOriginIsolated: "+(window.crossOriginIsolated?"bật":"tắt"));
-  try{if(window.Dup&&typeof window.Dup.dino==="function")(function(){var ds=window.Dup.dino(),nc=typeof window.Dup.cached==="function"?window.Dup.cached():-1,lazy=/^chưa tải/.test(ds);add(lazy&&nc>0?"info":"info",g,"DINOv2: "+ds+(nc>=0?" · hash ảnh đã có trên máy: "+nc+"":""))})()}catch(e){}
+  add("info",g,"WebGPU: "+(wg?"có (DINOv3 sẽ chạy bằng GPU nếu qua bước thử)":"không có (DINOv3 chạy WASM)")+" · crossOriginIsolated: "+(window.crossOriginIsolated?"bật":"tắt"));
+  try{if(window.Dup&&typeof window.Dup.dino==="function")(function(){var ds=window.Dup.dino(),nc=typeof window.Dup.cached==="function"?window.Dup.cached():-1,lazy=/^chưa tải/.test(ds);add(lazy&&nc>0?"info":"info",g,"DINOv3: "+ds+(nc>=0?" · hash ảnh đã có trên máy: "+nc+"":""))})()}catch(e){}
   try{if(window.Dup&&typeof window.Dup.smart==="function"){var sm=window.Dup.smart();add("info",g,"Ngưỡng ảnh: mạnh "+sm.ts+"% · yếu "+sm.tl+"% · giữ "+sm.kept+" · bỏ "+sm.cut+" cặp yếu")}}catch(e){}
   var m=null;try{m=performance.memory}catch(e){}
   if(m&&m.jsHeapSizeLimit){
@@ -281,8 +281,8 @@ function chkEnv(add){
 /* GPU (WebGPU): hỏi adapter thật trong chính môi trường đang chạy (trình duyệt hoặc WebView của APK) để biết có dùng được shader-f16 không */
 function chkGpu(add){
   var g="GPU (WebGPU)",ua=navigator.userAgent||"",cm=/Chrome\/(\d+)/.exec(ua);
-  add("info",g,"Môi trường: "+(isApk()?"APK (WebView)":isStandalone()?"PWA":"tab trình duyệt")+(cm?" · Chromium "+cm[1]:"")+" · DINOv2 dùng GPU: "+(window.DUP_DINO_GPU===false?"đã tắt bằng DUP_DINO_GPU=false":"cho phép"));
-  if(!navigator.gpu){add("info",g,"Không có WebGPU ở môi trường này (navigator.gpu không tồn tại) → DINOv2 chạy WASM, không dùng được fp16 trên GPU");return Promise.resolve()}
+  add("info",g,"Môi trường: "+(isApk()?"APK (WebView)":isStandalone()?"PWA":"tab trình duyệt")+(cm?" · Chromium "+cm[1]:"")+" · DINOv3 dùng GPU: "+(window.DUP_DINO_GPU===false?"đã tắt bằng DUP_DINO_GPU=false":"cho phép"));
+  if(!navigator.gpu){add("info",g,"Không có WebGPU ở môi trường này (navigator.gpu không tồn tại) → DINOv3 chạy WASM, không dùng được fp16 trên GPU");return Promise.resolve()}
   var to=new Promise(function(r){setTimeout(function(){r("timeout")},4000)});
   return Promise.race([navigator.gpu.requestAdapter(),to]).then(function(a){
     if(a==="timeout"){add("warn",g,"requestAdapter không phản hồi sau 4 giây");return}
@@ -353,7 +353,7 @@ function chkIdb(add){
   },function(){})}
 
 /* ---------- Đồng bộ dữ liệu quét trùng giữa các bản cài (PWA/APK). Chỉ ĐỌC ----------
-   Kết quả quét ảnh (dpm2) và hash ảnh (dhc6) chỉ nằm trong IndexedDB của TỪNG bản cài, không đi qua máy chủ.
+   Kết quả quét ảnh (dpm3) và hash ảnh (dhc7) chỉ nằm trong IndexedDB của TỪNG bản cài, không đi qua máy chủ.
    Chỉ danh sách "Không phải trùng" (dign1) được đồng bộ lên Sheet. Nên PWA và APK chỉ ra cùng kết quả khi cùng danh sách căn,
    cùng cài đặt, cùng hash ảnh. Các mã đối chiếu dưới đây giúp thấy ngay phần nào đang lệch giữa hai bên. */
 function fnv(s){var h=2166136261,i;s=String(s);for(i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return("0000000"+(h>>>0).toString(16)).slice(-8)}
@@ -379,8 +379,8 @@ function chkSync(add){
     try{if(window.Dup&&typeof window.Dup.smart==="function")th=window.Dup.smart().th;else{var t=+T.ls("dsim");if(t>0)th=t>=86?87:t>=79?80:t>=75?77:73}}catch(e){}
     try{skip=T.ls("dnoout")!=="0"}catch(e){}
     var pmP=pjson(r[0].idb||r[0].ls),hcP=pjson(r[1].idb||r[1].ls),ig=r[2],pm=pmP.o,hc=hcP.o||{};
-    if(pmP.bad)add("bad",g,"Kết quả quét ảnh (dpm2) bị hỏng, không đọc được. Dùng \"Xóa kết quả quét (giữ hash ảnh)\" rồi quét lại");
-    if(hcP.bad)add("bad",g,"Hash ảnh (dhc6) bị hỏng, không đọc được. Dùng \"Đặt lại dữ liệu quét trùng\"");
+    if(pmP.bad)add("bad",g,"Kết quả quét ảnh (dpm3) bị hỏng, không đọc được. Dùng \"Xóa kết quả quét (giữ hash ảnh)\" rồi quét lại");
+    if(hcP.bad)add("bad",g,"Hash ảnh (dhc7) bị hỏng, không đọc được. Dùng \"Đặt lại dữ liệu quét trùng\"");
     if(ig.bad)add("bad",g,"Danh sách \"Không phải trùng\" (dign1) bị hỏng, không đọc được");
     var byId={},allImg={},actImg=[],active;
     items.forEach(function(it){byId[it.id]=it;imgsOf(it).forEach(function(s){allImg[s]=1})});
