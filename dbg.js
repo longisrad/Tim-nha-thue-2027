@@ -398,6 +398,7 @@ function chkSync(add){
     var nq=Object.keys(ig.q).length;
     if(nq)add("warn",g,nq+" thay đổi \"Không phải trùng\" chưa gửi lên máy chủ: máy khác chưa thấy. Cần có mạng và quyền sửa; mở Kiểm tra trùng rồi đóng lại để gửi");
     if(ig.lsN>=0&&ig.idbN>=0&&ig.lsN!==ig.idbN)add("info",g,"\"Không phải trùng\": localStorage có "+ig.lsN+" cặp, IndexedDB có "+ig.idbN+" cặp (có thể vừa thay đổi, đang ghi dở)");
+    try{if(window.Dup&&typeof window.Dup.ignStat==="function"){var st=window.Dup.ignStat();add("info",g,"Không phải trùng: "+st.total+" cặp trên máy · giao diện đang hiện "+st.shown+" · ẩn "+(st.out+st.none)+" (căn Loại "+st.out+", không còn nghi trùng "+st.none+")"+(st.img?"":" · chưa nạp kết quả quét ảnh nên cặp dựa trên ảnh có thể bị tính vào mục không còn nghi trùng; mở Kiểm tra trùng rồi chạy lại báo cáo"))}else add("info",g,"Chưa có thống kê cặp Không phải trùng bị ẩn: dup.js trên máy này là bản cũ (thiếu Dup.ignStat), hãy cập nhật dup.js")}catch(e){add("info",g,"Không đọc được thống kê cặp Không phải trùng bị ẩn: "+(e&&e.message||e))}
     var igk=Object.keys(ig.ign).filter(function(k){var a=k.split("|");return byId[a[0]]&&byId[a[1]]});
     var hcFp=fnv(actImg.slice().sort().map(function(s){return s+"="+(hc[s]||"")}).join("\n"));
     add("info",g2,"So các mã này giữa PWA và APK: mã nào khác là phần đang lệch. Kết quả quét chỉ lưu riêng từng máy, không đồng bộ qua máy chủ");
