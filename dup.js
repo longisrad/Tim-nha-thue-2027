@@ -766,10 +766,10 @@ function msg(t,bad){var m=G("dupm");m.textContent=t||"";m.className="pm"+(bad?" 
 
 /* ---------- Quét ảnh bằng DINOv3 (embedding + cosine), thay cho dHash 3 nhánh cũ ---------- */
 var DS=(function(){var r=+window.DUP_DINO_RES;return(r>=112&&r<=224&&r%16===0)?r:224})();   /* 224 = mặc định; DINOv3 patch 16 nên chỉ nhận bội số của 16 (112…224). Đặt window.DUP_DINO_RES=160 trước khi nạp dup.js để nhanh ~2x (cache tách riêng) */
-var CACHE_KEY="dhc7"+(DS===224?"":"r"+DS);
+var CACHE_KEY="dhc8"+(DS===224?"":"r"+DS);
 function parseCache(raw){try{var o=JSON.parse(raw||"{}");return(o&&typeof o==="object")?o:{}}catch(e){return{}}}
 function clearOldCaches(){
-  ["dhc1","dhc2","dhc3","dhc4","dhc5","dpm1"].forEach(function(k){
+  ["dhc1","dhc2","dhc3","dhc4","dhc5","dhc7","dpm1","dpm3"].forEach(function(k){
     try{if(ls(k))ls(k,"")}catch(e){}
     if(N()&&N().idbSave)N().idbSave(k,"");
   });
@@ -868,10 +868,10 @@ function hsFlush(){if(hsT){clearTimeout(hsT);hsT=0}hsPush()}
    Chuỗi lưu: "E<L|P>:<vec>" hoặc "E<L|P>:<vec>:<vec cắt viền>" (ảnh chụp màn hình có viền đen/trắng thì nhúng thêm bản đã cắt viền).
    Chuỗi rỗng "" = ảnh trơn/ít chi tiết (bỏ qua); null = không đọc được ảnh.
    Mô hình chạy ngay trong máy bằng transformers.js (WebGPU fp16/fp32 hoặc WASM fp32), tải lần đầu từ CDN rồi được trình duyệt lưu lại. */
-var DINO_LIB="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.6",DINO_ID="onnx-community/dinov3-vits16-pretrain-lvd1689m-ONNX",DINO_LOCAL="models/",DINO_GPU=window.DUP_DINO_GPU!==false,FETCH_CONC=6;
+var DINO_LIB="https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0",DINO_ID="olinesn/dinov3-vits16-lucid",DINO_LOCAL="models/",DINO_GPU=window.DUP_DINO_GPU!==false,FETCH_CONC=6;
 var DIM=384,DINO={p:null,m:null,T:null,err:null},dinoErr=null,DW={w:null,dev:"",gpu:false,seq:0,pend:{},q:[],busy:false,tm:0},BN=window.DUP_DINO_BN>0?Math.min(8,+window.DUP_DINO_BN|0):(DS<=160?4:2),PACE=window.DUP_DINO_PACE>=0?+window.DUP_DINO_PACE:0.6,PACE_MAX=250;
 /* Worker (nhúng bằng Blob, không cần file riêng): WebGPU fp16 nếu có shader-f16, không thì WebGPU fp32, không có WebGPU thì WASM fp32 (đa luồng khi crossOriginIsolated).
-   Có kiểm tra thử 1 lần lúc khởi tạo; lỗi/NaN trên WebGPU tự hạ cấp fp16 -> fp32 -> WASM. Có thể tự host model tại ./models/Xenova/dinov3-vits16/ */
+   Có kiểm tra thử 1 lần lúc khởi tạo; lỗi/NaN trên WebGPU tự hạ cấp fp16 -> fp32 -> WASM. Có thể tự host model tại ./models/olinesn/dinov3-vits16-lucid/ (kèm LICENSE của DINOv3) */
 function dinoWorkerMain(){
   var L=null,M=null,T=null,dev="",dt="",C=null;
   function say(m,tr){self.postMessage(m,tr||[])}
@@ -1135,7 +1135,7 @@ function cmpSig(a,b,th){
 /* Không còn bước kiểm tra lần hai theo điểm ảnh (DINOv3 đã so theo nội dung); giữ hàm rỗng để các chỗ gọi không phải đổi */
 function verifyList(list){return Promise.resolve(smartFilter(list))}
 /* ===== So khớp ảnh theo từng lượt BATCH căn, lưu kết quả để lần sau chỉ so ảnh mới ===== */
-var BATCH=20,FAIL_TTL=300000,PM_KEY="dpm3"+(DS===224?"":"r"+DS),pm=null,pmLoaded=false,pmP=null,sigMemo={};
+var BATCH=20,FAIL_TTL=300000,PM_KEY="dpm4"+(DS===224?"":"r"+DS),pm=null,pmLoaded=false,pmP=null,sigMemo={};
 function sigOf(s){var v=sigMemo[s];if(v!==undefined)return v;var c=cache[s];v=c?parseSig(c):null;if(c!==undefined)sigMemo[s]=v;return v}
 function pmEmpty(){return{th:TH,vf:VL,cal:smartCalc().cal,done:{},pairs:[],seen:{},fail:{}}}
 function pmStale(){return pm.th!==TH||(pm.vf||0)!==VL||(pm.cal||0)!==smartCalc().cal}
