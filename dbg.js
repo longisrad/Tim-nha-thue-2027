@@ -6,7 +6,7 @@
    - Chỉ ĐỌC dữ liệu (ngoại lệ: mỗi phiên xin trình duyệt lưu trữ bền một lần, không hiện hộp thoại, không áp dụng cho APK; và nút "Thử gửi (POST)" do bạn tự bấm, có hỏi xác nhận).
    - Kiểm tra máy chủ chỉ chạy khi bạn bấm (không chạy ngầm): cấu hình, đường truyền tới Google và trang app (tự thử lại 1 lần để tránh báo lỗi oan), tải danh sách, làm mới nhanh 3 lần (đo độ dao động), tải checklist, tải thử 1 ảnh Drive. Toàn bộ chỉ đọc. Báo cáo không chứa link Web app, mã truy cập hay tên căn (chỉ số lượng).
    - Theo dõi thụ động số lần mất/có mạng từ lúc mở trang; kiểm tra đọc được kho IndexedDB của app.
-   - Đồng bộ dữ liệu quét trùng giữa các bản cài (PWA/APK): nhóm "Đồng bộ" đọc kết quả quét (dpm2), hash ảnh (dhc6), danh sách "Không phải trùng" (dign1) và phát hiện mục cũ/lệch cài đặt; in 5 mã đối chiếu ngắn để so PWA với APK; khi bấm kiểm tra máy chủ thì đối chiếu thêm danh sách căn/ảnh và cặp "Không phải trùng" với Sheet. Chỉ đọc.
+   - Đồng bộ dữ liệu quét trùng giữa các bản cài (PWA/APK): nhóm "Đồng bộ" đọc kết quả quét (dpm3), hash ảnh (dhc7), danh sách "Không phải trùng" (dign1) và phát hiện mục cũ/lệch cài đặt; in 5 mã đối chiếu ngắn để so PWA với APK; khi bấm kiểm tra máy chủ thì đối chiếu thêm danh sách căn/ảnh và cặp "Không phải trùng" với Sheet. Chỉ đọc.
    - Các nút sửa lỗi đều hỏi xác nhận, không động tới dữ liệu trên Sheet/Drive, và từ chối khi đang có thay đổi chưa lưu hoặc ảnh đang tải lên.
    Cần đoạn bắt lỗi sớm (window.__dbg) trong <head> của index.html; thiếu đoạn đó thì dbg.js vẫn chạy nhưng chỉ thấy lỗi xảy ra sau khi nó nạp. */
 (function(){
@@ -23,8 +23,8 @@ var NI_FN=["imgSrc","findItem","segArr","curSeg","ckWarm","tab","items"];
 var NB_KEYS=["$","IDBM","apiGet","apiPost","apiUrl","capP","hs","netMsg","nrm","refresh","items","canW","pendAdd","bumpVer"];
 var NB_FN=["$","apiGet","apiPost","apiUrl","capP","hs","netMsg","nrm","refresh","pendAdd","bumpVer"];
 var NT_KEYS=["apiGet","apiPost","items","esc","su","imgSrc","addrOf","stName","fmt","ls","openDv","openEdit","canW","idbGet","idbSave","del"];
-function KH(){try{return window.Dup.keys().h}catch(e){return"dhc6"}}   /* khóa hash ảnh đang dùng (dhc6, hoặc dhc6r168 khi đổi độ phân giải) */
-function KP(){try{return window.Dup.keys().p}catch(e){return"dpm2"}}   /* khóa kết quả quét */
+function KH(){try{return window.Dup.keys().h}catch(e){return"dhc7"}}   /* khóa hash ảnh đang dùng (dhc7, hoặc dhc7r160 khi đổi độ phân giải) */
+function KP(){try{return window.Dup.keys().p}catch(e){return"dpm3"}}   /* khóa kết quả quét */
 var MOD={Ck:["init","renderCk","ckFlush","ckPersist"],Img:["init","openLb","iwGal","iwNow","iwIntent","iwCkNow"],Dup:["pull","init","open","close","sync","closeZoom"],Bk:["init"]};
 var IDS=["list","ckb","lb","lbi","lbc","lbn","lbp","upd","pgCk","bk","bd","bsel","bim","bm"];
 var NET=/failed to fetch|load failed|networkerror|network request|internet connection|mất kết nối|aborted/i;
@@ -270,8 +270,8 @@ function chkEnv(add){
   else add("info",g,"Trình duyệt không cho biết RAM máy (chỉ Chrome/Edge/Opera và chỉ trên https)");
   if(navigator.hardwareConcurrency)add("info",g,"Số nhân CPU: "+navigator.hardwareConcurrency);
   var wg=!!navigator.gpu;
-  add("info",g,"WebGPU: "+(wg?"có (DINOv2 sẽ chạy bằng GPU nếu qua bước thử)":"không có (DINOv2 chạy WASM)")+" · crossOriginIsolated: "+(window.crossOriginIsolated?"bật":"tắt"));
-  try{if(window.Dup&&typeof window.Dup.dino==="function")(function(){var ds=window.Dup.dino(),nc=typeof window.Dup.cached==="function"?window.Dup.cached():-1,lazy=/^chưa tải/.test(ds);add(lazy&&nc>0?"info":"info",g,"DINOv2: "+ds+(nc>=0?" · hash ảnh đã có trên máy: "+nc+"":""))})()}catch(e){}
+  add("info",g,"WebGPU: "+(wg?"có (DINOv3 sẽ chạy bằng GPU nếu qua bước thử)":"không có (DINOv3 chạy WASM)")+" · crossOriginIsolated: "+(window.crossOriginIsolated?"bật":"tắt"));
+  try{if(window.Dup&&typeof window.Dup.dino==="function")(function(){var ds=window.Dup.dino(),nc=typeof window.Dup.cached==="function"?window.Dup.cached():-1,lazy=/^chưa tải/.test(ds);add(lazy&&nc>0?"info":"info",g,"DINOv3: "+ds+(nc>=0?" · hash ảnh đã có trên máy: "+nc+"":""))})()}catch(e){}
   try{if(window.Dup&&typeof window.Dup.smart==="function"){var sm=window.Dup.smart();add("info",g,"Ngưỡng ảnh: mạnh "+sm.ts+"% · yếu "+sm.tl+"% · giữ "+sm.kept+" · bỏ "+sm.cut+" cặp yếu")}}catch(e){}
   var m=null;try{m=performance.memory}catch(e){}
   if(m&&m.jsHeapSizeLimit){
@@ -334,7 +334,7 @@ function chkIdb(add){
   },function(){})}
 
 /* ---------- Đồng bộ dữ liệu quét trùng giữa các bản cài (PWA/APK). Chỉ ĐỌC ----------
-   Kết quả quét ảnh (dpm2) và hash ảnh (dhc6) chỉ nằm trong IndexedDB của TỪNG bản cài, không đi qua máy chủ.
+   Kết quả quét ảnh (dpm3) và hash ảnh (dhc7) chỉ nằm trong IndexedDB của TỪNG bản cài, không đi qua máy chủ.
    Chỉ danh sách "Không phải trùng" (dign1) được đồng bộ lên Sheet. Nên PWA và APK chỉ ra cùng kết quả khi cùng danh sách căn,
    cùng cài đặt, cùng hash ảnh. Các mã đối chiếu dưới đây giúp thấy ngay phần nào đang lệch giữa hai bên. */
 function fnv(s){var h=2166136261,i;s=String(s);for(i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return("0000000"+(h>>>0).toString(16)).slice(-8)}
@@ -356,12 +356,12 @@ function chkSync(add){
   try{items=(T&&T.items&&T.items())||[]}catch(e){}
   if(!T||!T.idbGet||!items.length)return Promise.resolve();
   return Promise.all([rdKey(KP()),rdKey(KH()),ignRead(),rdKey("dhs1")]).then(function(r){
-    var th=80,skip=true;
-    try{if(window.Dup&&typeof window.Dup.smart==="function")th=window.Dup.smart().th;else{var t=+T.ls("dsim");if(t>0)th=t>=86?87:t>=79?80:t>=75?77:73}}catch(e){}
+    var th=75,skip=true;
+    try{if(window.Dup&&typeof window.Dup.smart==="function")th=window.Dup.smart().th;else{var t=+T.ls("dsim3");if(t>0)th=t>=80?84:t>=72?75:t>=65?68:62}}catch(e){}
     try{skip=T.ls("dnoout")!=="0"}catch(e){}
     var pmP=pjson(r[0].idb||r[0].ls),hcP=pjson(r[1].idb||r[1].ls),ig=r[2],pm=pmP.o,hc=hcP.o||{};
-    if(pmP.bad)add("bad",g,"Kết quả quét ảnh (dpm2) bị hỏng, không đọc được. Dùng \"Xóa kết quả quét (giữ hash ảnh)\" rồi quét lại");
-    if(hcP.bad)add("bad",g,"Hash ảnh (dhc6) bị hỏng, không đọc được. Dùng \"Đặt lại dữ liệu quét trùng\"");
+    if(pmP.bad)add("bad",g,"Kết quả quét ảnh (dpm3) bị hỏng, không đọc được. Dùng \"Xóa kết quả quét (giữ hash ảnh)\" rồi quét lại");
+    if(hcP.bad)add("bad",g,"Hash ảnh (dhc7) bị hỏng, không đọc được. Dùng \"Đặt lại dữ liệu quét trùng\"");
     if(ig.bad)add("bad",g,"Danh sách \"Không phải trùng\" (dign1) bị hỏng, không đọc được");
     var byId={},allImg={},actImg=[],active;
     items.forEach(function(it){byId[it.id]=it;imgsOf(it).forEach(function(s){allImg[s]=1})});
@@ -386,7 +386,7 @@ function chkSync(add){
       add(pend?"info":"ok",g,pend?pend+"/"+active.length+" căn chưa so ảnh (căn mới, ảnh đổi hoặc chưa quét xong), nên danh sách cặp trùng chưa đầy đủ":"Mọi căn có ảnh đều đã được so");
       if(stale)add("warn",g,stale+" cặp ảnh trỏ tới căn đã xóa hoặc ảnh đã đổi (kết quả quét cũ chưa dọn). Mở Kiểm tra trùng một lần để app tự dọn, hoặc dùng \"Xóa kết quả quét (giữ hash ảnh)\"");
       if(orphan)add("info",g,orphan+" ảnh đã so nhưng không còn thuộc căn nào (dữ liệu thừa, không ảnh hưởng kết quả)");
-      if(fail)add("warn",g,fail+" ảnh không tính được hash sau nhiều lần thử (bị bỏ qua 5 phút rồi thử lại). Ảnh Drive lỗi hoặc mạng chặn, có thể làm kết quả thiếu so với máy kia")
+      if(fail)add("warn",g,fail+" ảnh không tính được hash sau nhiều lần thử (tạm bỏ qua 5 phút, rồi 1 giờ, rồi 24 giờ từ lần thử thứ 4). Ảnh Drive lỗi hoặc mạng chặn, có thể làm kết quả thiếu so với máy kia")
     }else if(!pmP.bad)add("info",g,"Máy này chưa quét ảnh trùng (chưa có kết quả so khớp). Mở Kiểm tra trùng → Quét ảnh trùng");
     if(noHash)add("info",g,noHash+"/"+actImg.length+" ảnh chưa có hash trên máy này (sẽ tính khi quét)");
     var hsO=pjson(r[3].idb||r[3].ls).o||{},hsK={};
@@ -819,7 +819,7 @@ function onClick(e){
   if(a==="reset"){
     if(!confirm("Xóa vỏ app đã lưu (không xóa ảnh, dữ liệu Sheet hay cài đặt) và tải lại bản mới nhất?"))return;
     say("Đang làm mới…");
-    (window.caches?caches.keys():Promise.resolve([])).then(function(ks){return Promise.all(ks.filter(function(k){return k!=="img-v1"}).map(function(k){return caches.delete(k)}))})
+    (window.caches?caches.keys():Promise.resolve([])).then(function(ks){return Promise.all(ks.filter(function(k){return k!=="img-v1"&&k!=="transformers-cache"}).map(function(k){return caches.delete(k)}))})
       .then(function(){return navigator.serviceWorker?navigator.serviceWorker.getRegistrations():[]})
       .then(function(rs){return Promise.all(rs.map(function(r){return r.unregister()}))})
       .then(reload,reload);return}
