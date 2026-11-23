@@ -934,7 +934,7 @@ function loadMain(){
 function dinoLoad(){
   if(DINO.p)return DINO.p;
   msg("Đang tải DINOv3 (lần đầu, vài chục MB)…");
-  DINO.p=loadWorker().catch(function(){return loadMain()}).then(function(r){DINO.err=null;return r}).catch(function(e){DINO.p=null;DINO.m=null;killWorker();DINO.err=String(e&&e.message||e);throw e});
+  DINO.p=loadWorker().catch(function(we){var wm=String(we&&we.message||we);return loadMain().catch(function(me){throw new Error(String(me&&me.message||me)+" | worker: "+wm)})}).then(function(r){DINO.err=null;return r}).catch(function(e){DINO.p=null;DINO.m=null;killWorker();DINO.err=String(e&&e.message||e);throw e});
   return DINO.p}
 function mainRun(list){
   return new Promise(function(ok){setTimeout(ok,0)}).then(function(){   /* nhường giao diện (chỉ dùng khi không có worker) */
@@ -1201,7 +1201,7 @@ function scan(auto){
     if(t.bad)extra.push(t.bad+" ảnh không đọc được");
     if(t.flat)extra.push(t.flat+" ảnh trơn ít chi tiết");
     var exTxt=extra.length?" ("+extra.join(" · ")+")":"";
-    if(dinoErr){msg("Không tải được DINOv3 (cần mạng lần đầu).",1);dinoErr=null}
+    if(dinoErr){msg("Không tải được DINOv3 (cần mạng lần đầu): "+String(dinoErr&&dinoErr.message||dinoErr),1);dinoErr=null}
     else if(stopFlag)msg("Đã dừng · so "+t["căn"]+" căn · "+imgPairs.length+" cặp ảnh giống");
     else if(t.bad&&t.ok===0)msg("Hầu hết ảnh không đọc được.",1);
     else if(!t["căn"])msg("Không có căn mới · "+imgPairs.length+" cặp ảnh giống"+pendTxt);
