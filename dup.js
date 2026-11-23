@@ -168,7 +168,7 @@ function pullIgnored(force){
     Object.keys(ignDirty).forEach(function(k){if(ignDirty[k]>0)nw[k]=ignDirty[k];else delete nw[k]});
     if(its&&its.length){
       byId={};its.forEach(function(it){byId[it.id]=1});
-      Object.keys(nw).forEach(function(k){var ids=k.split("|");if(!byId[ids[0]]||!byId[ids[1]]){delete nw[k];if(k in R)ignDirty[k]=0;else delete ignDirty[k]}});
+      Object.keys(nw).forEach(function(k){var ids=k.split("|");if(!byId[ids[0]]||!byId[ids[1]]){delete nw[k];if(!(k in R))delete ignDirty[k]}   /* chỉ ẩn tạm trên máy, KHÔNG gửi lệnh xóa lên máy chủ: danh sách căn trên máy có thể cũ hơn máy chủ (căn mới do máy khác thêm). Máy chủ tự xóa cặp khi xóa căn (dupDropId_) */});
     }
     var chg=!sameMap(ignored,nw);
     ignored=nw;
@@ -359,6 +359,19 @@ function pairH(o,idx,isIgn){
   h+='<div class="dpdet"'+(isOpen?"":" hidden")+'>'+(isOpen?detailH(o,idx):"")+'</div>';
   h+='<div class="dpimgs"'+(totImg&&imgOpen?"":" hidden")+'>'+(totImg&&imgOpen?imgCmpH(o,idx):"")+'</div>';
   return h+'</div>'}
+/* Thống kê "Không phải trùng": cặp đã đánh dấu chỉ hiện trong giao diện khi hai căn vẫn còn nghi trùng và không thuộc căn Loại đang bị ẩn */
+function ignStat(r){
+  loadIgnored();loadSkip();
+  var byId={},keys,shown={},ok=0,out=0,none=0;
+  items.forEach(function(it){byId[it.id]=it});
+  keys=Object.keys(ignored).filter(function(k){var a=k.split("|");return ignored[k]&&byId[a[0]]&&byId[a[1]]});
+  r=r||build();
+  r.ign.forEach(function(p){shown[p.a.id+"|"+p.b.id]=1});
+  keys.forEach(function(k){
+    var a=k.split("|"),A=byId[a[0]],B=byId[a[1]];
+    if(shown[k]){ok++;return}
+    if(skipOut&&((A.st||"new")==="out"||(B.st||"new")==="out"))out++;else none++});
+  return{total:keys.length,shown:ok,out:out,none:none,img:imgPairs!==null}}
 function render(){
   var r=build(),list=showOne?r.strong.concat(r.weak):r.strong,el=G("dupl"),n=r.nSrc,sk=r.nSkip?" (đã bỏ qua "+r.nSkip+" căn Loại)":"",hi=r.strong.filter(function(o){return o.sc>=3}).length,tg=G("duptog"),itg=G("dupigntog"),ignEl=G("dupignl");
   viewList=[];
@@ -366,7 +379,8 @@ function render(){
   G("dupignview").hidden=!showIgn;
   if(showIgn){
     el.innerHTML="";
-    G("dupignsum").textContent=r.ign.length?"Có "+r.ign.length+" cặp đã đánh dấu không phải trùng.":"Không còn cặp nào đã đánh dấu không phải trùng.";
+    var ist=ignStat(r),hid=ist.out+ist.none;
+    G("dupignsum").textContent=(r.ign.length?"Có "+r.ign.length+" cặp đã đánh dấu không phải trùng.":"Không còn cặp nào đã đánh dấu không phải trùng.")+(hid?" Ngoài ra còn "+hid+" cặp đã đánh dấu nhưng đang ẩn"+(ist.out?" ("+ist.out+" cặp thuộc căn Loại":" (")+(ist.out&&ist.none?", ":"")+(ist.none?ist.none+" cặp không còn nghi trùng theo điều kiện hiện tại":"")+"); khi nghi trùng trở lại chúng sẽ hiện ở đây.":"");
     G("dupignclr").hidden=r.ign.length<2;
     if(r.ign.length){
       var ignSlice=r.ign.slice(0,limIgn);
@@ -732,6 +746,7 @@ function hsApply(rows){
     hs.k[id]=1;
     if(cache[id]===undefined){cache[id]=h;delete sigMemo[id];add++}
     else if(cache[id]!==h){cache[id]=h;delete sigMemo[id];chg++}});
+  if(add||chg)SM.key="";   /* hash đổi: tính lại ngưỡng thông minh */
   return{add:add,chg:chg}}
 function hsRefresh(r){
   if(!(r.add||r.chg))return;
@@ -1001,7 +1016,7 @@ function smartCalc(){
   var ig={},ik,key,byId={},vals=[],cal=TH;
   try{loadIgnored();ig=ignored||{}}catch(e){ig={}}
   ik=Object.keys(ig);
-  key=TH+"|"+ik.length+"|"+(items||[]).length;
+  key=TH+"|"+ik.length+"|"+(items||[]).length+"|"+(cacheLoaded?1:0);
   if(SM.key===key)return SM;
   SM.key=key;
   (items||[]).forEach(function(it){byId[it.id]=it});
@@ -1206,7 +1221,7 @@ function scan(auto){
   function run(total){return batch(total).then(function(more){if(more&&!stopFlag)return run(total)})}
   if(hsPhase)msg("Đang đồng bộ hash từ máy chủ…");
   Promise.all([loadCache(),loadPm(),hsWait()]).then(function(){
-    if(hsPendR){if(hsPendR.chg){pm=pmEmpty();savePm()}hsPendR=null}   // hash vừa đổi theo máy chủ: quét lại từ hash mới
+    SM.key="";if(hsPendR){if(hsPendR.chg){pm=pmEmpty();savePm()}hsPendR=null}   // hash vừa đổi theo máy chủ: quét lại từ hash mới
     if(pmStale()){pm=pmEmpty();savePm()}
     if(!auto)pm.fail={};
     var total=pendingItems().length;
@@ -1356,7 +1371,7 @@ function sync(){
     if(cacheLoaded&&!scanning)autoScan()
   },120)}
 
-window.Dup={smart:function(){var s=smartCalc();return{th:TH,ts:s.ts,tl:s.tl,np:s.np,kept:s.kept,cut:s.cut}},keys:function(){return{h:CACHE_KEY,p:PM_KEY}},dino:function(){return DW.w?"worker/"+DW.dev+" x"+BN+" res"+DS:DINO.m?"main/wasm":"chưa tải"},pull:function(f){var p=pullIgnored(f);if(f)hsPull();return p},init:init,open:open,close:close,sync:sync,closeZoom:closeZoom};
+window.Dup={ignStat:function(){return ignStat()},smart:function(){var s=smartCalc();return{th:TH,ts:s.ts,tl:s.tl,np:s.np,kept:s.kept,cut:s.cut}},keys:function(){return{h:CACHE_KEY,p:PM_KEY}},dino:function(){return DW.w?"worker/"+DW.dev+" x"+BN+" res"+DS:DINO.m?"main/wasm":"chưa tải"},pull:function(f){var p=pullIgnored(f);if(f)hsPull();return p},init:init,open:open,close:close,sync:sync,closeZoom:closeZoom};
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",function(){init()});
 else init();
 })();
