@@ -356,8 +356,8 @@ function chkSync(add){
   try{items=(T&&T.items&&T.items())||[]}catch(e){}
   if(!T||!T.idbGet||!items.length)return Promise.resolve();
   return Promise.all([rdKey(KP()),rdKey(KH()),ignRead(),rdKey("dhs1")]).then(function(r){
-    var th=75,skip=true;
-    try{if(window.Dup&&typeof window.Dup.smart==="function")th=window.Dup.smart().th;else{var t=+T.ls("dsim3");if(t>0)th=t>=80?84:t>=72?75:t>=65?68:62}}catch(e){}
+    var th=79,skip=true;
+    try{if(window.Dup&&typeof window.Dup.smart==="function")th=window.Dup.smart().th;else{var t=+T.ls("dsim3");if(t>0)th=t>=83?86:t>=74?79:t>=67?72:t>0?65:79}}catch(e){}
     try{skip=T.ls("dnoout")!=="0"}catch(e){}
     var pmP=pjson(r[0].idb||r[0].ls),hcP=pjson(r[1].idb||r[1].ls),ig=r[2],pm=pmP.o,hc=hcP.o||{};
     if(pmP.bad)add("bad",g,"Kết quả quét ảnh (dpm3) bị hỏng, không đọc được. Dùng \"Xóa kết quả quét (giữ hash ảnh)\" rồi quét lại");
