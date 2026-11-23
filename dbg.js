@@ -272,6 +272,7 @@ function chkEnv(add){
   var wg=!!navigator.gpu;
   add("info",g,"WebGPU: "+(wg?"có (DINOv2 sẽ chạy bằng GPU nếu qua bước thử)":"không có (DINOv2 chạy WASM)")+" · crossOriginIsolated: "+(window.crossOriginIsolated?"bật":"tắt"));
   try{if(window.Dup&&typeof window.Dup.dino==="function")add("info",g,"DINOv2: "+window.Dup.dino())}catch(e){}
+  try{if(window.Dup&&typeof window.Dup.smart==="function"){var sm=window.Dup.smart();add("info",g,"Ngưỡng thông minh: mức "+sm.th+"% → chặt "+sm.ts+"% · rộng "+sm.tl+"% (nâng theo "+sm.np+" cặp Không trùng, từ 8 cặp mới nâng) · phiên này giữ thêm "+sm.kept+" cặp yếu, bỏ "+sm.cut+" cặp yếu lẻ")}}catch(e){}
   var m=null;try{m=performance.memory}catch(e){}
   if(m&&m.jsHeapSizeLimit){
     var pc=Math.round(m.usedJSHeapSize*100/m.jsHeapSizeLimit);
