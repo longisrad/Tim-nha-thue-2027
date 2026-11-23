@@ -1222,7 +1222,7 @@ function scan(auto){
         if(h){var sg=sigOf(u)||parseSig(h);if(sg){got[u]=1;t.ok++;if(sg.ori==="L")t.nL++;else t.nP++}}
         else if(h===null){badSet[u]=1;t.bad++;pm.fail=pm.fail||{};var cf=pm.fail[u];pm.fail[u]={n:(cf&&typeof cf==="object"?cf.n:0)+1,t:Date.now()}}
         else{flat[u]=1;t.flat++}
-        dn++;msg("Đang so ảnh · "+t["căn"]+"/"+total+" căn · ảnh "+dn+"/"+urls.length+"…");bar.style.width=Math.min(100,(t["căn"]+B.length*dn/Math.max(1,urls.length))/total*100)+"%"
+        dn++;msg("Đang so ảnh · "+t["căn"]+"/"+total+" căn · ảnh "+dn+"/"+urls.length+" · "+window.Dup.dino());bar.style.width=Math.min(100,(t["căn"]+B.length*dn/Math.max(1,urls.length))/total*100)+"%"
       }).then(worker)}
     return Promise.all(spawnW(worker)).then(function(){
       if(stopFlag)return false;
