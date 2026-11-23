@@ -224,6 +224,25 @@ function priceDiffOver20(a,b){
   return Math.abs(pa-pb)/Math.max(pa,pb)>0.2;
 }
 var WT={"Cùng link tin đăng":2};
+/* Ảnh phòng chung (nhà vệ sinh, cầu thang...) rất giống nhau giữa các căn khác nhau.
+   HUB: ảnh giống với ảnh của ≥HUB căn khác nhau là ảnh chung chung; khi cặp căn chưa có đủ 2 điểm thông tin đi kèm thì cặp ảnh đó bị bỏ, trừ khi giống ≥HUB_N%.
+   Cặp căn còn ít nhất 1 cặp ảnh hợp lệ vẫn nằm ở danh sách chính như bình thường. */
+var HUB=3,HUB_N=90;
+function ih(o){return o.img.length>0}
+function filterGenericImgs(P){
+  var hub={};
+  Object.keys(P).forEach(function(k){var o=P[k];o.img.forEach(function(m){(hub[m.x]||(hub[m.x]={}))[o.b.id]=1;(hub[m.y]||(hub[m.y]={}))[o.a.id]=1})});
+  function hn(s){return hub[s]?Object.keys(hub[s]).length:0}
+  Object.keys(P).forEach(function(k){
+    var o=P[k];if(!o.img.length)return;
+    var ts=0;o.why.forEach(function(w){if(w!=="img")ts+=WT[w]||1});
+    function nn(m){return m.n!=null?m.n:Math.max(0,100-m.d)}
+    if(ts<MIN){
+      o.img=o.img.filter(function(m){return nn(m)>=HUB_N||(hn(m.x)<HUB&&hn(m.y)<HUB)});
+      if(!o.img.length){var i=o.why.indexOf("img");if(i>=0)o.why.splice(i,1)}
+    }
+    if(!o.why.length)delete P[k];
+  })}
 function sc(o){var t=0;o.why.forEach(function(l){t+=WT[l]||1});return t}
 function itSig(it){return[it.id,it.n,it.a,it.w,it.d,it.p,it.ar,it.lk,it.mp,it.ph,it.sp].join("\u0001")}
 function loadSkip(){if(skipLoaded)return;skipLoaded=true;try{skipOut=ls("dnoout")!=="0"}catch(e){skipOut=true}}
@@ -241,16 +260,17 @@ function build(){
   src.forEach(function(it){byId[it.id]=it});
   textPairs(src).forEach(function(t){var a=byId[t.a],b=byId[t.b];if(a&&b)P[t.a+"|"+t.b]={a:a,b:b,why:t.why.slice(),img:[]}});
   if(imgPairs)imgPairs.forEach(function(r){var a=byId[r.a.id],b=byId[r.b.id];if(!a||!b)return;var o=addP(P,a,b,"img");if(!o)return;var sw=o.a.id!==r.a.id;o.img.push(sw?{x:r.y,y:r.x,d:r.d,k:r.k||"",o:r.o||"",n:r.n}:{x:r.x,y:r.y,d:r.d,k:r.k||"",o:r.o||"",n:r.n})});
-  var all=Object.keys(P).map(function(k){var o=P[k];o.sc=sc(o);return o}).sort(function(a,b){return(b.img.length>0?1:0)-(a.img.length>0?1:0)||b.sc-a.sc||b.img.length-a.img.length});
+  filterGenericImgs(P);
+  var all=Object.keys(P).map(function(k){var o=P[k];o.sc=sc(o);return o}).sort(function(a,b){return(ih(b)?1:0)-(ih(a)?1:0)||b.sc-a.sc||b.img.length-a.img.length});
   var active=[],ign=[];
   all.forEach(function(p){
     if(ignored[p.a.id+"|"+p.b.id]){ign.push(p);return}
-    if(!p.img.length&&p.sc>=MIN&&priceDiffOver20(p.a,p.b))return;
+    if(!ih(p)&&p.sc>=MIN&&priceDiffOver20(p.a,p.b))return;
     active.push(p);
   });
   return{
-    strong:active.filter(function(o){return o.sc>=MIN||o.img.length>0}),
-    weak:active.filter(function(o){return o.sc<MIN&&!o.img.length}),
+    strong:active.filter(function(o){return o.sc>=MIN||ih(o)}),
+    weak:active.filter(function(o){return o.sc<MIN&&!ih(o)}),
     ign:ign,
     nSrc:src.length,
     nSkip:items.length-src.length
@@ -343,7 +363,7 @@ function pairH(o,idx,isIgn){
   var n=o.why.length,s=o.sc||0,k=o.a.id+"|"+o.b.id,isOpen=!!openSet[k],imgOpen=isImgOpen(k),allowDel=canWrite(),st=pairImgMsg[k];
   var na=houseImgs(o.a).length,nb=houseImgs(o.b).length,totImg=na+nb;
   var lbl=s>=3?"Gần như chắc chắn trùng":s>=2?"Có thể trùng":o.img.length?"Trùng ảnh":"Chỉ trùng 1 điều kiện";
-  var ts=0;o.why.forEach(function(w){if(w!=="img")ts+=WT[w]||1});var cc=isIgn?"gr":o.img.length?"im":ts>=2?"pu":"gr";
+  var ts=0;o.why.forEach(function(w){if(w!=="img")ts+=WT[w]||1});var cc=isIgn?"gr":ih(o)?"im":ts>=2?"pu":"gr";
   var h='<div class="dpc '+cc+'">'+rowH(o.a,idx,"a",allowDel)+rowH(o.b,idx,"b",allowDel)+'<p class="dpn" data-tog="'+idx+'">'+lbl+(n>1?' ('+n+' điều kiện)':'')+'</p><div class="dpw" data-tog="'+idx+'" title="Bấm để xem thông tin trùng">';
   o.why.forEach(function(w){if(w!=="img")h+='<span>'+esc(w)+'</span>'});
   if(o.img.length)h+='<span class="im">'+o.img.length+' ảnh giống nhau</span>';
