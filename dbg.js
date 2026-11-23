@@ -278,6 +278,25 @@ function chkEnv(add){
     var pc=Math.round(m.usedJSHeapSize*100/m.jsHeapSizeLimit);
     add(pc>=70?"warn":"info",g,"Bộ nhớ JS của trang: "+mb(m.usedJSHeapSize)+" / giới hạn "+mb(m.jsHeapSizeLimit)+" ("+pc+"%). Chrome làm tròn thô số này, chỉ dùng để so sánh tương đối")}
   else add("info",g,"Không đọc được bộ nhớ JS của trang (trình duyệt không hỗ trợ)")}
+/* GPU (WebGPU): hỏi adapter thật trong chính môi trường đang chạy (trình duyệt hoặc WebView của APK) để biết có dùng được shader-f16 không */
+function chkGpu(add){
+  var g="GPU (WebGPU)",ua=navigator.userAgent||"",cm=/Chrome\/(\d+)/.exec(ua);
+  add("info",g,"Môi trường: "+(isApk()?"APK (WebView)":isStandalone()?"PWA":"tab trình duyệt")+(cm?" · Chromium "+cm[1]:"")+" · DINOv2 dùng GPU: "+(window.DUP_DINO_GPU===false?"đã tắt bằng DUP_DINO_GPU=false":"cho phép"));
+  if(!navigator.gpu){add("info",g,"Không có WebGPU ở môi trường này (navigator.gpu không tồn tại) → DINOv2 chạy WASM, không dùng được fp16 trên GPU");return Promise.resolve()}
+  var to=new Promise(function(r){setTimeout(function(){r("timeout")},4000)});
+  return Promise.race([navigator.gpu.requestAdapter(),to]).then(function(a){
+    if(a==="timeout"){add("warn",g,"requestAdapter không phản hồi sau 4 giây");return}
+    if(!a){add("warn",g,"Có navigator.gpu nhưng không lấy được adapter (thiết bị/driver không hỗ trợ) → chạy WASM");return}
+    var f=false,sg=false,inf=null,lim=a.limits||{},p=[];
+    try{f=a.features.has("shader-f16");sg=a.features.has("subgroups")}catch(e){}
+    try{inf=a.info||null}catch(e){}
+    if(inf){var n=[inf.vendor,inf.architecture,inf.description||inf.device].filter(Boolean).join(" / ");if(n)p.push("GPU: "+n)}
+    if(a.isFallbackAdapter)p.push("adapter phần mềm (fallback, sẽ chậm)");
+    if(lim.maxBufferSize)p.push("maxBufferSize "+mb(lim.maxBufferSize));
+    if(lim.maxStorageBufferBindingSize)p.push("maxStorageBinding "+mb(lim.maxStorageBufferBindingSize));
+    add(f?"ok":"info",g,"shader-f16: "+(f?"CÓ → chạy được model fp16/q4f16 trên GPU":"KHÔNG → chỉ nên dùng fp32 trên WebGPU (hoặc WASM)")+" · subgroups: "+(sg?"có":"không"));
+    add(a.isFallbackAdapter?"warn":"info",g,"Adapter WebGPU lấy được"+(p.length?": "+p.join(" · "):""))
+  },function(e){add("warn",g,"requestAdapter lỗi: "+(e&&e.message||e))})}
 function chkErrors(add){
   var g="Lỗi đã ghi";
   if(!B.e.length){add("ok",g,"Không có lỗi nào được ghi lại");return}
@@ -631,7 +650,7 @@ function run(force){
   function fin(){R={at:Date.now(),L:L,can:CAN};running=false;badge();var d=G("dbgd");if(d&&d.open)draw();return R}
   return wait().then(function(w){
     chkComponents(add,w);chkBridges(add);chkRes(add);
-    return chkSw(add).then(function(){return (force||assetsDue())?chkAssets(add):0}).then(function(){return chkCaches(add)}).then(function(){return chkStorage(add)}).then(function(){return chkIdb(add)}).then(function(){return chkSync(add)}).then(function(){
+    return chkSw(add).then(function(){return (force||assetsDue())?chkAssets(add):0}).then(function(){return chkCaches(add)}).then(function(){return chkStorage(add)}).then(function(){return chkIdb(add)}).then(function(){return chkSync(add)}).then(function(){return chkGpu(add)}).then(function(){
       chkNative(add);chkData(add);chkPerf(add);chkMode(add);chkLink(add);chkEnv(add);chkErrors(add)})
   }).then(fin,function(e){add("bad","Kiểm tra","Chính bộ kiểm tra bị lỗi: "+(e&&e.message||e));return fin()})}
 function allL(){return (S?S.L:[]).concat(R?R.L:[])}
