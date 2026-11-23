@@ -913,9 +913,9 @@ function onWorkerMsg(e){
   delete DW.pend[m.id];
   if(m.t==="res")p.ok(m.v);else p.bad(new Error(m.msg||"lỗi suy luận"))}
 function onWorkerErr(e){failPend(new Error(e&&e.message||"worker lỗi"));killWorker();DINO.p=null;DINO.err="worker lỗi: "+(e&&e.message||"")}
-function loadWorker(){
+function loadWorker(useGpu){
   return new Promise(function(ok,bad){
-    var w,done=false,last="khởi động",wt=0;function wd(){clearTimeout(wt);wt=setTimeout(function(){if(done)return;done=true;try{w.terminate()}catch(_){}bad(new Error("worker không phản hồi 45s ở bước: "+last))},45000)}
+    var w,done=false,last="khởi động",wt=0;function wd(){clearTimeout(wt);wt=setTimeout(function(){if(done)return;done=true;try{w.terminate()}catch(_){}bad(new Error("worker không phản hồi 90s ở bước: "+last))},90000)}
     try{w=new Worker(URL.createObjectURL(new Blob(["("+dinoWorkerMain.toString()+")()"],{type:"text/javascript"})))}catch(e){bad(e);return}
     w.onmessage=function(e){
       var m=e.data||{};
@@ -923,7 +923,7 @@ function loadWorker(){
       else if(m.t==="ready"){done=true;DW.w=w;DW.dev=m.dev;w.onmessage=onWorkerMsg;w.onerror=onWorkerErr;ok(w)}
       else if(m.t==="initerr"){done=true;try{w.terminate()}catch(_){}bad(new Error(m.msg))}};
     w.onerror=function(e){if(done)return;done=true;try{w.terminate()}catch(_){}bad(new Error(e&&e.message||"worker lỗi"))};
-    wd();w.postMessage({t:"init",cfg:{lib:DINO_LIB,id:DINO_ID,S:DS,gpu:DINO_GPU,localBase:new URL(DINO_LOCAL,location.href).href}})})}
+    wd();w.postMessage({t:"init",cfg:{lib:DINO_LIB,id:DINO_ID,S:DS,gpu:useGpu!==false&&DINO_GPU,localBase:new URL(DINO_LOCAL,location.href).href}})})}
 function loadMain(){
   msg("Đang tải DINOv3… (luồng chính)");
   return import(DINO_LIB).then(function(L){
@@ -935,7 +935,7 @@ function loadMain(){
 function dinoLoad(){
   if(DINO.p)return DINO.p;
   msg("Đang tải DINOv3 (lần đầu, vài chục MB)…");
-  DINO.p=loadWorker().catch(function(we){var wm=String(we&&we.message||we);return loadMain().catch(function(me){throw new Error(String(me&&me.message||me)+" | worker: "+wm)})}).then(function(r){DINO.err=null;return r}).catch(function(e){DINO.p=null;DINO.m=null;killWorker();DINO.err=String(e&&e.message||e);throw e});
+  DINO.werr=null;DINO.p=loadWorker(true).catch(function(we){DINO.werr="GPU: "+String(we&&we.message||we);return loadWorker(false)}).catch(function(w2){DINO.werr=(DINO.werr?DINO.werr+" | ":"")+"WASM: "+String(w2&&w2.message||w2);return loadMain().catch(function(me){throw new Error(String(me&&me.message||me)+" | worker "+DINO.werr)})}).then(function(r){DINO.err=null;return r}).catch(function(e){DINO.p=null;DINO.m=null;killWorker();DINO.err=String(e&&e.message||e);throw e});
   return DINO.p}
 function mainRun(list){
   return new Promise(function(ok){setTimeout(ok,0)}).then(function(){   /* nhường giao diện (chỉ dùng khi không có worker) */
@@ -1407,8 +1407,8 @@ function sync(){
   },120)}
 
 window.Dup={ignStat:function(){return ignStat()},smart:function(){loadImgMode();var s=smartCalc();return{th:TH,ts:s.ts,tl:s.tl,np:s.np,lv:s.lv,cal:s.cal,kept:s.kept,cut:s.cut}},keys:function(){return{h:CACHE_KEY,p:PM_KEY}},cached:function(){return cacheLoaded?Object.keys(cache).length:-1},dino:function(){
-    if(DW.w)return"worker/"+DW.dev+" x"+BN+" res"+DS;
-    if(DINO.m)return"main/wasm x"+BN+" res"+DS;
+    if(DW.w)return"worker/"+DW.dev+" x"+BN+" res"+DS+(DINO.werr?" · "+DINO.werr.slice(0,160):"");
+    if(DINO.m)return"main/wasm x"+BN+" res"+DS+(DINO.werr?" · "+DINO.werr.slice(0,200):"");
     if(DINO.p)return"đang tải";
     if(DINO.err)return"lỗi: "+DINO.err;
     return"chưa tải (chưa cần)"},dinoLoad:function(){return dinoLoad().then(function(){return window.Dup.dino()},function(e){return"lỗi: "+(e&&e.message||e)})},pull:function(f){var p=pullIgnored(f);if(f)hsPull();return p},init:init,open:open,close:close,sync:sync,closeZoom:closeZoom};
