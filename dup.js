@@ -170,15 +170,15 @@ function pullIgnored(force){
   pullP=N().apiGet("&action=dup",20000).then(function(d){
     lastPull=Date.now();
     if(!d||!d.ok)return;
-    var R={},nw={},byId=null,its=N().items();
-    (d.pairs||[]).forEach(function(p){R[p.k]=p.t||1;nw[p.k]=p.t||1});
-    Object.keys(ignDirty).forEach(function(k){if(ignDirty[k]>0)nw[k]=ignDirty[k];else delete nw[k]});
+    var R={},nxt={},byId=null,its=N().items();
+    (d.pairs||[]).forEach(function(p){R[p.k]=p.t||1;nxt[p.k]=p.t||1});
+    Object.keys(ignDirty).forEach(function(k){if(ignDirty[k]>0)nxt[k]=ignDirty[k];else delete nxt[k]});
     if(its&&its.length){
       byId={};its.forEach(function(it){byId[it.id]=1});
-      Object.keys(nw).forEach(function(k){var ids=k.split("|");if(!byId[ids[0]]||!byId[ids[1]]){delete nw[k];if(!(k in R))delete ignDirty[k]}   /* chỉ ẩn tạm trên máy, KHÔNG gửi lệnh xóa lên máy chủ: danh sách căn trên máy có thể cũ hơn máy chủ (căn mới do máy khác thêm). Máy chủ tự xóa cặp khi xóa căn (dupDropId_) */});
+      Object.keys(nxt).forEach(function(k){var ids=k.split("|");if(!byId[ids[0]]||!byId[ids[1]]){delete nxt[k];if(!(k in R))delete ignDirty[k]}   /* chỉ ẩn tạm trên máy, KHÔNG gửi lệnh xóa lên máy chủ: danh sách căn trên máy có thể cũ hơn máy chủ (căn mới do máy khác thêm). Máy chủ tự xóa cặp khi xóa căn (dupDropId_) */});
     }
-    var chg=!sameMap(ignored,nw);
-    ignored=nw;
+    var chg=!sameMap(ignored,nxt);
+    ignored=nxt;
     ignWriteLs();
     pushIgnored();
     var dd=G("dupd");if(dd&&dd.open&&chg)render()
@@ -188,30 +188,35 @@ function canWrite(){if(N()&&N().canW)return !!N().canW();var b=G("bnow");return 
 
 /* ---------- Chuẩn hoá ---------- */
 function nd(s){return String(s==null?"":s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d").replace(/[^a-z0-9]+/g," ").trim()}
-function pn(s){var d=String(s||"").replace(/\D/g,"");if(d.indexOf("84")===0&&d.length>=11)d="0"+d.slice(2);if(d.length===9&&d.charAt(0)!=="0")d="0"+d;return d.length>=9?d:""}
+function pn1(s){var d=String(s||"").replace(/\D/g,"");if(d.indexOf("84")===0&&d.length>=11)d="0"+d.slice(2);if(d.length===9&&d.charAt(0)!=="0")d="0"+d;return d.length>=9&&d.length<=11?d:""}
+/* 1 ô có thể ghi nhiều số ("0901… / 0912…", "A - B", "hoặc"): trả về mảng số đã chuẩn hoá */
+function pn(s){var o=[];String(s==null?"":s).split(/\s*[\/,;|&]\s*|\s+[-–]\s+|\s+(?:hoac|hoặc|và|va)\s+/i).forEach(function(x){x=pn1(x);if(x&&o.indexOf(x)<0)o.push(x)});return o}
+function shareArr(a,b){for(var i=0;i<a.length;i++)if(b.indexOf(a[i])>=0)return true;return false}
 function ln(u){u=su(u);if(!u)return"";u=u.toLowerCase().replace(/^https?:\/\/(www\.|m\.)?/,"").replace(/#.*$/,"");var p=u.split("?"),b=p[0].replace(/\/+$/,""),q=(p[1]||"").split("&").filter(function(x){return x&&!/^(utm_|fbclid|gclid|zarsrc|ref=)/.test(x)}).sort().join("&");return b+(q?"?"+q:"")}
 /* mã tin: cùng website + cùng dãy số dài cuối đường dẫn (khác slug vẫn nhận ra) */
-function lid(u){u=ln(u);if(!u)return"";var h=u.split("/")[0],m=u.split("?")[0].match(/\d{6,}/g);return m?h+"#"+m[m.length-1]:""}
+function lidOf(u){if(!u)return"";var h=u.split("/")[0],m=u.split("?")[0].match(/\d{6,}/g);return m?h+"#"+m[m.length-1]:""}
+function lid(u){return lidOf(ln(u))}
 function nw(s){return nd(s).replace(/^(thanh pho|thi xa|thi tran|phuong|quan|huyen|xa|tp|p|q)(?=\s|\d|$)\s*/,"").replace(/^0+(?=\d)/,"")}
 var STOP={so:1,nha:1,duong:1,d:1,hem:1,ngo:1,ngach:1,kiet:1,p:1,phuong:1,q:1,quan:1,xa:1,hcm:1,tphcm:1,tp:1};
-function addrKey(it){var t=nd(it.a).replace(/\b(thanh pho ho chi minh|tp ho chi minh|ho chi minh)\b/g," ").split(" ").filter(function(w){return w&&!STOP[w]});
+function addrKey(it){var t=nd(it.a).replace(/\b(thanh pho ho chi minh|tp ho chi minh|ho chi minh)\b/g," ").replace(/\b([pq])0*(\d+)\b/g,"$2").replace(/\b0+(?=\d)/g,"").split(" ").filter(function(w){return w&&!STOP[w]});
   var hasNum=t.some(function(w){return/\d/.test(w)}),hasWord=t.some(function(w){return/^[a-z]{2,}$/.test(w)});
   return hasNum&&hasWord?t.join(" "):""}
-function feat(it){var nm=nd(it.n),set=Object.create(null),k=0;nm.split(" ").forEach(function(w){if(w&&!set[w]){set[w]=1;k++}});
-  return{it:it,lk:ln(it.lk),li:lid(it.lk),mp:ln(it.mp),ph:pn(it.ph),sp:pn(it.sp),ad:addrKey(it),w:nw(it.w),d:nw(it.d),nm:nm,ns:set,nk:k,p:it.p,ar:it.ar}}
+function num(v){v=v==null||v===""?NaN:+v;return v>0?v:null}
+function feat(it){var nm=nd(it.n),set=Object.create(null),k=0,lk=ln(it.lk);nm.split(" ").forEach(function(w){if(w&&!set[w]){set[w]=1;k++}});
+  return{it:it,lk:lk,li:lidOf(lk),mp:ln(it.mp),ph:pn(it.ph),sp:pn(it.sp),ad:addrKey(it),w:nw(it.w),d:nw(it.d),nm:nm,ns:set,nk:k,p:num(it.p),ar:num(it.ar)}}
 /* ---------- So từng cặp: mỗi điều kiện khớp được tính 1 ---------- */
 function compat(x,y){return(!x.w||!y.w||x.w===y.w)&&(!x.d||!y.d||x.d===y.d)}
 function sameArea(x,y){return(x.w&&x.w===y.w)||(x.d&&x.d===y.d)}
 function nameSim(x,y){if(!x.nm||!y.nm)return false;if(x.nm===y.nm)return x.nm.length>=6;
   if(x.nk<3||y.nk<3)return false;var c=0;for(var w in x.ns)if(y.ns[w])c++;return c/(x.nk+y.nk-c)>=0.8}
-function cmp(x,y){var w=[];
+function cmp(x,y){var w=[],cp=compat(x,y);
   if(x.lk&&(x.lk===y.lk||(x.li&&x.li===y.li)))w.push("Cùng link tin đăng");
   if(x.mp&&x.mp===y.mp)w.push("Cùng link Google Maps");
-  if(x.ph&&x.ph===y.ph)w.push("Cùng SĐT chủ nhà");
-  if(x.sp&&x.sp===y.sp)w.push("Cùng SĐT sale");
-  if(x.ad&&x.ad===y.ad&&compat(x,y))w.push("Cùng địa chỉ");
-  if(compat(x,y)&&nameSim(x,y))w.push("Tên giống nhau");
-  if(x.p!=null&&y.p!=null&&x.ar&&y.ar&&Math.abs(x.p-y.p)<=0.05&&Math.abs(x.ar-y.ar)<=1&&compat(x,y)&&sameArea(x,y))w.push("Giá + diện tích giống nhau");
+  if(shareArr(x.ph,y.ph))w.push("Cùng SĐT chủ nhà");
+  if(shareArr(x.sp,y.sp))w.push("Cùng SĐT sale");
+  if(x.ad&&x.ad===y.ad&&cp)w.push("Cùng địa chỉ");
+  if(cp&&nameSim(x,y))w.push("Tên giống nhau");
+  if(x.p!=null&&y.p!=null&&x.ar&&y.ar&&Math.abs(x.p-y.p)<=0.05&&Math.abs(x.ar-y.ar)<=1&&cp&&sameArea(x,y))w.push("Giá + diện tích giống nhau");
   return w}
 function addP(P,a,b,why){if(a.id===b.id)return;var lo=a.id<b.id?a:b,hi=a.id<b.id?b:a,k=lo.id+"|"+hi.id,o=P[k]||(P[k]={a:lo,b:hi,why:[],img:[]});if(why&&o.why.indexOf(why)<0)o.why.push(why);return o}
 function cleanImgPairs(){
@@ -232,12 +237,15 @@ function priceDiffOver20(a,b){
 }
 var WT={"Cùng link tin đăng":2};
 /* Ảnh phòng chung (nhà vệ sinh, cầu thang...) rất giống nhau giữa các căn khác nhau.
-   HUB: ảnh giống với ảnh của ≥HUB căn khác nhau là ảnh chung chung; khi cặp căn chưa có đủ 2 điểm thông tin đi kèm thì cặp ảnh đó bị bỏ, trừ khi giống ≥HUB_N%.
+   HUB (hubLim, cộng thêm theo số căn): ảnh giống với ảnh của ≥HUB căn khác nhau là ảnh chung chung; khi cặp căn chưa có đủ 2 điểm thông tin đi kèm thì cặp ảnh đó bị bỏ, trừ khi giống ≥HUB_N%.
    Cặp căn còn ít nhất 1 cặp ảnh hợp lệ vẫn nằm ở danh sách chính như bình thường. */
-var HUB=3,HUB_N=90;
+var HUB=3,HUB_N=90,HUB_STEP=100,HUB_MAX=12;
+/* Ngưỡng HUB tăng theo số căn: càng nhiều căn thì ảnh chung chung càng dễ giống ngẫu nhiên với nhiều căn khác.
+   n<100 căn: 3 · 100-199: 4 · 200-299: 5 … tối đa HUB_MAX */
+function hubLim(n){return Math.min(HUB_MAX,HUB+Math.floor((n||0)/HUB_STEP))}
 function ih(o){return o.img.length>0}
-function filterGenericImgs(P){
-  var hub={};
+function filterGenericImgs(P,n){
+  var hub={},lim=hubLim(n);
   Object.keys(P).forEach(function(k){var o=P[k];o.img.forEach(function(m){(hub[m.x]||(hub[m.x]={}))[o.b.id]=1;(hub[m.y]||(hub[m.y]={}))[o.a.id]=1})});
   function hn(s){return hub[s]?Object.keys(hub[s]).length:0}
   Object.keys(P).forEach(function(k){
@@ -245,7 +253,7 @@ function filterGenericImgs(P){
     var ts=0;o.why.forEach(function(w){if(w!=="img")ts+=WT[w]||1});
     function nn(m){return m.n!=null?m.n:Math.max(0,100-m.d)}
     if(ts<MIN){
-      o.img=o.img.filter(function(m){return nn(m)>=HUB_N||(hn(m.x)<HUB&&hn(m.y)<HUB)});
+      o.img=o.img.filter(function(m){return nn(m)>=HUB_N||(hn(m.x)<lim&&hn(m.y)<lim)});
       if(!o.img.length){var i=o.why.indexOf("img");if(i>=0)o.why.splice(i,1)}
     }
     if(!o.why.length)delete P[k];
@@ -267,7 +275,7 @@ function build(){
   src.forEach(function(it){byId[it.id]=it});
   textPairs(src).forEach(function(t){var a=byId[t.a],b=byId[t.b];if(a&&b)P[t.a+"|"+t.b]={a:a,b:b,why:t.why.slice(),img:[]}});
   if(imgPairs)imgPairs.forEach(function(r){var a=byId[r.a.id],b=byId[r.b.id];if(!a||!b)return;var o=addP(P,a,b,"img");if(!o)return;var sw=o.a.id!==r.a.id;o.img.push(sw?{x:r.y,y:r.x,d:r.d,k:r.k||"",o:r.o||"",n:r.n}:{x:r.x,y:r.y,d:r.d,k:r.k||"",o:r.o||"",n:r.n})});
-  filterGenericImgs(P);
+  filterGenericImgs(P,src.length);
   var all=Object.keys(P).map(function(k){var o=P[k];o.sc=sc(o);return o}).sort(function(a,b){return(ih(b)?1:0)-(ih(a)?1:0)||b.sc-a.sc||b.img.length-a.img.length});
   var active=[],ign=[];
   all.forEach(function(p){
@@ -282,7 +290,6 @@ function build(){
     nSrc:src.length,
     nSkip:items.length-src.length
   }}
-function pc(x){x=x-((x>>>1)&0x55555555);x=(x&0x33333333)+((x>>>2)&0x33333333);return(((x+(x>>>4))&0x0f0f0f0f)*0x01010101)>>>24}
 function simText(d,k,ori,n){
   var p=n!=null?n:Math.max(0,100-d);
   return p>=99?"Giống ~100% (DINOv2)":"Giống "+p+"% (DINOv2)"}
@@ -365,7 +372,7 @@ function imgCmpH(o,idx){
   return h+'</div>'}
 function rowH(it,idx,side,allowWrite){
   var k=it.st||"new",ad=addrOf(it);
-  return '<div class="dprow"><div class="dpr"><span class="dpt"><b>'+esc(it.n)+'</b><small>'+esc(ad||"Chưa có địa chỉ")+(it.p!=null?" · "+fmt(it.p)+" tr":"")+(it.ar?" · "+fmt(it.ar)+" m²":"")+'</small></span><span class="pill" style="--c:var(--s-'+k+');--bg2:var(--b-'+k+')">'+esc(stName(k))+'</span></div>'+(allowWrite?'<button type="button" class="dpedit" data-edit="'+esc(it.id)+'" title="Sửa thông tin căn này" aria-label="Sửa căn '+esc(it.n)+'">Sửa</button><button type="button" class="dpdel" data-del="'+idx+':'+side+'" title="Xóa căn này" aria-label="Xóa căn '+esc(it.n)+'">Xóa</button>':'')+'</div>'}
+  return '<div class="dprow"><div class="dpr"><span class="dpt"><b>'+esc(it.n)+'</b><small>'+esc(ad||"Chưa có địa chỉ")+(it.p!=null?" · "+fmt(it.p)+" tr":"")+(it.ar?" · "+fmt(it.ar)+" m²":"")+'</small></span><span class="pill" style="--c:var(--s-'+esc(k)+');--bg2:var(--b-'+esc(k)+')">'+esc(stName(k))+'</span></div>'+(allowWrite?'<button type="button" class="dpedit" data-edit="'+esc(it.id)+'" title="Sửa thông tin căn này" aria-label="Sửa căn '+esc(it.n)+'">Sửa</button><button type="button" class="dpdel" data-del="'+idx+':'+side+'" title="Xóa căn này" aria-label="Xóa căn '+esc(it.n)+'">Xóa</button>':'')+'</div>'}
 function pairH(o,idx,isIgn){
   var n=o.why.length,s=o.sc||0,k=o.a.id+"|"+o.b.id,isOpen=!!openSet[k],imgOpen=isImgOpen(k),allowDel=canWrite(),st=pairImgMsg[k];
   var na=houseImgs(o.a).length,nb=houseImgs(o.b).length,totImg=na+nb;
@@ -617,8 +624,13 @@ function markImgs(root){
   if(!root)return;
   var l=root.getElementsByTagName("img"),i,m;
   for(i=0;i<l.length;i++){m=l[i];if(!m.classList.contains("dpl")&&m.complete&&m.naturalWidth)m.classList.add("dpl","dpl0")}}
+/* viewList dựng lại sau mỗi render(): nếu hộp phóng to đang mở thì dò lại vị trí cặp theo key; cặp không còn trong danh sách thì đóng, để Xóa/Không trùng không tác động nhầm cặp khác */
+function zoomResync(){
+  var z=zoomCmp;if(!z)return;
+  for(var i=0;i<viewList.length;i++)if(viewList[i].a.id+"|"+viewList[i].b.id===z.key){if(i!==z.idx){z.idx=i;renderCmpZoom()}return}
+  closeZoom()}
 function afterRender(){
-  markImgs(G("dupl"));markImgs(G("dupignl"));
+  markImgs(G("dupl"));markImgs(G("dupignl"));zoomResync();
   if(imgAutoMode!=="manual")viewList.slice(0,3).forEach(function(o){if(isImgOpen(o.a.id+"|"+o.b.id))warmPair(o)})}
 function onPairDown(e){
   var t=e.target,c=t.closest&&t.closest("[data-cmpzoom]");
@@ -689,7 +701,7 @@ function renderCmpZoom(k){
   G("dupz").hidden=false;
   zNear()}
 function beginZoom(idx,L,ia,ib,loW,act){
-  zoomCmp={idx:idx,imgsA:L.A,imgsB:L.B,ia:ia,ib:ib,act:act||"a",stack:zlay===null?imgAutoMode==="stack":zlay==="1"};
+  zoomCmp={idx:idx,key:viewList[idx].a.id+"|"+viewList[idx].b.id,imgsA:L.A,imgsB:L.B,ia:ia,ib:ib,act:act||"a",stack:zlay===null?imgAutoMode==="stack":zlay==="1"};
   zLoW=loW;zShown={};
   renderCmpZoom({a:"open",b:"open"})}
 function openCmpZoom(val){
@@ -982,7 +994,8 @@ function encVec(d){
   for(i=0;i<DIM;i++){x=Math.round(d[i]/q*250);u[i]=(x>127?127:x<-127?-127:x)&255}
   return btoa(String.fromCharCode.apply(null,u))}
 function decVec(b64){
-  var t=atob(b64),v=new Float32Array(DIM),i,x,q=0;
+  var t,v=new Float32Array(DIM),i,x,q=0;
+  try{t=atob(b64)}catch(e){return null}
   if(t.length!==DIM)return null;
   for(i=0;i<DIM;i++){x=t.charCodeAt(i);if(x>127)x-=256;v[i]=x/250;q+=v[i]*v[i]}
   q=Math.sqrt(q)||1;for(i=0;i<DIM;i++)v[i]/=q;
@@ -1065,7 +1078,6 @@ function smartFilter(list){
       else if(ok){out.push(r);SM.kept++}
       else SM.cut++})});
   out.rej=0;return out}
-function smartNote(){return SM.cal>0?" Ngưỡng tự nâng +"+SM.cal+"% (cấp "+SM.lv+") theo "+SM.np+" cặp bạn đã đánh dấu Không trùng.":""}
 function cmpSig(a,b,th){
   if(!a||!b)return null;
   var m=dotV(a.v,b.v),x;
@@ -1075,19 +1087,6 @@ function cmpSig(a,b,th){
   return n>=th?{d:100-n,k:"",o:"",n:n}:null}
 /* Không còn bước kiểm tra lần hai theo điểm ảnh (DINOv2 đã so theo nội dung); giữ hàm rỗng để các chỗ gọi không phải đổi */
 function verifyList(list){return Promise.resolve(smartFilter(list))}
-function matchJobs(jobs,Hm){
-  var out=[],seen={},i,j,A=jobs.map(function(x){return Hm[x.s]}),m,k;
-  for(i=0;i<jobs.length;i++)for(j=i+1;j<jobs.length;j++){
-    if(jobs[i].it.id===jobs[j].it.id)continue;
-    if(jobs[i].s===jobs[j].s)m={d:0,n:100,k:"",o:(A[i]||A[j])?(A[i]||A[j]).ori:""};
-    else if(A[i]&&A[j])m=cmpSig(A[i],A[j],TH);else continue;
-    if(m){k=jobs[i].it.id+"|"+jobs[j].it.id+"|"+jobs[i].s+"|"+jobs[j].s;if(!seen[k]){seen[k]=1;out.push({a:jobs[i].it,b:jobs[j].it,x:jobs[i].s,y:jobs[j].s,d:m.d,k:m.k,o:m.o||"",n:m.n})}}}
-  return out}
-function ignImgNote(r){return""}
-function ignImgNote0(r){
-  if(!r||!r.ign||!r.ign.length)return"";
-  var n=0;r.ign.forEach(function(o){if(o.img&&o.img.length)n++});
-  return n?" ("+n+" cặp đang ở mục “Không phải trùng”).":""}
 /* ===== So khớp ảnh theo từng lượt BATCH căn, lưu kết quả để lần sau chỉ so ảnh mới ===== */
 var BATCH=20,FAIL_TTL=300000,PM_KEY="dpm2"+(DS===224?"":"r"+DS),pm=null,pmLoaded=false,pmP=null,sigMemo={};
 function sigOf(s){var v=sigMemo[s];if(v!==undefined)return v;var c=cache[s];v=c?parseSig(c):null;if(c!==undefined)sigMemo[s]=v;return v}
@@ -1126,7 +1125,8 @@ function pairsFromPm(){
   cleanImgPairs();
   pm.pairs=imgPairs.map(function(r){return{a:r.a.id,b:r.b.id,x:r.x,y:r.y,d:r.d,k:r.k,o:r.o,n:r.n}});
   return imgPairs}
-function isFailCool(f,now){return !!(f&&typeof f==="object"&&f.n>=2&&(now-f.t)<FAIL_TTL)}
+/* ảnh lỗi: thử lại sau 5 phút (lần 2), 1 giờ (lần 3), 24 giờ (từ lần 4) — tránh mỗi lần mở lại chờ ảnh đã bị xóa */
+function isFailCool(f,now){return !!(f&&typeof f==="object"&&f.n>=2&&(now-f.t)<(f.n>=4?864e5:f.n>=3?36e5:FAIL_TTL))}
 function pendingItems(skip){
   seedPmSeen();
   var now=Date.now();
@@ -1162,7 +1162,7 @@ function applyCachedPairs(){
       if(n>=2)msg("Chưa so khớp ảnh.");
       return}
     pairsFromPm();
-    var r=render(),note=ignImgNote(r),np=pendingItems().length;
+    render();var np=pendingItems().length;
     msg(imgPairs.length+" cặp ảnh giống"+(np?" · "+np+" căn chưa so":""))})}
 function autoScan(){
   if(scanning||!cacheLoaded)return;
@@ -1176,7 +1176,7 @@ function rescanFromCache(){
   Promise.all([loadCache(),loadPm()]).then(function(){
     if(pmStale()){scan();return}
     pairsFromPm();
-    var r=render(),note=ignImgNote(r),np=pendingItems().length;
+    render();var np=pendingItems().length;
     msg(imgPairs.length+" cặp ảnh giống"+(np?" · "+np+" căn chưa so":""))})}
 function scan(auto){
   if(scanning)return;
@@ -1188,17 +1188,16 @@ function scan(auto){
     savePm();saveCache();hsPushSoon();
     scanning=false;G("dupimg").disabled=false;G("dupstop").hidden=true;G("dupbar").hidden=true;
     pairsFromPm();
-    var r=render(),note=ignImgNote(r),extra=[],np=pendingItems().length;
-    if(np&&!stopFlag)note+=" Còn "+np+" căn chưa so.";
-    
+    render();
+    var extra=[],np=pendingItems().length,pendTxt=np&&!stopFlag?" · còn "+np+" căn chưa so":"";
     if(t.bad)extra.push(t.bad+" ảnh không đọc được");
     if(t.flat)extra.push(t.flat+" ảnh trơn ít chi tiết");
     var exTxt=extra.length?" ("+extra.join(" · ")+")":"";
     if(dinoErr){msg("Không tải được DINOv2 (cần mạng lần đầu).",1);dinoErr=null}
     else if(stopFlag)msg("Đã dừng · so "+t["căn"]+" căn · "+imgPairs.length+" cặp ảnh giống");
     else if(t.bad&&t.ok===0)msg("Hầu hết ảnh không đọc được.",1);
-    else if(!t["căn"])msg("Không có căn mới · "+imgPairs.length+" cặp ảnh giống");
-    else msg("Đã so "+t["căn"]+" căn mới · "+imgPairs.length+" cặp ảnh giống"+exTxt);
+    else if(!t["căn"])msg("Không có căn mới · "+imgPairs.length+" cặp ảnh giống"+pendTxt);
+    else msg("Đã so "+t["căn"]+" căn mới · "+imgPairs.length+" cặp ảnh giống"+exTxt+pendTxt);
     if(hsPendR){var pr=hsPendR;hsPendR=null;hsRefresh(pr)}}
   function batch(total){
     if(stopFlag)return Promise.resolve(false);
@@ -1389,9 +1388,11 @@ function sync(){
   var d=G("dupd");if(!(d&&d.open&&N()))return;
   clearTimeout(syncT);syncT=setTimeout(function(){
     items=N().items();cleanImgPairs();
-    loadIgnored();var byId={},chg=false;items.forEach(function(it){byId[it.id]=1});
-    Object.keys(ignored).forEach(function(k){var ids=k.split("|");if(!byId[ids[0]]||!byId[ids[1]]){delete ignored[k];ignDirty[k]=0;chg=true}});
-    if(chg)saveIgnored();
+    loadIgnored();
+    if(items.length){   /* danh sách rỗng/chưa nạp thì không dọn; chỉ ẩn trên máy, máy chủ tự xóa cặp khi xóa căn (như pullIgnored) */
+      var byId={},chg=false;items.forEach(function(it){byId[it.id]=1});
+      Object.keys(ignored).forEach(function(k){var ids=k.split("|");if(!byId[ids[0]]||!byId[ids[1]]){delete ignored[k];delete ignDirty[k];chg=true}});
+      if(chg)ignWriteLs()}
     render();
     if(cacheLoaded&&!scanning)autoScan()
   },120)}
