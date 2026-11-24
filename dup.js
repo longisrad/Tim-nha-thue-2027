@@ -900,9 +900,10 @@ function clearOldCaches(){
 /* ===== Cache của cấu hình cũ =====
    Đổi model / độ phân giải / độ chính xác thì khóa cache (CACHE_KEY) đổi theo, cache cũ nằm lại trên máy.
    Nó chỉ bị xóa SAU KHI đã đẩy hết hash lên máy chủ (hashSet đúng theo khóa cũ). Chưa đẩy được (mất mạng, tài khoản chỉ xem, máy chủ lỗi) thì giữ nguyên và thử lại ở lần mở sau. */
-var RET_LAST="dup_last",RET_PEND="dup_pend",retiring=false;
+var RET_LAST="dup_last",RET_PEND="dup_pend",retiring=false,precisionWipeP=null;
 function lsGetRaw(k){try{return localStorage.getItem(k)}catch(e){return null}}
 function lsSetRaw(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+function keyIsF16(k){return !/x$/.test(String(k||""))}
 function retList(){var a=null;try{a=JSON.parse(lsGetRaw(RET_PEND)||"[]")}catch(e){}return Array.isArray(a)?a.filter(function(x){return x&&x.c}):[]}
 function retCheck(){
   var last=null,pend=retList();
@@ -914,7 +915,7 @@ function retCheck(){
   }
   else{[["dhc8","dpm4"],["dhc9","dpm4"],["dhc10","dpm5"],["dhc11","dpm6"],["dhc11r224","dpm6r224"]].forEach(function(x){add(x[0],x[1])})}   /* lần đầu có tính năng này: gom các khóa của các bản trước */
   pend=pend.filter(function(x){return x.c!==CACHE_KEY});   /* quay lại cấu hình cũ thì giữ cache của nó */
-  lsSetRaw(RET_LAST,JSON.stringify({c:CACHE_KEY,p:PM_KEY}));
+  lsSetRaw(RET_LAST,JSON.stringify({c:CACHE_KEY,p:PM_KEY,f16:F16}));
   lsSetRaw(RET_PEND,JSON.stringify(pend));
   return pend}
 function retNote(t){var e=G("dupretnote");if(e){e.textContent=t||"";e.hidden=!t}}
@@ -923,6 +924,79 @@ function readKey(k){
   if(!idb)return Promise.resolve(leg);
   return idb(k).then(function(v){return(typeof v==="string"&&v)?v:leg},function(){return leg})}
 function wipeKey(k){try{if(ls(k))ls(k,"")}catch(e){}try{if(N()&&N().idbSave)N().idbSave(k,"")}catch(e){}}
+function wipeKeyNow(k){
+  if(!k)return Promise.resolve();
+  var waitIdb=Promise.resolve();
+  try{if(ls(k))ls(k,"")}catch(e){}
+  try{localStorage.removeItem(k)}catch(e){}
+  var idbm=typeof window!=="undefined"&&window.NB&&window.NB.IDBM;
+  if(N()&&N().idbSave){try{N().idbSave(k,"")}catch(e){}}
+  if(idbm&&typeof idbm.set==="function"){
+    waitIdb=Promise.resolve(idbm.set(k,"")).catch(function(){});
+  }else if(N()&&N().idbGet&&N().idbSave){
+    waitIdb=Promise.resolve(N().idbGet(k)).then(function(v){
+      if(typeof v==="string"&&v)return new Promise(function(r){setTimeout(r,850)});
+    },function(){});
+  }
+  return waitIdb}
+function clearModelFileCache(){
+  if(typeof caches==="undefined"||!caches||typeof caches.keys!=="function")return Promise.resolve();
+  return caches.keys().then(function(ks){
+    var tasks=[];
+    ks.forEach(function(k){
+      if(/transformers|onnx/i.test(k)){
+        tasks.push(caches.delete(k).catch(function(){}));
+        return;
+      }
+      if(k==="img-v1"||k==="lib-v1"||/^(?:shell|next)-/.test(k))return;
+      tasks.push(caches.open(k).then(function(c){
+        return c.keys().then(function(reqs){
+          return Promise.all(reqs.filter(function(r){
+            var u=(r&&r.url)||"";
+            return u.indexOf(DINO_ID)>=0||/\.onnx(?:_data)?(?:$|\?)/i.test(u);
+          }).map(function(r){return c.delete(r).catch(function(){})}));
+        });
+      }).catch(function(){}));
+    });
+    return Promise.all(tasks);
+  }).catch(function(){})}
+function clearPrecisionCache(oldC,oldP,newC,newP,oldF16Flag){
+  var keys={};
+  function addK(k){if(k)keys[k]=1}
+  addK(oldC);addK(oldP);addK(newC);addK(newP);addK(HS_KEY);
+  var pend=retList();
+  pend.forEach(function(x){
+    if(x.c&&((oldF16Flag!==undefined&&keyIsF16(x.c)===oldF16Flag)||x.c===oldC||x.c===newC)){
+      addK(x.c);if(x.p)addK(x.p);
+    }
+  });
+  try{
+    for(var i=0;i<localStorage.length;i++){
+      var lk=localStorage.key(i);
+      if(lk&&/^d(?:hc12|pm7)(?:r\d+)?x?$/.test(lk)){
+        if((oldF16Flag!==undefined&&keyIsF16(lk)===oldF16Flag)||lk===oldC||lk===oldP||lk===newC||lk===newP)addK(lk);
+      }
+    }
+  }catch(e){}
+  pend=pend.filter(function(x){return !keys[x.c]&&!(x.p&&keys[x.p])});
+  lsSetRaw(RET_PEND,JSON.stringify(pend));
+  lsSetRaw(RET_LAST,JSON.stringify({c:newC||CACHE_KEY,p:newP||PM_KEY,f16:F16}));
+  var run=function(){
+    var jobs=Object.keys(keys).map(wipeKeyNow);
+    jobs.push(clearModelFileCache());
+    return Promise.all(jobs).then(function(){});
+  };
+  var p=(precisionWipeP?precisionWipeP.then(run,run):run()).then(function(){if(precisionWipeP===p)precisionWipeP=null},function(){if(precisionWipeP===p)precisionWipeP=null});
+  precisionWipeP=p;
+  return p}
+function ensurePrecisionSync(){
+  var last=null;
+  try{last=JSON.parse(lsGetRaw(RET_LAST)||"null")}catch(e){}
+  if(last&&last.c){
+    var lastF16=last.f16!==undefined?!!last.f16:keyIsF16(last.c);
+    if(lastF16!==F16)return clearPrecisionCache(last.c,last.p,CACHE_KEY,PM_KEY,lastF16);
+  }
+  return precisionWipeP||Promise.resolve()}
 function retireOld(){
   if(retiring||!(N()&&N().apiPost&&canWrite()))return;
   var pend=retList();if(!pend.length){retNote("");return}
@@ -945,15 +1019,17 @@ function retireOld(){
 function loadCache(){
   if(cacheLoaded)return Promise.resolve(cache);
   if(cacheP)return cacheP;
-  var idb=N()&&N().idbGet;
-  if(!idb){cacheLoaded=true;cache=parseCache(ls(CACHE_KEY));clearOldCaches();retCheck();return Promise.resolve(cache)}
-  cacheP=idb(CACHE_KEY).then(function(v){
-    var leg=ls(CACHE_KEY);
-    if(typeof v==="string"&&v){cache=parseCache(v);if(leg)ls(CACHE_KEY,"")}
-    else if(leg){cache=parseCache(leg);if(N().idbSave)N().idbSave(CACHE_KEY,leg);ls(CACHE_KEY,"")}
-    clearOldCaches();retCheck();
-    cacheLoaded=true;cacheP=null;return cache;
-  },function(){cacheLoaded=true;cacheP=null;cache=parseCache(ls(CACHE_KEY));return cache});
+  cacheP=ensurePrecisionSync().then(function(){
+    var idb=N()&&N().idbGet;
+    if(!idb){cache=parseCache(ls(CACHE_KEY));clearOldCaches();retCheck();cacheLoaded=true;cacheP=null;return cache}
+    return idb(CACHE_KEY).then(function(v){
+      var leg=ls(CACHE_KEY);
+      if(typeof v==="string"&&v){cache=parseCache(v);if(leg)ls(CACHE_KEY,"")}
+      else if(leg){cache=parseCache(leg);if(N().idbSave)N().idbSave(CACHE_KEY,leg);ls(CACHE_KEY,"")}
+      clearOldCaches();retCheck();
+      cacheLoaded=true;cacheP=null;return cache;
+    },function(){cache=parseCache(ls(CACHE_KEY));clearOldCaches();retCheck();cacheLoaded=true;cacheP=null;return cache});
+  });
   return cacheP}
 function saveCache(){try{var k=Object.keys(cache);if(k.length>30000){var n={},keepN=24000;k.slice(-keepN).forEach(function(x){n[x]=cache[x]});if(pm&&pm.done)k.slice(0,k.length-keepN).forEach(function(x){delete pm.done[x]});cache=n}var raw=JSON.stringify(cache);if(N()&&N().idbSave){N().idbSave(CACHE_KEY,raw);if(ls(CACHE_KEY))ls(CACHE_KEY,"")}else ls(CACHE_KEY,raw)}catch(e){}}
 /* ===== Đồng bộ hash ảnh qua tab "Hash" của Sheet =====
@@ -968,9 +1044,11 @@ function hsLoad(){
     if(o&&typeof o==="object"&&o.v===CACHE_KEY){String(o.k||"").split(",").forEach(function(x){if(x)k[x]=1});hs={n:+o.n||0,k:k}}
     else hs={n:0,k:{}};
     hsP=null;return hs}
-  var idb=N()&&N().idbGet;
-  if(!idb)return Promise.resolve(fin(ls(HS_KEY)));
-  hsP=idb(HS_KEY).then(function(v){return fin(typeof v==="string"?v:"")},function(){return fin(ls(HS_KEY))});
+  hsP=ensurePrecisionSync().then(function(){
+    var idb=N()&&N().idbGet;
+    if(!idb)return fin(ls(HS_KEY));
+    return idb(HS_KEY).then(function(v){return fin(typeof v==="string"?v:"")},function(){return fin(ls(HS_KEY))});
+  });
   return hsP}
 function hsSave(){try{var raw=JSON.stringify({v:CACHE_KEY,n:hs.n,k:Object.keys(hs.k).join(",")});if(N()&&N().idbSave)N().idbSave(HS_KEY,raw);else ls(HS_KEY,raw)}catch(e){}}
 /* Hash của máy chủ luôn thắng: ảnh chưa có thì thêm, ảnh có hash khác thì thay */
@@ -1191,7 +1269,9 @@ function loadMain(){
 function dinoLoad(){
   if(DINO.p)return DINO.p;
   msg("Đang tải DINOv3 (lần đầu ~45–90 MB)…");
-  DINO.p=loadWorker().catch(function(){return loadMain()}).then(function(r){DINO.err=null;return r}).catch(function(e){DINO.p=null;DINO.m=null;killWorker();DINO.err=String(e&&e.message||e);throw e});
+  DINO.p=ensurePrecisionSync().then(function(){
+    return loadWorker().catch(function(){return loadMain()});
+  }).then(function(r){DINO.err=null;return r}).catch(function(e){DINO.p=null;DINO.m=null;killWorker();DINO.err=String(e&&e.message||e);throw e});
   return DINO.p}
 function packPatchesMain(d,baseOff,tk,D,S,box){
   var grid=Math.round(S/16),np=grid*grid;
@@ -1907,9 +1987,11 @@ function loadPm(){
     if(!o.seen||typeof o.seen!=="object")o.seen={};
     if(!o.fail||typeof o.fail!=="object")o.fail={};
     pm=o;pmLoaded=true;pmP=null;return pm}
-  var idb=N()&&N().idbGet;
-  if(!idb)return Promise.resolve(fin(ls(PM_KEY)));
-  pmP=idb(PM_KEY).then(function(v){return fin(typeof v==="string"?v:"")},function(){return fin(ls(PM_KEY))});
+  pmP=ensurePrecisionSync().then(function(){
+    var idb=N()&&N().idbGet;
+    if(!idb)return fin(ls(PM_KEY));
+    return idb(PM_KEY).then(function(v){return fin(typeof v==="string"?v:"")},function(){return fin(ls(PM_KEY))});
+  });
   return pmP}
 function savePm(){try{var raw=JSON.stringify(pm);if(N()&&N().idbSave)N().idbSave(PM_KEY,raw);else ls(PM_KEY,raw)}catch(e){}}
 function seedPmSeen(){
@@ -2160,12 +2242,13 @@ function init(nt){
     if(showIgn){e.preventDefault();goMain()}
   });
   function cfgDirtyUi(dirty,text,cls){
-    var e=G("dupengnote"),b=G("dupsave");
+    var e=G("dupengnote"),b=G("dupsave"),preEl=G("duppre");
+    var f16Draft=!!(dirty&&preEl&&(preEl.value==="16")!==F16);
     cfgTagUi(dirty);
     if(b){b.classList.toggle("dirty",!!dirty);b.textContent=dirty?"Lưu & quét lại ảnh *":"Lưu & quét lại ảnh"}
     if(!e)return;
     if(text){e.className="dpst dpfull"+(cls?" "+cls:"");e.textContent=text;e.hidden=false}
-    else if(dirty){e.className="dpst dpfull";e.textContent="Có thay đổi cài đặt — bấm «Lưu & quét lại ảnh» để áp dụng.";e.hidden=false}
+    else if(dirty){e.className="dpst dpfull";e.textContent=f16Draft?"Đổi giữa fp16 ↔ fp32 sẽ xóa cache mô hình & hash cũ — bấm «Lưu & quét lại ảnh» để áp dụng.":"Có thay đổi cài đặt — bấm «Lưu & quét lại ảnh» để áp dụng.";e.hidden=false}
     else{e.className="dpst dpfull";e.textContent="";e.hidden=true}
   }
   function syncSensDraft(){
@@ -2183,11 +2266,15 @@ function init(nt){
     BN=window.DUP_DINO_BN>0?Math.min(8,+window.DUP_DINO_BN|0):(ENG.bn===0?(DS<=160?4:(DS<=224?2:1)):(ENG.bn>0?Math.min(8,ENG.bn|0):4));
     PACE=window.DUP_DINO_PACE>=0?+window.DUP_DINO_PACE:(ENG.pace>=0?+ENG.pace:0.6);
     var sfx=cfgSfx(DS,F16),newCacheKey="dhc12"+sfx,newPmKey="dpm7"+sfx;
+    var f16Changed=F16!==oldF16;
     var keyChanged=newCacheKey!==oldCacheKey||newPmKey!==oldPmKey;
-    var modelReset=keyChanged||DS!==oldDs||F16!==oldF16||DINO_GPU!==oldGpu;
+    var modelReset=keyChanged||DS!==oldDs||f16Changed||DINO_GPU!==oldGpu;
+    var wipeP=Promise.resolve();
     if(modelReset){
-      if(cacheLoaded)saveCache();
-      if(pmLoaded&&pm)savePm();
+      if(!f16Changed){
+        if(cacheLoaded)saveCache();
+        if(pmLoaded&&pm)savePm();
+      }
       failPend(new Error("Cấu hình mô hình đã thay đổi"));
       killWorker();
       DINO.p=null;DINO.m=null;DINO.err=null;
@@ -2196,14 +2283,17 @@ function init(nt){
       if(DW.tm){clearTimeout(DW.tm);DW.tm=0}
       mcCache={};mcOrder=[];ptCache={};ptOrder=[];
     }
-    if(keyChanged){
+    if(keyChanged||f16Changed){
       CACHE_KEY=newCacheKey;PM_KEY=newPmKey;
       cacheLoaded=false;cacheP=null;cache={};
       pmLoaded=false;pmP=null;pm=null;
       imgPairs=null;sigMemo={};
       hs=null;hsP=null;hsPendR=null;SM.key="";
     }
-    return{keyChanged:keyChanged,modelReset:modelReset};
+    if(f16Changed){
+      wipeP=clearPrecisionCache(oldCacheKey,oldPmKey,newCacheKey,newPmKey,oldF16);
+    }
+    return{keyChanged:keyChanged,modelReset:modelReset,f16Changed:f16Changed,wipeP:wipeP};
   }
   function applyAndSaveSettings(){
     var sb=G("dupsave");if(sb)sb.disabled=true;
@@ -2235,15 +2325,17 @@ function init(nt){
       engUi();
       openImgSet={};pairImgMode={};limMain=LIMIT;SM.key="";items=N().items();
       if(sb)sb.disabled=false;
-      if(engInfo.keyChanged)hsPull();
-      return Promise.all([loadCache(),loadPm()]).then(function(){
-        if(thChanged||skipChanged||mmChanged||engInfo.keyChanged){
-          pm=pmEmpty();pmLoaded=true;pmP=null;
-          savePm();imgPairs=null;
-        }
-        render();
-        cfgDirtyUi(false,"Đã lưu cài đặt.","ok");
-        scan();
+      return (engInfo.wipeP||Promise.resolve()).then(function(){
+        if(engInfo.keyChanged)hsPull();
+        return Promise.all([loadCache(),loadPm()]).then(function(){
+          if(thChanged||skipChanged||mmChanged||engInfo.keyChanged){
+            pm=pmEmpty();pmLoaded=true;pmP=null;
+            savePm();imgPairs=null;
+          }
+          render();
+          cfgDirtyUi(false,engInfo.f16Changed?"Đã lưu cài đặt và xóa cache mô hình cũ.":"Đã lưu cài đặt.","ok");
+          scan();
+        });
       });
     },function(){if(sb)sb.disabled=false});
   }
