@@ -167,8 +167,8 @@ var CSS2=[
 "@media (max-width:420px){.dpa .dpv{margin-left:0;flex-basis:100%;text-align:left}}",
 "@media (prefers-reduced-motion:reduce){.dpbtn,#dupd,#dupd *,.dpz,.dpz *{animation:none!important;transition:none!important}}"
 ].join("\n");
-var DLG="<dialog id=\"dupd\"><div class=\"form\" id=\"dupmain\">\n  <div class=\"dpmhdr\"><div class=\"dpmhdr-t\"><h2>Kiểm tra trùng</h2><p class=\"pm\" id=\"dupsum\"></p></div><button type=\"button\" class=\"dpzcls\" id=\"dupx3\" aria-label=\"Đóng\">×</button></div>\n  <div class=\"dpctl\"><div class=\"dpact\"><div class=\"foot2\"><button class=\"btn p\" type=\"button\" id=\"dupimg\">Quét ảnh trùng</button><button class=\"btn\" type=\"button\" id=\"dupstop\" hidden>Dừng</button></div></div><div class=\"dpb\" id=\"dupbar\" hidden><i></i></div><p class=\"pm\" id=\"dupm\" role=\"status\"></p></div>\n  <details class=\"dpcfg\"><summary id=\"dupcfgbtn\"><span class=\"dpcfg-l\"><svg class=\"dpcfg-ic\" viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.6.86 1 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"/></svg><span>Cài đặt</span></span><span class=\"dpcfg-r\"><span class=\"dpcfg-tag\" id=\"dupcfgtag\"></span><span class=\"dpcfg-ar\" aria-hidden=\"true\">▾</span></span></summary><div class=\"dpset\"><div class=\"dpsens dpfull\"><label for=\"dupsens\">Độ nhạy ảnh</label><div class=\"dpsens-row\"><select id=\"dupsens\"><option value=\"87\">Ít nhầm · 87%</option><option value=\"80\" selected>Vừa · 80%</option><option value=\"77\">Nhạy · 77%</option><option value=\"73\">Rất nhạy · 73%</option><option value=\"custom\">Tùy chỉnh</option></select><input id=\"dupth\" type=\"number\" inputmode=\"numeric\" min=\"60\" max=\"99\" step=\"1\" aria-label=\"Ngưỡng giống (%)\"></div></div>\n  <div class=\"dpsens dpfull\"><label for=\"dupmm\">Xác minh vùng xám</label><select id=\"dupmm\"><option value=\"2\" selected>Đa mô hình (Màu + Trung tâm)</option><option value=\"1\">Nhanh (Màu + Cạnh Pixel)</option><option value=\"0\">Tắt (Chỉ DINOv3)</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupimgv\">Xem ảnh</label><select id=\"dupimgv\"><option value=\"manual\" selected>Bấm để mở</option><option value=\"both\">Mở sẵn · 2 cột</option><option value=\"stack\">Mở sẵn · xếp dọc</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupres\">Độ phân giải</label><select id=\"dupres\"><option value=\"192\">192 · nhanh</option><option value=\"224\" selected>224 · mặc định</option><option value=\"256\">256</option><option value=\"288\">288</option><option value=\"320\">320 · chi tiết</option></select></div>\n  <div class=\"dpsens\"><label for=\"duppre\">Độ chính xác</label><select id=\"duppre\"><option value=\"16\" selected>fp16 · nhanh</option><option value=\"32\">fp32 · chính xác hơn</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupdev\">Thiết bị</label><select id=\"dupdev\"><option value=\"auto\" selected>Tự động (GPU nếu có)</option><option value=\"cpu\">Chỉ CPU</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupbn\">Batch</label><select id=\"dupbn\"><option value=\"0\">Tự động</option><option value=\"1\">1</option><option value=\"2\">2</option><option value=\"4\" selected>4</option><option value=\"8\">8</option></select></div>\n  <div class=\"dpsens\"><label for=\"duppace\">Nhịp quét</label><select id=\"duppace\"><option value=\"0\">Nhanh nhất</option><option value=\"0.6\" selected>Cân bằng</option><option value=\"1.5\">Mát máy</option></select></div>\n  <p class=\"dpst dpfull\" id=\"dupengnote\" hidden></p>\n  <p class=\"dpst dpfull\" id=\"dupretnote\" hidden></p>\n  <div class=\"dpcfgact dpfull\"><label class=\"dpopt\"><input type=\"checkbox\" id=\"dupnoout\" checked><span>Bỏ qua căn Loại</span></label><div class=\"dpcfgbtns\"><button type=\"button\" class=\"btn\" id=\"dupanalyze\">Phân tích đa ngưỡng</button><button type=\"button\" class=\"btn\" id=\"duprst\">Đặt lại</button><button type=\"button\" class=\"btn p\" id=\"dupsave\">Lưu &amp; quét lại ảnh</button></div></div></div></details>\n  <div class=\"dpbar2\" id=\"duplinks\" hidden><button type=\"button\" class=\"dptogbtn\" id=\"duptog\" hidden></button></div>\n  <div class=\"dpignbar\" id=\"dupignbar\" hidden><span class=\"dpign-t\">Không phải trùng</span><button type=\"button\" class=\"dpignbtn\" id=\"dupigntog\" hidden></button></div>\n  <div id=\"dupl\"></div>\n  <div class=\"foot\"><button class=\"btn p\" type=\"button\" id=\"dupx\">Đóng</button></div>\n</div><div class=\"form\" id=\"dupignview\" hidden>\n  <div class=\"dphead\"><button type=\"button\" class=\"btn\" id=\"dupback\">← Quay lại</button><h2>Không phải trùng</h2></div>\n  <p class=\"pm\" id=\"dupignsum\"></p>\n  <button type=\"button\" class=\"link\" id=\"dupignclr\" hidden>Khôi phục tất cả về danh sách kiểm tra</button>\n  <div id=\"dupignl\"></div>\n  <div class=\"foot\"><button class=\"btn\" type=\"button\" id=\"dupback2\">← Quay lại</button><button class=\"btn p\" type=\"button\" id=\"dupx2\">Đóng</button></div>\n</div><div class=\"dpz\" id=\"dupz\" hidden><div class=\"dpzb\"><div class=\"dpzhdr\"><p class=\"dpzt\" id=\"dupzt\"></p><button type=\"button\" class=\"dpzlay\" id=\"dupzlay\">Xếp dọc</button><button type=\"button\" class=\"dpzcls\" id=\"dupzx2\" aria-label=\"Đóng\">×</button></div><div class=\"dpzm\" id=\"dupzm\" hidden></div><div class=\"dpzg\" id=\"dupzg\"><div class=\"dpzcol\"><div class=\"dpzstage\"><img id=\"dupz1\" alt=\"Ảnh căn 1\"><span class=\"dpzempty\" id=\"dupze1\" hidden>Chưa có ảnh</span></div><div class=\"dpzmeta\"><b id=\"dupz1n\"></b><small id=\"dupz1m\"></small></div><div class=\"dpzctrl\" id=\"dupzc1\" hidden><button type=\"button\" id=\"dupz1prev\" aria-label=\"Ảnh trước căn 1\">‹</button><span id=\"dupz1c\"></span><button type=\"button\" id=\"dupz1next\" aria-label=\"Ảnh sau căn 1\">›</button></div></div><div class=\"dpzcol\"><div class=\"dpzstage\"><img id=\"dupz2\" alt=\"Ảnh căn 2\"><span class=\"dpzempty\" id=\"dupze2\" hidden>Chưa có ảnh</span></div><div class=\"dpzmeta\"><b id=\"dupz2n\"></b><small id=\"dupz2m\"></small></div><div class=\"dpzctrl\" id=\"dupzc2\" hidden><button type=\"button\" id=\"dupz2prev\" aria-label=\"Ảnh trước căn 2\">‹</button><span id=\"dupz2c\"></span><button type=\"button\" id=\"dupz2next\" aria-label=\"Ảnh sau căn 2\">›</button></div></div></div><div class=\"dpzact\" id=\"dupzact\"><button type=\"button\" class=\"dpno\" id=\"dupzign\">Không phải trùng</button><button type=\"button\" class=\"dpdel\" id=\"dupzdel1\">Xóa căn 1</button><button type=\"button\" class=\"dpdel\" id=\"dupzdel2\">Xóa căn 2</button></div><div class=\"foot\"><button class=\"btn p\" type=\"button\" id=\"dupzx\">Đóng</button></div></div></div><div class=\"dpundo\" id=\"dupundo\" hidden><span id=\"dupundot\"></span><button type=\"button\" id=\"dupundob\">↶ Hoàn tác</button><button type=\"button\" class=\"x\" id=\"dupundox\" aria-label=\"Ẩn\">✕</button></div></dialog>";
-var TH=80,VL=1,ALGO_VER=3,MIN=2,imgPairs=null,scanning=false,stopFlag=false,cache={},cacheLoaded=false,cacheP=null,inflight={},LIMIT=50,limMain=50,limIgn=50,memo=null,syncT=0,showOne=false,showIgn=false,skipOut=true,skipLoaded=false,imgAutoMode="manual",imgModeLoaded=false,viewList=[],openSet={},openImgSet={},pairImgMode={},ignored={},ignLoaded=false,pairImgMsg={},zoomCmp=null;
+var DLG="<dialog id=\"dupd\"><div class=\"form\" id=\"dupmain\">\n  <div class=\"dpmhdr\"><div class=\"dpmhdr-t\"><h2>Kiểm tra trùng</h2><p class=\"pm\" id=\"dupsum\"></p></div><button type=\"button\" class=\"dpzcls\" id=\"dupx3\" aria-label=\"Đóng\">×</button></div>\n  <div class=\"dpctl\"><div class=\"dpact\"><div class=\"foot2\"><button class=\"btn p\" type=\"button\" id=\"dupimg\">Quét ảnh trùng</button><button class=\"btn\" type=\"button\" id=\"dupstop\" hidden>Dừng</button></div></div><div class=\"dpb\" id=\"dupbar\" hidden><i></i></div><p class=\"pm\" id=\"dupm\" role=\"status\"></p></div>\n  <details class=\"dpcfg\"><summary id=\"dupcfgbtn\"><span class=\"dpcfg-l\"><svg class=\"dpcfg-ic\" viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.6.86 1 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"/></svg><span>Cài đặt</span></span><span class=\"dpcfg-r\"><span class=\"dpcfg-tag\" id=\"dupcfgtag\"></span><span class=\"dpcfg-ar\" aria-hidden=\"true\">▾</span></span></summary><div class=\"dpset\"><div class=\"dpsens dpfull\"><label for=\"dupsens\">Độ nhạy ảnh</label><div class=\"dpsens-row\"><select id=\"dupsens\"><option value=\"87\">Ít nhầm · 87%</option><option value=\"80\" selected>Vừa · 80%</option><option value=\"77\">Nhạy · 77%</option><option value=\"73\">Rất nhạy · 73%</option><option value=\"custom\">Tùy chỉnh</option></select><input id=\"dupth\" type=\"number\" inputmode=\"numeric\" min=\"60\" max=\"99\" step=\"1\" aria-label=\"Ngưỡng giống (%)\"></div></div>\n  <div class=\"dpsens dpfull\"><label for=\"dupmm\">Xác minh vùng xám</label><select id=\"dupmm\"><option value=\"3\" selected>Patch Token + MaxSim + CSLS (mặc định)</option><option value=\"4\">Kỹ nhất (Patch + Trung tâm + CSLS)</option><option value=\"2\">Trung tâm 75% + CSLS (Multi-crop)</option><option value=\"0\">Tắt (Chỉ DINOv3)</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupimgv\">Xem ảnh</label><select id=\"dupimgv\"><option value=\"manual\" selected>Bấm để mở</option><option value=\"both\">Mở sẵn · 2 cột</option><option value=\"stack\">Mở sẵn · xếp dọc</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupres\">Độ phân giải</label><select id=\"dupres\"><option value=\"192\">192 · nhanh</option><option value=\"224\" selected>224 · mặc định</option><option value=\"256\">256</option><option value=\"288\">288</option><option value=\"320\">320 · chi tiết</option></select></div>\n  <div class=\"dpsens\"><label for=\"duppre\">Độ chính xác</label><select id=\"duppre\"><option value=\"16\" selected>fp16 · nhanh</option><option value=\"32\">fp32 · chính xác hơn</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupdev\">Thiết bị</label><select id=\"dupdev\"><option value=\"auto\" selected>Tự động (GPU nếu có)</option><option value=\"cpu\">Chỉ CPU</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupbn\">Batch</label><select id=\"dupbn\"><option value=\"0\">Tự động</option><option value=\"1\">1</option><option value=\"2\">2</option><option value=\"4\" selected>4</option><option value=\"8\">8</option></select></div>\n  <div class=\"dpsens\"><label for=\"duppace\">Nhịp quét</label><select id=\"duppace\"><option value=\"0\">Nhanh nhất</option><option value=\"0.6\" selected>Cân bằng</option><option value=\"1.5\">Mát máy</option></select></div>\n  <p class=\"dpst dpfull\" id=\"dupengnote\" hidden></p>\n  <p class=\"dpst dpfull\" id=\"dupretnote\" hidden></p>\n  <div class=\"dpcfgact dpfull\"><label class=\"dpopt\"><input type=\"checkbox\" id=\"dupnoout\" checked><span>Bỏ qua căn Loại</span></label><div class=\"dpcfgbtns\"><button type=\"button\" class=\"btn\" id=\"dupanalyze\">Phân tích đa ngưỡng</button><button type=\"button\" class=\"btn\" id=\"duprst\">Đặt lại</button><button type=\"button\" class=\"btn p\" id=\"dupsave\">Lưu &amp; quét lại ảnh</button></div></div></div></details>\n  <div class=\"dpbar2\" id=\"duplinks\" hidden><button type=\"button\" class=\"dptogbtn\" id=\"duptog\" hidden></button></div>\n  <div class=\"dpignbar\" id=\"dupignbar\" hidden><span class=\"dpign-t\">Không phải trùng</span><button type=\"button\" class=\"dpignbtn\" id=\"dupigntog\" hidden></button></div>\n  <div id=\"dupl\"></div>\n  <div class=\"foot\"><button class=\"btn p\" type=\"button\" id=\"dupx\">Đóng</button></div>\n</div><div class=\"form\" id=\"dupignview\" hidden>\n  <div class=\"dphead\"><button type=\"button\" class=\"btn\" id=\"dupback\">← Quay lại</button><h2>Không phải trùng</h2></div>\n  <p class=\"pm\" id=\"dupignsum\"></p>\n  <button type=\"button\" class=\"link\" id=\"dupignclr\" hidden>Khôi phục tất cả về danh sách kiểm tra</button>\n  <div id=\"dupignl\"></div>\n  <div class=\"foot\"><button class=\"btn\" type=\"button\" id=\"dupback2\">← Quay lại</button><button class=\"btn p\" type=\"button\" id=\"dupx2\">Đóng</button></div>\n</div><div class=\"dpz\" id=\"dupz\" hidden><div class=\"dpzb\"><div class=\"dpzhdr\"><p class=\"dpzt\" id=\"dupzt\"></p><button type=\"button\" class=\"dpzlay\" id=\"dupzlay\">Xếp dọc</button><button type=\"button\" class=\"dpzcls\" id=\"dupzx2\" aria-label=\"Đóng\">×</button></div><div class=\"dpzm\" id=\"dupzm\" hidden></div><div class=\"dpzg\" id=\"dupzg\"><div class=\"dpzcol\"><div class=\"dpzstage\"><img id=\"dupz1\" alt=\"Ảnh căn 1\"><span class=\"dpzempty\" id=\"dupze1\" hidden>Chưa có ảnh</span></div><div class=\"dpzmeta\"><b id=\"dupz1n\"></b><small id=\"dupz1m\"></small></div><div class=\"dpzctrl\" id=\"dupzc1\" hidden><button type=\"button\" id=\"dupz1prev\" aria-label=\"Ảnh trước căn 1\">‹</button><span id=\"dupz1c\"></span><button type=\"button\" id=\"dupz1next\" aria-label=\"Ảnh sau căn 1\">›</button></div></div><div class=\"dpzcol\"><div class=\"dpzstage\"><img id=\"dupz2\" alt=\"Ảnh căn 2\"><span class=\"dpzempty\" id=\"dupze2\" hidden>Chưa có ảnh</span></div><div class=\"dpzmeta\"><b id=\"dupz2n\"></b><small id=\"dupz2m\"></small></div><div class=\"dpzctrl\" id=\"dupzc2\" hidden><button type=\"button\" id=\"dupz2prev\" aria-label=\"Ảnh trước căn 2\">‹</button><span id=\"dupz2c\"></span><button type=\"button\" id=\"dupz2next\" aria-label=\"Ảnh sau căn 2\">›</button></div></div></div><div class=\"dpzact\" id=\"dupzact\"><button type=\"button\" class=\"dpno\" id=\"dupzign\">Không phải trùng</button><button type=\"button\" class=\"dpdel\" id=\"dupzdel1\">Xóa căn 1</button><button type=\"button\" class=\"dpdel\" id=\"dupzdel2\">Xóa căn 2</button></div><div class=\"foot\"><button class=\"btn p\" type=\"button\" id=\"dupzx\">Đóng</button></div></div></div><div class=\"dpundo\" id=\"dupundo\" hidden><span id=\"dupundot\"></span><button type=\"button\" id=\"dupundob\">↶ Hoàn tác</button><button type=\"button\" class=\"x\" id=\"dupundox\" aria-label=\"Ẩn\">✕</button></div></dialog>";
+var TH=80,VL=1,ALGO_VER=6,MIN=2,imgPairs=null,scanning=false,stopFlag=false,cache={},cacheLoaded=false,cacheP=null,inflight={},LIMIT=50,limMain=50,limIgn=50,memo=null,syncT=0,showOne=false,showIgn=false,skipOut=true,skipLoaded=false,imgAutoMode="manual",imgModeLoaded=false,viewList=[],openSet={},openImgSet={},pairImgMode={},ignored={},ignLoaded=false,pairImgMsg={},zoomCmp=null;
 
 /* ---------- Lưu danh sách "không phải trùng" vào localStorage ---------- */
 var undoSt=[],zlay=null,cmpAll={};
@@ -403,7 +403,7 @@ function build(){
   }}
 function simText(d,k,ori,n){
   var p=n!=null?n:Math.max(0,100-d);
-  var tag=k==="2m"?"DINOv3 · Màu + Trung tâm":k==="mc"?"DINOv3 + Trung tâm":k==="px"?"DINOv3 + Màu":"DINOv3";
+  var tag=k==="pm"?"DINOv3 · Patch MaxSim + Trung tâm + CSLS":k==="pt"?"DINOv3 · Patch MaxSim + CSLS":k==="mc"?"DINOv3 · Trung tâm + CSLS":k==="cs"?"DINOv3 · CSLS":"DINOv3";
   return p>=99?"Giống ~100% ("+tag+")":"Giống "+p+"% ("+tag+")"}
 function txtH(v){return v?esc(v):'<span class="dpe">Không có</span>'}
 function linkH(u){var s=su(u);if(s)return'<a href="'+esc(s)+'" target="_blank" rel="noopener noreferrer">'+esc(s)+'</a>';return txtH(u)}
@@ -883,11 +883,13 @@ function msg(t,bad){var m=G("dupm");m.textContent=t||"";m.className="pm"+(bad?" 
 var ENG=(function(){var o=null;try{o=JSON.parse(localStorage.getItem("dup_eng")||"null")}catch(e){}return(o&&typeof o==="object")?o:{}})();   /* cài đặt mô hình lưu trong trình duyệt (khóa dup_eng); biến window.DUP_DINO_* nếu có sẽ được ưu tiên */
 function engSave(){try{localStorage.setItem("dup_eng",JSON.stringify(ENG))}catch(e){}}
 function cfgTagUi(dirty){var t=G("dupcfgtag"),c=G("dupcfgbtn");if(t)t.textContent=TH+"% · "+DS+"px"+(dirty?" *":"");if(c)c.classList.toggle("dirty",!!dirty)}
-function engUi(def){var set=function(i,v){var e=G(i);if(e)e.value=String(v)};if(def){set("dupres",224);set("duppre","16");set("dupdev","auto");set("dupbn",4);set("duppace",0.6);set("dupmm",2);cfgTagUi(false);return}set("dupres",DS);set("duppre",F16?"16":"32");set("dupdev",DINO_GPU?"auto":"cpu");set("dupbn",ENG.bn===0?0:((ENG.bn>0&&ENG.bn<=8)?ENG.bn|0:4));set("duppace",PACE);set("dupmm",MM_MODE);cfgTagUi(false)}
-var MM_MODE=(function(){var v=ENG.mm===undefined?2:(+ENG.mm|0);return(v===0||v===1||v===2)?v:2})();
+function engUi(def){var set=function(i,v){var e=G(i);if(e)e.value=String(v)};if(def){set("dupres",224);set("duppre","16");set("dupdev","auto");set("dupbn",4);set("duppace",0.6);set("dupmm",3);cfgTagUi(false);return}set("dupres",DS);set("duppre",F16?"16":"32");set("dupdev",DINO_GPU?"auto":"cpu");set("dupbn",ENG.bn===0?0:((ENG.bn>0&&ENG.bn<=8)?ENG.bn|0:4));set("duppace",PACE);set("dupmm",MM_MODE);cfgTagUi(false)}
+function mmNorm(o){var v=o&&o.mm!==undefined?(+o.mm|0):3,mv=o&&o.mmv?(+o.mmv|0):0;if(mv<2)return v===0?0:3;return(v===0||v===2||v===3||v===4)?v:3}
+var MM_MODE=mmNorm(ENG);
 var F16=window.DUP_DINO_F16!==undefined?window.DUP_DINO_F16!==false:ENG.f16!==false;
 var DS=(function(){var r=+window.DUP_DINO_RES||+ENG.res;return(r>=112&&r<=448&&r%16===0)?r:224})();   /* 224 = mặc định; DINOv3 patch 16 nên chỉ nhận bội số của 16 (112…448; càng cao càng chậm/tốn RAM). Đặt window.DUP_DINO_RES=160 trước khi nạp dup.js để nhanh ~2x (cache tách riêng) */
-var CACHE_KEY="dhc11"+(DS===256?"":"r"+DS)+(F16?"":"x");
+function cfgSfx(ds,f16){return (ds===256?"":"r"+ds)+(f16?"":"x")}
+var CACHE_KEY="dhc12"+cfgSfx(DS,F16),PM_KEY="dpm7"+cfgSfx(DS,F16);
 function parseCache(raw){try{var o=JSON.parse(raw||"{}");return(o&&typeof o==="object")?o:{}}catch(e){return{}}}
 function clearOldCaches(){
   ["dhc1","dhc2","dhc3","dhc4","dhc5","dhc7","dpm1","dpm3"].forEach(function(k){
@@ -906,8 +908,11 @@ function retCheck(){
   var last=null,pend=retList();
   try{last=JSON.parse(lsGetRaw(RET_LAST)||"null")}catch(e){}
   function add(c,p){if(c&&c!==CACHE_KEY&&!pend.some(function(x){return x.c===c}))pend.push({c:c,p:p||""})}
-  if(last&&last.c){add(last.c,last.p)}
-  else{[["dhc8","dpm4"],["dhc9","dpm4"],["dhc10","dpm5"]].forEach(function(x){add(x[0],x[1])})}   /* lần đầu có tính năng này: gom các khóa của các bản trước */
+  if(last&&last.c){
+    add(last.c,last.p);
+    if(last.c===CACHE_KEY&&last.p&&last.p!==PM_KEY)wipeKey(last.p);
+  }
+  else{[["dhc8","dpm4"],["dhc9","dpm4"],["dhc10","dpm5"],["dhc11","dpm6"],["dhc11r224","dpm6r224"]].forEach(function(x){add(x[0],x[1])})}   /* lần đầu có tính năng này: gom các khóa của các bản trước */
   pend=pend.filter(function(x){return x.c!==CACHE_KEY});   /* quay lại cấu hình cũ thì giữ cache của nó */
   lsSetRaw(RET_LAST,JSON.stringify({c:CACHE_KEY,p:PM_KEY}));
   lsSetRaw(RET_PEND,JSON.stringify(pend));
@@ -1032,7 +1037,7 @@ function hsFlush(){if(hsT){clearTimeout(hsT);hsT=0}hsPush()}
    Chuỗi rỗng "" = ảnh trơn/ít chi tiết (bỏ qua); null = không đọc được ảnh.
    Mô hình chạy ngay trong máy bằng transformers.js (WebGPU fp16/fp32 hoặc WASM fp32), tải lần đầu từ CDN rồi được trình duyệt lưu lại. */
 var DINO_LIB="https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0",DINO_ID="olinesn/dinov3-vits16-lucid",DINO_LOCAL="models/",DINO_GPU=window.DUP_DINO_GPU!==undefined?window.DUP_DINO_GPU!==false:ENG.dev!=="cpu",FETCH_CONC=6;
-var DIM=384,DINO={p:null,m:null,T:null,err:null},dinoErr=null,DW={w:null,dev:"",gpu:false,seq:0,pend:{},q:[],busy:false,tm:0},BN=window.DUP_DINO_BN>0?Math.min(8,+window.DUP_DINO_BN|0):(ENG.bn===0?(DS<=160?4:(DS<=224?2:1)):(ENG.bn>0?Math.min(8,ENG.bn|0):4)),PACE=window.DUP_DINO_PACE>=0?+window.DUP_DINO_PACE:(ENG.pace>=0?+ENG.pace:0.6),PACE_MAX=250;
+var DIM=384,DINO={p:null,m:null,T:null,err:null},dinoErr=null,DW={w:null,url:"",dev:"",gpu:false,seq:0,pend:{},q:[],busy:false,tm:0},BN=window.DUP_DINO_BN>0?Math.min(8,+window.DUP_DINO_BN|0):(ENG.bn===0?(DS<=160?4:(DS<=224?2:1)):(ENG.bn>0?Math.min(8,ENG.bn|0):4)),PACE=window.DUP_DINO_PACE>=0?+window.DUP_DINO_PACE:(ENG.pace>=0?+ENG.pace:0.6),PACE_MAX=250;
 /* Worker (nhúng bằng Blob, không cần file riêng): WebGPU fp16 nếu có shader-f16, không thì WebGPU fp32, không có WebGPU thì WASM fp32 (đa luồng khi crossOriginIsolated).
    Có kiểm tra thử 1 lần lúc khởi tạo; lỗi/NaN trên WebGPU tự hạ cấp fp16 -> fp32 -> WASM. Có thể tự host model tại ./models/olinesn/dinov3-vits16-lucid/ (kèm LICENSE của DINOv3) */
 function dinoWorkerMain(){
@@ -1047,20 +1052,75 @@ function dinoWorkerMain(){
   function degrade(){
     if(dev==="webgpu"&&dt==="fp16")return build("webgpu","fp32").catch(wasm);
     return wasm()}
-  function infer(list){
+  function packPatches(d,baseOff,tk,D,S,box){
+    var grid=Math.round(S/16),np=grid*grid;
+    if(!(grid>0&&tk>=1+np))return null;
+    var pStart=tk-np,tg=Math.min(14,grid),tCnt=tg*tg,fv=new Float32Array(tCnt*D),keep=[];
+    var oy,ox,y0,y1,x0,x1,py,pxi,idx,j,cnt,norm,o,bad=false,cell=S/tg;
+    for(oy=0;oy<tg;oy++){
+      y0=tg===grid?oy:Math.floor(oy*grid/tg);
+      y1=tg===grid?(oy+1):Math.max(y0+1,Math.floor((oy+1)*grid/tg));
+      for(ox=0;ox<tg;ox++){
+        x0=tg===grid?ox:Math.floor(ox*grid/tg);
+        x1=tg===grid?(ox+1):Math.max(x0+1,Math.floor((ox+1)*grid/tg));
+        o=(oy*tg+ox)*D;cnt=0;
+        for(py=y0;py<y1;py++)for(pxi=x0;pxi<x1;pxi++){
+          idx=baseOff+(pStart+py*grid+pxi)*D;cnt++;
+          for(j=0;j<D;j++){var val=d[idx+j];if(val!==val||val===Infinity||val===-Infinity)bad=true;fv[o+j]+=val}
+        }
+        if(bad)return{bad:true};
+        norm=0;
+        for(j=0;j<D;j++){fv[o+j]/=cnt;norm+=fv[o+j]*fv[o+j]}
+        norm=Math.sqrt(norm)||1;
+        for(j=0;j<D;j++)fv[o+j]/=norm;
+        if(box){
+          var ix=Math.min((ox+1)*cell,box[2])-Math.max(ox*cell,box[0]);
+          var iy=Math.min((oy+1)*cell,box[3])-Math.max(oy*cell,box[1]);
+          if(ix>0&&iy>0&&(ix*iy)/(cell*cell)>=0.45)keep.push(oy*tg+ox);
+        }else keep.push(oy*tg+ox);
+      }
+    }
+    if(keep.length<4){keep=[];for(idx=0;idx<tCnt;idx++)keep.push(idx)}
+    var vCnt=keep.length,meanP=new Float32Array(D),mn=0,ki;
+    for(ki=0;ki<vCnt;ki++){o=keep[ki]*D;for(j=0;j<D;j++)meanP[j]+=fv[o+j]}
+    for(j=0;j<D;j++)mn+=meanP[j]*meanP[j];
+    mn=Math.sqrt(mn)||1;
+    for(j=0;j<D;j++)meanP[j]/=mn;
+    var q=new Int8Array(vCnt*D),sc=new Float32Array(vCnt),wt=new Float32Array(vCnt),wSum=0,qo;
+    for(ki=0;ki<vCnt;ki++){
+      o=keep[ki]*D;qo=ki*D;var mx=0,simM=0;
+      for(j=0;j<D;j++){var v0=fv[o+j],av=v0<0?-v0:v0;if(av>mx)mx=av;simM+=v0*meanP[j]}
+      var s=mx>0?(mx/127):0;
+      sc[ki]=s;
+      if(s>0)for(j=0;j<D;j++){var qi=Math.round(fv[o+j]/s);q[qo+j]=qi>127?127:qi<-127?-127:qi}
+      var w0=1.15-0.65*(simM>0?simM:0);
+      if(w0<0.35)w0=0.35;else if(w0>1.35)w0=1.35;
+      wt[ki]=w0;wSum+=w0;
+    }
+    if(wSum>0)for(ki=0;ki<vCnt;ki++)wt[ki]=wt[ki]*vCnt/wSum;
+    return{n:vCnt,q:q,sc:sc,wt:wt}}
+  function infer(list,wantPt,boxes){
     var n=list.length,S=C.S,sz=S*S,f=new Float32Array(n*3*sz),k,i,p,u,o;
     for(k=0;k<n;k++){u=new Uint8ClampedArray(list[k]);o=k*3*sz;
       for(i=0;i<sz;i++){p=i*4;f[o+i]=(u[p]/255-.485)/.229;f[o+sz+i]=(u[p+1]/255-.456)/.224;f[o+2*sz+i]=(u[p+2]/255-.406)/.225}}
     return M({pixel_values:new T("float32",f,[n,3,S,S])}).then(function(r){
-      var h=r.last_hidden_state||r.pooler_output||r[Object.keys(r)[0]],dm=h.dims,D=dm[dm.length-1],tk=dm.length===3?dm[1]:1,d=h.data,out=[],v,j,bad=false;
-      for(k=0;k<n;k++){v=new Float32Array(D);for(j=0;j<D;j++){v[j]=d[k*tk*D+j];if(v[j]!==v[j]||v[j]===Infinity||v[j]===-Infinity)bad=true}out.push(v)}
+      var h=r.last_hidden_state||r.pooler_output||r[Object.keys(r)[0]],dm=h.dims,D=dm[dm.length-1],tk=dm.length===3?dm[1]:1,d=h.data,out=[],v,j,bad=false,pt;
+      for(k=0;k<n;k++){
+        v=new Float32Array(D);for(j=0;j<D;j++){v[j]=d[k*tk*D+j];if(v[j]!==v[j]||v[j]===Infinity||v[j]===-Infinity)bad=true}
+        if(bad)break;
+        if(wantPt){
+          pt=dm.length===3?packPatches(d,k*tk*D,tk,D,S,boxes&&boxes[k]):null;
+          if(pt&&pt.bad){bad=true;break}
+          out.push({cls:v,pt:pt});
+        }else out.push(v);
+      }
       if(bad)throw new Error("NaN");
       return out})}
-  function safe(list){
-    return infer(list).catch(function(e){
+  function safe(list,wantPt,boxes){
+    return infer(list,wantPt,boxes).catch(function(e){
       if(dev!=="webgpu")throw e;
-      return degrade().then(function(){return infer(list)}).catch(function(e2){
-        if(dev==="webgpu")return wasm().then(function(){return infer(list)});
+      return degrade().then(function(){return infer(list,wantPt,boxes)}).catch(function(e2){
+        if(dev==="webgpu")return wasm().then(function(){return infer(list,wantPt,boxes)});
         throw e2})})}
   function probe(c){
     if(!c.localBase)return Promise.resolve(false);
@@ -1090,14 +1150,20 @@ function dinoWorkerMain(){
       var t=(g.f16&&c.f16!==false)?"fp16":"fp32";
       return build("webgpu",t).catch(function(){return t==="fp16"?build("webgpu","fp32"):Promise.reject(new Error("webgpu"))}).catch(wasm)}).then(function(){
       if(dev!=="webgpu")return;
-      function chk(){return infer([testImg()])}
+      function chk(){return infer([testImg()],false)}
       return chk().catch(function(){return degrade().then(chk)}).catch(function(){return wasm()})})}
   self.onmessage=function(e){
     var m=e.data||{};
     if(m.t==="init")init(m.cfg).then(function(){say({t:"ready",dev:dev,dt:dt})},function(err){say({t:"initerr",msg:String(err&&err.message||err)})});
-    else if(m.t==="run")safe(m.px).then(function(v){say({t:"res",id:m.id,v:v},v.map(function(x){return x.buffer}))},function(err){say({t:"err",id:m.id,msg:String(err&&err.message||err)})})}}
+    else if(m.t==="run")safe(m.px,!!m.pt,m.boxes||null).then(function(v){
+      var tr=[];
+      function pushTr(b){if(b&&b.byteLength&&tr.indexOf(b)<0)tr.push(b)}
+      if(m.pt)v.forEach(function(x){if(x.cls)pushTr(x.cls.buffer);if(x.pt){pushTr(x.pt.q.buffer);pushTr(x.pt.sc.buffer);pushTr(x.pt.wt.buffer)}});
+      else v.forEach(function(x){if(x)pushTr(x.buffer)});
+      say({t:"res",id:m.id,v:v},tr);
+    },function(err){say({t:"err",id:m.id,msg:String(err&&err.message||err)})})}}
 function failPend(e){var p=DW.pend;DW.pend={};Object.keys(p).forEach(function(k){p[k].bad(e)})}
-function killWorker(){if(DW.w){try{DW.w.terminate()}catch(e){}DW.w=null}}
+function killWorker(){if(DW.w){try{DW.w.terminate()}catch(e){}DW.w=null}if(DW.revoke){DW.revoke();DW.revoke=null}else if(DW.url){try{URL.revokeObjectURL(DW.url)}catch(e){}DW.url=""}}
 function onWorkerMsg(e){
   var m=e.data||{},p=DW.pend[m.id];
   if(!p)return;
@@ -1106,14 +1172,15 @@ function onWorkerMsg(e){
 function onWorkerErr(e){failPend(new Error(e&&e.message||"worker lỗi"));killWorker();DINO.p=null;DINO.err="worker lỗi: "+(e&&e.message||"")}
 function loadWorker(){
   return new Promise(function(ok,bad){
-    var w,done=false;
-    try{w=new Worker(URL.createObjectURL(new Blob(["("+dinoWorkerMain.toString()+")()"],{type:"text/javascript"})))}catch(e){bad(e);return}
+    var w,done=false,url="";
+    function revokeUrl(){if(DW.url===url)DW.url="";if(DW.revoke===revokeUrl)DW.revoke=null;if(url){try{URL.revokeObjectURL(url)}catch(e){}url=""}}
+    try{url=URL.createObjectURL(new Blob(["("+dinoWorkerMain.toString()+")()"],{type:"text/javascript"}));DW.url=url;DW.revoke=revokeUrl;w=new Worker(url)}catch(e){revokeUrl();bad(e);return}
     w.onmessage=function(e){
       var m=e.data||{};
       if(m.t==="prog"&&!(scanning&&stopFlag))msg("Đang tải DINOv3… "+m.p+"%");
-      else if(m.t==="ready"){done=true;DW.w=w;DW.dev=m.dev+(m.dt?"-"+m.dt:"");DW.gpu=m.dev==="webgpu";w.onmessage=onWorkerMsg;w.onerror=onWorkerErr;ok(w)}
-      else if(m.t==="initerr"){done=true;try{w.terminate()}catch(_){}bad(new Error(m.msg))}};
-    w.onerror=function(e){if(done)return;done=true;try{w.terminate()}catch(_){}bad(new Error(e&&e.message||"worker lỗi"))};
+      else if(m.t==="ready"){done=true;revokeUrl();DW.w=w;DW.dev=m.dev+(m.dt?"-"+m.dt:"");DW.gpu=m.dev==="webgpu";w.onmessage=onWorkerMsg;w.onerror=onWorkerErr;ok(w)}
+      else if(m.t==="initerr"){done=true;revokeUrl();try{w.terminate()}catch(_){}bad(new Error(m.msg))}};
+    w.onerror=function(e){if(done)return;done=true;revokeUrl();try{w.terminate()}catch(_){}bad(new Error(e&&e.message||"worker lỗi"))};
     w.postMessage({t:"init",cfg:{lib:DINO_LIB,id:DINO_ID,S:DS,gpu:DINO_GPU,f16:F16,localBase:new URL(DINO_LOCAL,location.href).href}})})}
 function loadMain(){
   return import(DINO_LIB).then(function(L){
@@ -1126,22 +1193,71 @@ function dinoLoad(){
   msg("Đang tải DINOv3 (lần đầu ~45–90 MB)…");
   DINO.p=loadWorker().catch(function(){return loadMain()}).then(function(r){DINO.err=null;return r}).catch(function(e){DINO.p=null;DINO.m=null;killWorker();DINO.err=String(e&&e.message||e);throw e});
   return DINO.p}
-function mainRun(list){
+function packPatchesMain(d,baseOff,tk,D,S,box){
+  var grid=Math.round(S/16),np=grid*grid;
+  if(!(grid>0&&tk>=1+np))return null;
+  var pStart=tk-np,tg=Math.min(14,grid),tCnt=tg*tg,fv=new Float32Array(tCnt*D),keep=[];
+  var oy,ox,y0,y1,x0,x1,py,pxi,idx,j,cnt,norm,o,cell=S/tg;
+  for(oy=0;oy<tg;oy++){
+    y0=tg===grid?oy:Math.floor(oy*grid/tg);
+    y1=tg===grid?(oy+1):Math.max(y0+1,Math.floor((oy+1)*grid/tg));
+    for(ox=0;ox<tg;ox++){
+      x0=tg===grid?ox:Math.floor(ox*grid/tg);
+      x1=tg===grid?(ox+1):Math.max(x0+1,Math.floor((ox+1)*grid/tg));
+      o=(oy*tg+ox)*D;cnt=0;
+      for(py=y0;py<y1;py++)for(pxi=x0;pxi<x1;pxi++){idx=baseOff+(pStart+py*grid+pxi)*D;cnt++;for(j=0;j<D;j++)fv[o+j]+=d[idx+j]}
+      norm=0;for(j=0;j<D;j++){fv[o+j]/=cnt;norm+=fv[o+j]*fv[o+j]}
+      norm=Math.sqrt(norm)||1;for(j=0;j<D;j++)fv[o+j]/=norm;
+      if(box){
+        var ix=Math.min((ox+1)*cell,box[2])-Math.max(ox*cell,box[0]);
+        var iy=Math.min((oy+1)*cell,box[3])-Math.max(oy*cell,box[1]);
+        if(ix>0&&iy>0&&(ix*iy)/(cell*cell)>=0.45)keep.push(oy*tg+ox);
+      }else keep.push(oy*tg+ox);
+    }
+  }
+  if(keep.length<4){keep=[];for(idx=0;idx<tCnt;idx++)keep.push(idx)}
+  var vCnt=keep.length,meanP=new Float32Array(D),mn=0,ki;
+  for(ki=0;ki<vCnt;ki++){o=keep[ki]*D;for(j=0;j<D;j++)meanP[j]+=fv[o+j]}
+  for(j=0;j<D;j++)mn+=meanP[j]*meanP[j];mn=Math.sqrt(mn)||1;for(j=0;j<D;j++)meanP[j]/=mn;
+  var q=new Int8Array(vCnt*D),sc=new Float32Array(vCnt),wt=new Float32Array(vCnt),wSum=0,qo;
+  for(ki=0;ki<vCnt;ki++){
+    o=keep[ki]*D;qo=ki*D;var mx=0,simM=0;
+    for(j=0;j<D;j++){var v0=fv[o+j],av=v0<0?-v0:v0;if(av>mx)mx=av;simM+=v0*meanP[j]}
+    var s=mx>0?(mx/127):0;sc[ki]=s;
+    if(s>0)for(j=0;j<D;j++){var qi=Math.round(fv[o+j]/s);q[qo+j]=qi>127?127:qi<-127?-127:qi}
+    var w0=1.15-0.65*(simM>0?simM:0);if(w0<0.35)w0=0.35;else if(w0>1.35)w0=1.35;
+    wt[ki]=w0;wSum+=w0;
+  }
+  if(wSum>0)for(ki=0;ki<vCnt;ki++)wt[ki]=wt[ki]*vCnt/wSum;
+  return{n:vCnt,q:q,sc:sc,wt:wt}}
+function mainRun(list,wantPt,boxes){
   return new Promise(function(ok){setTimeout(ok,0)}).then(function(){   /* nhường giao diện (chỉ dùng khi không có worker) */
     var n=list.length,S=DS,sz=S*S,f=new Float32Array(n*3*sz),k,i,p,u,o;
     for(k=0;k<n;k++){u=list[k];o=k*3*sz;
       for(i=0;i<sz;i++){p=i*4;f[o+i]=(u[p]/255-.485)/.229;f[o+sz+i]=(u[p+1]/255-.456)/.224;f[o+2*sz+i]=(u[p+2]/255-.406)/.225}}
     return DINO.m({pixel_values:new DINO.T("float32",f,[n,3,S,S])})}).then(function(r){
     var h=r.last_hidden_state||r.pooler_output||r[Object.keys(r)[0]],dm=h.dims,D=dm[dm.length-1],tk=dm.length===3?dm[1]:1,out=[],k;
-    for(k=0;k<list.length;k++)out.push(Float32Array.from(h.data.subarray(k*tk*D,k*tk*D+D)));
+    for(k=0;k<list.length;k++){
+      var cls=Float32Array.from(h.data.subarray(k*tk*D,k*tk*D+D));
+      out.push(wantPt?{cls:cls,pt:(dm.length===3?packPatchesMain(h.data,k*tk*D,tk,D,DS,boxes&&boxes[k]):null)}:cls);
+    }
     return out})}
-function runBatch(list){
+function runBatch(list,wantPt,boxes){
   if(DW.w)return new Promise(function(ok,bad){
-    var id=++DW.seq,bufs=list.map(function(u){return u.buffer});
+    var bufs=[],tr=[],i,u,b;
+    for(i=0;i<list.length;i++){
+      u=list[i];
+      if(!u||!u.buffer||!u.buffer.byteLength){bad(new Error("buffer ảnh rỗng"));return}
+      b=(u.byteOffset===0&&u.byteLength===u.buffer.byteLength&&tr.indexOf(u.buffer)<0)?u.buffer:u.slice().buffer;
+      bufs.push(b);
+      if(tr.indexOf(b)<0)tr.push(b);
+    }
+    var id=++DW.seq;
     DW.pend[id]={ok:ok,bad:bad};
-    DW.w.postMessage({t:"run",id:id,px:bufs},bufs)});
-  if(DINO.m)return mainRun(list);
-  return dinoLoad().then(function(){return runBatch(list)})}
+    try{DW.w.postMessage({t:"run",id:id,px:bufs,pt:!!wantPt,boxes:boxes||null},tr)}
+    catch(e){delete DW.pend[id];bad(e)}});
+  if(DINO.m)return mainRun(list,wantPt,boxes);
+  return dinoLoad().then(function(){return runBatch(list,wantPt,boxes)})}
 function spawnW(f){var a=[],i;for(i=0;i<FETCH_CONC;i++)a.push(f());return a}
 function lumaStats(px,npx){
   var gray=new Float32Array(npx),i,sum=0,sum2=0,l;
@@ -1196,8 +1312,10 @@ function decVec(b64){
   for(i=0;i<DIM;i++){x=t.charCodeAt(i);if(x>127)x-=256;v[i]=x/250;q+=v[i]*v[i]}
   q=Math.sqrt(q)||1;for(i=0;i<DIM;i++)v[i]/=q;
   return v}
-function inferPx(px){
-  return new Promise(function(ok,bad){DW.q.push({px:px,ok:ok,bad:bad});pump()}).then(encVec).catch(function(e){if(e&&typeof e==="object")e.isModel=true;throw e})}
+function inferPx(px,wantPt,box){
+  return new Promise(function(ok,bad){DW.q.push({px:px,pt:!!wantPt,box:box||null,ok:ok,bad:bad});pump()}).then(function(r){
+    return wantPt?r:encVec(r);
+  }).catch(function(e){if(e&&typeof e==="object")e.isModel=true;throw e})}
 var SP={n:0,ms:0,t0:0};
 function spTxt(){if(SP.n<4||!SP.t0)return"";var sec=(Date.now()-SP.t0)/1000;return sec>0?" · "+(SP.n/sec).toFixed(1)+" ảnh/s · mô hình "+Math.round(SP.ms/SP.n)+" ms/ảnh":""}
 function pump(){
@@ -1207,14 +1325,24 @@ function pump(){
 function flush(){
   if(DW.tm){clearTimeout(DW.tm);DW.tm=0}
   if(DW.busy||!DW.q.length)return;
-  var b=DW.q.splice(0,BN),t0=Date.now();DW.busy=true;if(!SP.t0)SP.t0=t0;
+  var b=DW.q.splice(0,BN),wantPt=b.some(function(x){return !!x.pt}),boxes=wantPt?b.map(function(x){return x.box||null}):null,t0=Date.now();DW.busy=true;if(!SP.t0)SP.t0=t0;
   function rel(){DW.busy=false;pump()}
-  runBatch(b.map(function(x){return x.px})).then(function(vs){b.forEach(function(x,i){x.ok(vs[i])})},function(e){b.forEach(function(x){x.bad(e)})}).then(function(){
+  runBatch(b.map(function(x){return x.px}),wantPt,boxes).then(function(vs){
+    b.forEach(function(x,i){var r=vs[i];x.ok(wantPt?(x.pt?r.pt:r.cls):r)});
+  },function(e){b.forEach(function(x){x.bad(e)})}).then(function(){
     SP.n+=b.length;SP.ms+=Date.now()-t0;
     /* nghỉ ngắn sau mỗi batch khi chạy trên GPU hoặc luồng chính, để giao diện không bị giật */
     var gap=(DW.gpu||!DW.w)?Math.min(PACE_MAX,Math.round((Date.now()-t0)*PACE)):0;
     if(gap>0)setTimeout(rel,gap);else rel()})}
-function grab(cx,im,sx,sy,sw,sh){cx.clearRect(0,0,DS,DS);cx.drawImage(im,sx,sy,sw,sh,0,0,DS,DS);return cx.getImageData(0,0,DS,DS).data}
+function grabFit(cx,im,sx,sy,sw,sh){
+  cx.imageSmoothingEnabled=true;
+  try{cx.imageSmoothingQuality="high"}catch(e){}
+  cx.fillStyle="rgb(124,116,104)";
+  cx.fillRect(0,0,DS,DS);
+  var sc=Math.min(DS/sw,DS/sh),dw=Math.max(1,Math.round(sw*sc)),dh=Math.max(1,Math.round(sh*sc));
+  var dx=Math.floor((DS-dw)/2),dy=Math.floor((DS-dh)/2);
+  cx.drawImage(im,sx,sy,sw,sh,dx,dy,dw,dh);
+  return{px:cx.getImageData(0,0,DS,DS).data,box:[dx,dy,dx+dw,dy+dh]}}
 /* Trả về Promise<chuỗi>: "" nếu ảnh trơn; ném lỗi nếu ảnh hỏng/mô hình lỗi */
 function embedImg(im){
   var iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height;
@@ -1224,10 +1352,18 @@ function embedImg(im){
   cx.drawImage(im,0,0,gw,gh);
   var st=lumaStats(cx.getImageData(0,0,gw,gh).data,gw*gh);
   if(st.v<12)return Promise.resolve("");   /* ảnh trắng trơn / đen đặc */
-  var bar=detectBars(st.gray,gw,gh,ori,iw,ih);
+  var bar=detectBars(st.gray,gw,gh,ori,iw,ih),crop=bar||{sx:0,sy:0,sw:iw,sh:ih};
   cv.width=DS;cv.height=DS;
-  var pf=grab(cx,im,0,0,iw,ih),pb=null;
-  if(bar){pb=grab(cx,im,bar.sx,bar.sy,bar.sw,bar.sh);if(lumaStats(pb,DS*DS).v<16)pb=null}
+  var pf=grabFit(cx,im,crop.sx,crop.sy,crop.sw,crop.sh).px,pb=null;
+  var ratio=Math.max(crop.sw/crop.sh,crop.sh/crop.sw);
+  if(ratio>1.38){
+    var side=Math.min(crop.sw,crop.sh);
+    var csx=crop.sx+Math.round((crop.sw-side)/2),csy=crop.sy+Math.round((crop.sh-side)/2);
+    pb=grabFit(cx,im,csx,csy,side,side).px;
+  }else if(bar){
+    pb=grabFit(cx,im,0,0,iw,ih).px;
+  }
+  if(pb&&lumaStats(pb,DS*DS).v<12)pb=null;
   return Promise.all([inferPx(pf),pb?inferPx(pb):null]).then(function(r){var out="E"+ori+":"+r[0];return r[1]?out+":"+r[1]:out})}
 var hashAbort={},mmAbort={},stopWaiters=[],modelFail=null;
 /* Dừng quét: đặt cờ, hủy ngay các ảnh đang chờ tải, đánh thức các bước đang đợi (đồng bộ hash, tải mô hình) */
@@ -1337,66 +1473,261 @@ function smartFilter(list,thOv){
     }
   });
   out.rej=0;return out}
-function cmpSig(a,b,th){
-  if(!a||!b)return null;
+function cmpRaw(a,b){
+  if(!a||!b)return 0;
   var m=dotV(a.v,b.v),x;
   if(a.t){x=dotV(a.t,b.v);if(x>m)m=x}
   if(b.t){x=dotV(a.v,b.t);if(x>m)m=x}
   if(a.t&&b.t){x=dotV(a.t,b.t);if(x>m)m=x}
-  var n=Math.min(100,Math.round(m*100));
+  return m<0?0:m>1?100:m*100}
+function cmpSig(a,b,th){
+  if(!a||!b)return null;
+  var n=Math.min(100,Math.round(cmpRaw(a,b)));
   return n>=th?{d:100-n,k:"",o:"",n:n}:null}
-/* ===== Mô hình 1 (Màu lưới 4x4 + Cạnh Sobel 4x4) & Mô hình 2 (DINOv3 vùng trung tâm 75%) =====
-   Chỉ chạy trên các cặp thuộc "vùng xám" (< SM.strong) để diệt nhiễu phòng mẫu khác màu/chi tiết mà giữ nguyên cache dhc11. */
-var pxCache={},mcCache={},mmInflight={};
-function dotN(a,b,len){var s=0,i;for(i=0;i<len;i++)s+=a[i]*b[i];return s}
-function normVec(v){var i,q=0;for(i=0;i<v.length;i++)q+=v[i]*v[i];q=Math.sqrt(q)||1;for(i=0;i<v.length;i++)v[i]/=q;return v}
-function extractPxSig(im,iw,ih,crop){
-  var W=64,B=16,cv=document.createElement("canvas"),cx=cv.getContext("2d",{willReadFrequently:true}),px;
-  cv.width=W;cv.height=W;
-  cx.drawImage(im,crop.sx,crop.sy,crop.sw,crop.sh,0,0,W,W);
-  try{px=cx.getImageData(0,0,W,W).data}catch(e){return null}
-  var gray=new Float32Array(W*W),col=new Float32Array(48),edge=new Float32Array(64);
-  var i,r,c,p,bx,by,bi,sumL=0,sumC1=0,sumC2=0;
-  for(r=0;r<W;r++){
-    by=(r/B)|0;
-    for(c=0;c<W;c++){
-      bx=(c/B)|0;bi=(by*4+bx)*3;p=(r*W+c)*4;
-      var R=px[p],G0=px[p+1],B0=px[p+2];
-      var L=R*0.299+G0*0.587+B0*0.114,C1=R-B0,C2=G0-0.5*(R+B0);
-      gray[r*W+c]=L;
-      col[bi]+=L*0.65;col[bi+1]+=C1*1.15;col[bi+2]+=C2*1.15;
-      sumL+=L;sumC1+=C1;sumC2+=C2;
-    }
+/* ===== Xác minh vùng xám (< SM.strong): DINOv3 Patch Token + MaxSim (mặc định), Trung tâm 75% (Multi-crop) & CSLS =====
+   - Giữ nguyên tỉ lệ ảnh bằng Letterbox + loại patch viền pad.
+   - Tối ưu vòng lặp patchMaxSim bằng register blocking 4x4 (d+=2), Float32 scratch buffer & sort in-place không cấp phát rác.
+   - Kết hợp CSLS (Cross-domain Similarity Local Scaling) trên mọi kịch bản vùng xám để triệt tiêu hub ảnh phòng chung. */
+var ptCache={},ptOrder=[],PT_CAP=240,mcCache={},mcOrder=[],MC_CAP=600,mmInflight={};
+var ptBufCap=0,ptBufA=null,ptBufB=null,ptVecCap=0,ptMaxA=null,ptMaxB=null,ptBgA=null,ptBgB=null;
+function ensurePtBuf(na,nb){
+  var needV=Math.max(256,na,nb);
+  if(needV>ptVecCap){
+    ptVecCap=needV;
+    ptMaxA=new Float32Array(needV);ptMaxB=new Float32Array(needV);
+    ptBgA=new Float32Array(needV);ptBgB=new Float32Array(needV);
   }
-  for(i=0;i<48;i++)col[i]/=256;
-  normVec(col);
-  for(r=1;r<W-1;r++){
-    by=(r/B)|0;
-    for(c=1;c<W-1;c++){
-      bx=(c/B)|0;bi=(by*4+bx)*4;
-      var gx=gray[r*W+c+1]-gray[r*W+c-1],gy=gray[(r+1)*W+c]-gray[(r-1)*W+c];
-      edge[bi]+=Math.abs(gx);
-      edge[bi+1]+=Math.abs(gy);
-      edge[bi+2]+=Math.abs(gx+gy)*0.707;
-      edge[bi+3]+=Math.abs(gx-gy)*0.707;
-    }
+  var needD=needV*DIM;
+  if(needD>ptBufCap){
+    ptBufCap=needD;
+    ptBufA=new Float32Array(needD);ptBufB=new Float32Array(needD);
   }
-  normVec(edge);
-  var np=W*W;
-  return{col:col,edge:edge,mc0:sumL/np,mc1:sumC1/np,mc2:sumC2/np}
 }
+function putPtCache(s,val){
+  if(ptCache[s]===undefined){
+    ptOrder.push(s);
+    while(ptOrder.length>PT_CAP){var old=ptOrder.shift();delete ptCache[old]}
+  }
+  ptCache[s]=val}
+function putMcCache(s,val){
+  if(mcCache[s]===undefined){
+    mcOrder.push(s);
+    while(mcOrder.length>MC_CAP){var old=mcOrder.shift();delete mcCache[old]}
+  }
+  mcCache[s]=val}
+function patchMaxSim(pa,pb){
+  var na=pa.n,nb=pb.n,qa=pa.q,qb=pb.q,sa=pa.sc,sb=pb.sc,wa=pa.wt,wb=pb.wt,D=DIM;
+  ensurePtBuf(na,nb);
+  var fA=ptBufA,fB=ptBufB,maxA=ptMaxA.subarray(0,na),maxB=ptMaxB.subarray(0,nb);
+  var sumA=ptBgA.subarray(0,na),sumB=ptBgB.subarray(0,nb);
+  var i,j,d,o,sc;
+  for(i=0;i<na;i++){
+    o=i*D;sc=sa[i];maxA[i]=-1;sumA[i]=0;
+    for(d=0;d<D;d+=4){fA[o+d]=qa[o+d]*sc;fA[o+d+1]=qa[o+d+1]*sc;fA[o+d+2]=qa[o+d+2]*sc;fA[o+d+3]=qa[o+d+3]*sc}
+  }
+  for(j=0;j<nb;j++){
+    o=j*D;sc=sb[j];maxB[j]=-1;sumB[j]=0;
+    for(d=0;d<D;d+=4){fB[o+d]=qb[o+d]*sc;fB[o+d+1]=qb[o+d+1]*sc;fB[o+d+2]=qb[o+d+2]*sc;fB[o+d+3]=qb[o+d+3]*sc}
+  }
+  for(i=0;i+3<na;i+=4){
+    var oA0=i*D,oA1=oA0+D,oA2=oA1+D,oA3=oA2+D;
+    var ma0=maxA[i],ma1=maxA[i+1],ma2=maxA[i+2],ma3=maxA[i+3];
+    var ra0=sumA[i],ra1=sumA[i+1],ra2=sumA[i+2],ra3=sumA[i+3];
+    for(j=0;j+3<nb;j+=4){
+      var oB0=j*D,oB1=oB0+D,oB2=oB1+D,oB3=oB2+D;
+      var s00=0,s01=0,s02=0,s03=0,s10=0,s11=0,s12=0,s13=0,s20=0,s21=0,s22=0,s23=0,s30=0,s31=0,s32=0,s33=0;
+      for(d=0;d<D;d+=2){
+        var a0=fA[oA0+d],a1=fA[oA1+d],a2=fA[oA2+d],a3=fA[oA3+d];
+        var b0=fB[oB0+d],b1=fB[oB1+d],b2=fB[oB2+d],b3=fB[oB3+d];
+        s00+=a0*b0;s01+=a0*b1;s02+=a0*b2;s03+=a0*b3;
+        s10+=a1*b0;s11+=a1*b1;s12+=a1*b2;s13+=a1*b3;
+        s20+=a2*b0;s21+=a2*b1;s22+=a2*b2;s23+=a2*b3;
+        s30+=a3*b0;s31+=a3*b1;s32+=a3*b2;s33+=a3*b3;
+        var d1=d+1;
+        a0=fA[oA0+d1];a1=fA[oA1+d1];a2=fA[oA2+d1];a3=fA[oA3+d1];
+        b0=fB[oB0+d1];b1=fB[oB1+d1];b2=fB[oB2+d1];b3=fB[oB3+d1];
+        s00+=a0*b0;s01+=a0*b1;s02+=a0*b2;s03+=a0*b3;
+        s10+=a1*b0;s11+=a1*b1;s12+=a1*b2;s13+=a1*b3;
+        s20+=a2*b0;s21+=a2*b1;s22+=a2*b2;s23+=a2*b3;
+        s30+=a3*b0;s31+=a3*b1;s32+=a3*b2;s33+=a3*b3;
+      }
+      var mb0=maxB[j],mb1=maxB[j+1],mb2=maxB[j+2],mb3=maxB[j+3];
+      var rb0=sumB[j],rb1=sumB[j+1],rb2=sumB[j+2],rb3=sumB[j+3];
+      if(s00>ma0)ma0=s00;if(s00>mb0)mb0=s00;if(s00>0){ra0+=s00;rb0+=s00}
+      if(s01>ma0)ma0=s01;if(s01>mb1)mb1=s01;if(s01>0){ra0+=s01;rb1+=s01}
+      if(s02>ma0)ma0=s02;if(s02>mb2)mb2=s02;if(s02>0){ra0+=s02;rb2+=s02}
+      if(s03>ma0)ma0=s03;if(s03>mb3)mb3=s03;if(s03>0){ra0+=s03;rb3+=s03}
+      if(s10>ma1)ma1=s10;if(s10>mb0)mb0=s10;if(s10>0){ra1+=s10;rb0+=s10}
+      if(s11>ma1)ma1=s11;if(s11>mb1)mb1=s11;if(s11>0){ra1+=s11;rb1+=s11}
+      if(s12>ma1)ma1=s12;if(s12>mb2)mb2=s12;if(s12>0){ra1+=s12;rb2+=s12}
+      if(s13>ma1)ma1=s13;if(s13>mb3)mb3=s13;if(s13>0){ra1+=s13;rb3+=s13}
+      if(s20>ma2)ma2=s20;if(s20>mb0)mb0=s20;if(s20>0){ra2+=s20;rb0+=s20}
+      if(s21>ma2)ma2=s21;if(s21>mb1)mb1=s21;if(s21>0){ra2+=s21;rb1+=s21}
+      if(s22>ma2)ma2=s22;if(s22>mb2)mb2=s22;if(s22>0){ra2+=s22;rb2+=s22}
+      if(s23>ma2)ma2=s23;if(s23>mb3)mb3=s23;if(s23>0){ra2+=s23;rb3+=s23}
+      if(s30>ma3)ma3=s30;if(s30>mb0)mb0=s30;if(s30>0){ra3+=s30;rb0+=s30}
+      if(s31>ma3)ma3=s31;if(s31>mb1)mb1=s31;if(s31>0){ra3+=s31;rb1+=s31}
+      if(s32>ma3)ma3=s32;if(s32>mb2)mb2=s32;if(s32>0){ra3+=s32;rb2+=s32}
+      if(s33>ma3)ma3=s33;if(s33>mb3)mb3=s33;if(s33>0){ra3+=s33;rb3+=s33}
+      maxB[j]=mb0;maxB[j+1]=mb1;maxB[j+2]=mb2;maxB[j+3]=mb3;
+      sumB[j]=rb0;sumB[j+1]=rb1;sumB[j+2]=rb2;sumB[j+3]=rb3;
+    }
+    for(;j<nb;j++){
+      var oB=j*D,mb=maxB[j],rb=sumB[j],s0=0,s1=0,s2=0,s3=0;
+      for(d=0;d<D;d+=2){
+        var bv=fB[oB+d];s0+=fA[oA0+d]*bv;s1+=fA[oA1+d]*bv;s2+=fA[oA2+d]*bv;s3+=fA[oA3+d]*bv;
+        bv=fB[oB+d+1];s0+=fA[oA0+d+1]*bv;s1+=fA[oA1+d+1]*bv;s2+=fA[oA2+d+1]*bv;s3+=fA[oA3+d+1]*bv;
+      }
+      if(s0>ma0)ma0=s0;if(s0>mb)mb=s0;if(s0>0){ra0+=s0;rb+=s0}
+      if(s1>ma1)ma1=s1;if(s1>mb)mb=s1;if(s1>0){ra1+=s1;rb+=s1}
+      if(s2>ma2)ma2=s2;if(s2>mb)mb=s2;if(s2>0){ra2+=s2;rb+=s2}
+      if(s3>ma3)ma3=s3;if(s3>mb)mb=s3;if(s3>0){ra3+=s3;rb+=s3}
+      maxB[j]=mb;sumB[j]=rb;
+    }
+    maxA[i]=ma0;maxA[i+1]=ma1;maxA[i+2]=ma2;maxA[i+3]=ma3;
+    sumA[i]=ra0;sumA[i+1]=ra1;sumA[i+2]=ra2;sumA[i+3]=ra3;
+  }
+  for(;i<na;i++){
+    var oA=i*D,ma=maxA[i],ra=sumA[i];
+    for(j=0;j<nb;j++){
+      var oB=j*D,sd=0;
+      for(d=0;d<D;d+=4)sd+=fA[oA+d]*fB[oB+d]+fA[oA+d+1]*fB[oB+d+1]+fA[oA+d+2]*fB[oB+d+2]+fA[oA+d+3]*fB[oB+d+3];
+      if(sd>ma)ma=sd;if(sd>maxB[j])maxB[j]=sd;if(sd>0){ra+=sd;sumB[j]+=sd}
+    }
+    maxA[i]=ma;sumA[i]=ra;
+  }
+  var wSumA=0,wA=0,wSumB=0,wB=0,bgSumA=0,bgSumB=0;
+  for(i=0;i<na;i++){var wai=wa[i];wSumA+=maxA[i]*wai;bgSumA+=(sumA[i]/nb)*wai;wA+=wai}
+  for(j=0;j<nb;j++){var wbj=wb[j];wSumB+=maxB[j]*wbj;bgSumB+=(sumB[j]/na)*wbj;wB+=wbj}
+  var mA=wA>0?wSumA/wA:0,mB=wB>0?wSumB/wB:0;
+  var bgA=wA>0?bgSumA/wA:0,bgB=wB>0?bgSumB/wB:0;
+  var sym=0.5*(mA+mB),asym=mA>mB?mA:mB,bgSym=0.5*(bgA+bgB);
+  maxA.sort();maxB.sort();
+  var kA=Math.max(1,Math.round(na*0.35)),kB=Math.max(1,Math.round(nb*0.35)),tA=0,tB=0;
+  for(i=na-kA;i<na;i++)tA+=maxA[i];
+  for(j=nb-kB;j<nb;j++)tB+=maxB[j];
+  var top=0.5*(tA/kA+tB/kB);
+  var base=0.65*sym+0.20*top+0.15*(asym<sym+0.12?asym:sym+0.12);
+  return{
+    sim:Math.round(Math.max(0,Math.min(1,base))*100),
+    top:Math.round(Math.max(0,Math.min(1,top))*100),
+    sym:Math.round(Math.max(0,Math.min(1,sym))*100),
+    asym:Math.round(Math.max(0,Math.min(1,asym))*100),
+    gap:Math.round(Math.max(0,sym-bgSym)*100)
+  }}
+function buildOwnerMap(workPairs){
+  var own={};
+  function reg(s,id){if(!s||!id)return;(own[s]||(own[s]={}))[id]=1}
+  activeItems().forEach(function(it){(it.im||[]).forEach(function(s){reg(s,it.id)})});
+  (workPairs||[]).forEach(function(r){reg(r.x,r.a&&r.a.id);reg(r.y,r.b&&r.b.id)});
+  return own}
+function topKMeanPush(top,len,K,sc){
+  if(len<K){top[len++]=sc;return len}
+  var ti,mi=0,mv=top[0];
+  for(ti=1;ti<K;ti++)if(top[ti]<mv){mv=top[ti];mi=ti}
+  if(sc>mv)top[mi]=sc;
+  return len}
+function buildClsHubMap(urls,ownerMap){
+  var uMap={},pool=[],seenS={},src=activeItems(),i,j;
+  urls.forEach(function(u){uMap[u]=1});
+  src.forEach(function(it){
+    (it.im||[]).forEach(function(s){
+      if(!s||seenS[s])return;
+      var sg=sigOf(s);
+      if(sg){seenS[s]=1;pool.push({s:s,id:it.id,sg:sg,pri:!!uMap[s]})}
+    });
+  });
+  if(pool.length>360){
+    var pri=pool.filter(function(x){return x.pri}),rest=pool.filter(function(x){return !x.pri});
+    var need=Math.max(0,360-pri.length),step=need>0?rest.length/need:rest.length+1,sampled=[];
+    for(i=0;i<need&&Math.floor(i*step)<rest.length;i++)sampled.push(rest[Math.floor(i*step)]);
+    pool=pri.concat(sampled);
+  }
+  var K=5,top=new Float32Array(K),out={};
+  for(i=0;i<urls.length;i++){
+    var u=urls[i],sgU=sigOf(u);if(!sgU)continue;
+    var ownU=ownerMap[u]||{},len=0,cnt=0;
+    for(j=0;j<pool.length;j++){
+      var z=pool[j];
+      if(z.s===u||ownU[z.id])continue;
+      cnt++;
+      len=topKMeanPush(top,len,K,cmpRaw(sgU,z.sg));
+    }
+    if(cnt>=4&&len>0){
+      var sum=0;for(j=0;j<len;j++)sum+=top[j];
+      out[u]=sum/len;
+    }
+  }
+  return out}
+function buildVecHubMap(urls,vecMap,ownerMap,K){
+  var pool=[],seen={},i,j,uMap={};
+  urls.forEach(function(u){uMap[u]=1});
+  Object.keys(vecMap).forEach(function(s){
+    var v=vecMap[s],own=ownerMap[s];
+    if(!v||!own)return;
+    seen[s]=1;
+    pool.push({s:s,own:own,v:v,pri:!!uMap[s]});
+  });
+  if(pool.length>300){
+    var pri=pool.filter(function(x){return x.pri}),rest=pool.filter(function(x){return !x.pri});
+    var need=Math.max(0,300-pri.length),step=need>0?rest.length/need:rest.length+1,sampled=[];
+    for(i=0;i<need&&Math.floor(i*step)<rest.length;i++)sampled.push(rest[Math.floor(i*step)]);
+    pool=pri.concat(sampled);
+  }
+  var top=new Float32Array(K),out={};
+  for(i=0;i<urls.length;i++){
+    var u=urls[i],vu=vecMap[u];if(!vu)continue;
+    var ownU=ownerMap[u]||{},len=0,cnt=0;
+    for(j=0;j<pool.length;j++){
+      var z=pool[j],same=z.s===u;
+      if(!same){for(var id in ownU)if(z.own[id]){same=true;break}}
+      if(same)continue;
+      cnt++;
+      var sc=dotV(vu,z.v)*100;if(sc<0)sc=0;else if(sc>100)sc=100;
+      len=topKMeanPush(top,len,K,sc);
+    }
+    if(cnt>=4&&len>0){
+      var sum=0;for(j=0;j<len;j++)sum+=top[j];
+      out[u]=sum/len;
+    }
+  }
+  return out}
+function buildPtHubMap(workPairs,ptResults){
+  var byU={},out={};
+  workPairs.forEach(function(r){
+    var rk=r.a.id+"|"+r.b.id+"|"+r.x+"|"+r.y,pr=ptResults[rk];
+    if(!pr)return;
+    var mx=byU[r.x]||(byU[r.x]={});if(mx[r.b.id]===undefined||pr.sim>mx[r.b.id])mx[r.b.id]=pr.sim;
+    var my=byU[r.y]||(byU[r.y]={});if(my[r.a.id]===undefined||pr.sim>my[r.a.id])my[r.a.id]=pr.sim;
+  });
+  Object.keys(byU).forEach(function(u){
+    var m=byU[u],vals=Object.keys(m).map(function(id){return m[id]}).sort(function(a,b){return b-a});
+    if(vals.length>=3){
+      var k=Math.min(5,vals.length),s=0;
+      for(var i=0;i<k;i++)s+=vals[i];
+      out[u]=s/k;
+    }
+  });
+  return out}
+function extractPatchTokens(im,crop){
+  if(!(DW.w||DINO.m))return Promise.resolve(null);
+  var cv=document.createElement("canvas"),cx=cv.getContext("2d",{willReadFrequently:true});
+  cv.width=DS;cv.height=DS;
+  var g=grabFit(cx,im,crop.sx,crop.sy,crop.sw,crop.sh);
+  return inferPx(g.px,true,g.box).catch(function(){return null})}
 function extractMultiCrop(im,crop){
   if(!(DW.w||DINO.m))return Promise.resolve(null);
   var cv=document.createElement("canvas"),cx=cv.getContext("2d",{willReadFrequently:true});
   cv.width=DS;cv.height=DS;
   var sx=crop.sx+Math.round(crop.sw*0.125),sy=crop.sy+Math.round(crop.sh*0.125);
   var sw=Math.max(16,Math.round(crop.sw*0.75)),sh=Math.max(16,Math.round(crop.sh*0.75));
-  var px=grab(cx,im,sx,sy,sw,sh);
+  var px=grabFit(cx,im,sx,sy,sw,sh).px;
   return inferPx(px).then(function(b64){return decVec(b64)},function(){return null});
 }
-function verifyImgOf(s,wantMc){
-  if(pxCache[s]!==undefined&&(!wantMc||mcCache[s]!==undefined))return Promise.resolve({px:pxCache[s],mc:mcCache[s]||null});
-  var key=s+"|"+(wantMc?1:0);
+function verifyImgOf(s,wantPt,wantMc){
+  var hasPt=!wantPt||ptCache[s]!==undefined,hasMc=!wantMc||mcCache[s]!==undefined;
+  if(hasPt&&hasMc)return Promise.resolve({pt:ptCache[s]||null,mc:mcCache[s]||null});
+  var key=s+"|"+(wantPt?1:0)+(wantMc?1:0);
   if(mmInflight[key])return mmInflight[key];
   var p=new Promise(function(res){
     var u=imgSrc(s,256),isLh=u.indexOf("https://lh3.googleusercontent.com/")===0;
@@ -1414,13 +1745,9 @@ function verifyImgOf(s,wantMc){
       cv.width=gw;cv.height=gh;cx.drawImage(im,0,0,gw,gh);
       try{st=lumaStats(cx.getImageData(0,0,gw,gh).data,gw*gh);bar=detectBars(st.gray,gw,gh,ori,iw,ih)}catch(e){bar=null}
       var crop=bar||{sx:0,sy:0,sw:iw,sh:ih};
-      var px=pxCache[s]!==undefined?pxCache[s]:extractPxSig(im,iw,ih,crop);
-      pxCache[s]=px;
-      if(!wantMc||mcCache[s]!==undefined){fin({px:px,mc:mcCache[s]||null});return}
-      extractMultiCrop(im,crop).then(function(mc){
-        if(mc)mcCache[s]=mc;
-        fin({px:px,mc:mc||null});
-      },function(){fin({px:px,mc:null})});
+      var pPt=(!wantPt||ptCache[s]!==undefined)?Promise.resolve(ptCache[s]||null):extractPatchTokens(im,crop).then(function(pt){if(pt)putPtCache(s,pt);return pt});
+      var pMc=(!wantMc||mcCache[s]!==undefined)?Promise.resolve(mcCache[s]||null):extractMultiCrop(im,crop).then(function(mc){if(mc)putMcCache(s,mc);return mc});
+      Promise.all([pPt,pMc]).then(function(arr){fin({pt:arr[0],mc:arr[1]})},function(){fin(null)});
     };
     im.onerror=function(){fin(null)};
     im.src=isLh?(u+"?dh=3"):u;
@@ -1439,56 +1766,126 @@ function verifyGrayZonePairs(list,isScan){
   if(!grayPairs.length)return Promise.resolve(list);
   var cap=80,workPairs=grayPairs.slice(0,cap),uniq={},urls=[];
   workPairs.forEach(function(r){if(!uniq[r.x]){uniq[r.x]=1;urls.push(r.x)}if(!uniq[r.y]){uniq[r.y]=1;urls.push(r.y)}});
-  var wantMc=MM_MODE>=2,modelReady=!!(DW.w||DINO.m);
-  var prepMc=(wantMc&&!modelReady&&navigator.onLine!==false)?dinoLoad().then(function(){return true},function(){return false}):Promise.resolve(modelReady);
-  return prepMc.then(function(canMc){
+  var ownerMap=buildOwnerMap(workPairs),rCls=buildClsHubMap(urls,ownerMap);
+  var wantPt=MM_MODE===3||MM_MODE===4,wantMc=MM_MODE===2||MM_MODE===4,modelReady=!!(DW.w||DINO.m);
+  var prepModel=(!modelReady&&navigator.onLine!==false)?dinoLoad().then(function(){return true},function(){return false}):Promise.resolve(modelReady);
+  return prepModel.then(function(canDino){
     if(stopFlag&&scanning)return list;
-    if(isScan&&!stopFlag)msg("Đang xác minh đa mô hình ("+workPairs.length+" cặp vùng xám)…");
-    var idx=0;
-    function w(){
-      if((stopFlag&&scanning)||idx>=urls.length)return Promise.resolve();
-      var u=urls[idx++];
-      return verifyImgOf(u,wantMc&&canMc).then(w);
+    var extractP;
+    if(canDino){
+      if(isScan&&!stopFlag)msg("Đang xác minh "+(wantPt&&wantMc?"Patch MaxSim + Trung tâm + CSLS":wantPt?"Patch Token + MaxSim + CSLS":"Trung tâm 75% + CSLS")+" ("+workPairs.length+" cặp vùng xám)…");
+      var idx=0;
+      function w(){
+        if((stopFlag&&scanning)||idx>=urls.length)return Promise.resolve();
+        var u=urls[idx++];
+        return verifyImgOf(u,wantPt,wantMc).then(w);
+      }
+      extractP=Promise.all(spawnW(w));
+    }else{
+      if(isScan&&!stopFlag)msg("Đang xác minh CSLS ("+workPairs.length+" cặp vùng xám)…");
+      extractP=Promise.resolve();
     }
-    return Promise.all(spawnW(w)).then(function(){
+    return extractP.then(function(){
       if(stopFlag&&scanning)return list;
-      var workSet={},kept=[];
-      workPairs.forEach(function(r){workSet[r.a.id+"|"+r.b.id+"|"+r.x+"|"+r.y]=1});
-      list.forEach(function(r){
-        var rk=r.a.id+"|"+r.b.id+"|"+r.x+"|"+r.y;
-        if(!workSet[rk]){kept.push(r);return}
-        var fa=pxCache[r.x],fb=pxCache[r.y];
-        if(!fa||!fb){kept.push(r);return}
-        SM.mmChecked++;
-        var colCos=dotN(fa.col,fb.col,48),edgeCos=dotN(fa.edge,fb.edge,64);
-        var gGap=Math.abs(fa.mc1-fb.mc1)+Math.abs(fa.mc2-fb.mc2);
-        var pxScore=Math.round((colCos*0.58+edgeCos*0.42)*100);
-        var ma=mcCache[r.x],mb=mcCache[r.y];
-        var mcSim=(ma&&mb)?Math.min(100,Math.round(dotV(ma,mb)*100)):null;
-        var loId=r.a.id<r.b.id?r.a.id:r.b.id,hiId=r.a.id<r.b.id?r.b.id:r.a.id,hk=loId+"|"+hiId;
-        var tsText=tMap[hk]||0,nInPair=pairCnt[hk]||1;
-        var colorBad=colCos<0.72||(colCos<0.78&&gGap>34);
-        var edgeBad=edgeCos<0.56;
-        var mcBad=mcSim!==null&&mcSim<Math.max(58,ts-7);
-        var pxGood=colCos>=0.85&&edgeCos>=0.72;
-        var mcGood=mcSim!==null&&mcSim>=ts;
-        var drop=false;
-        if(colorBad&&(edgeBad||mcBad||r.n<ts+2))drop=true;
-        else if(mcBad&&!pxGood&&r.n<ts+3)drop=true;
-        else if(nInPair===1&&tsText<1&&r.n<ts+2&&(colCos<0.79||(mcSim!==null&&mcSim<ts-3)))drop=true;
-        if(drop){SM.mmCut++;return}
-        if(pxGood||mcGood){
-          var ens=mcSim!==null?Math.round(r.n*0.55+mcSim*0.30+pxScore*0.15):Math.round(r.n*0.80+pxScore*0.20);
-          ens=Math.max(Math.max(tl,r.n-1),Math.min(99,Math.min(r.n+4,ens)));
-          r={a:r.a,b:r.b,x:r.x,y:r.y,n:ens,d:100-ens,k:(mcGood&&pxGood)?"2m":(mcGood?"mc":"px"),o:r.o};
-          SM.mmBoost++;
+      var workMap={};
+      workPairs.forEach(function(r){workMap[r.a.id+"|"+r.b.id+"|"+r.x+"|"+r.y]=r});
+      var ptResults={},wi=0;
+      function scoreChunk(){
+        if(stopFlag&&scanning)return Promise.resolve(false);
+        var t0=Date.now();
+        while(wi<workPairs.length){
+          var r=workPairs[wi++];
+          if(canDino&&wantPt){
+            var pa=ptCache[r.x],pb=ptCache[r.y];
+            if(pa&&pb)ptResults[r.a.id+"|"+r.b.id+"|"+r.x+"|"+r.y]=patchMaxSim(pa,pb);
+          }
+          if(canDino&&wantPt&&wi<workPairs.length&&(Date.now()-t0>=24)){
+            if(isScan&&!stopFlag)msg("Đang so Patch MaxSim + CSLS ("+wi+"/"+workPairs.length+" cặp)…");
+            return new Promise(function(ok){setTimeout(ok,0)}).then(scoreChunk);
+          }
         }
-        kept.push(r);
+        return Promise.resolve(true);
+      }
+      return scoreChunk().then(function(ok){
+        if(!ok||(stopFlag&&scanning))return list;
+        var rMc=(canDino&&wantMc)?buildVecHubMap(urls,mcCache,ownerMap,5):null;
+        var rPt=(canDino&&wantPt)?buildPtHubMap(workPairs,ptResults):null;
+        var kept=[];
+        list.forEach(function(r){
+          var rk=r.a.id+"|"+r.b.id+"|"+r.x+"|"+r.y;
+          if(!workMap[rk]){kept.push(r);return}
+          var pmRes=(canDino&&wantPt)?ptResults[rk]:null;
+          var ma=(canDino&&wantMc)?mcCache[r.x]:null,mb=(canDino&&wantMc)?mcCache[r.y]:null;
+          var mcSim=(ma&&mb)?Math.min(100,Math.round(dotV(ma,mb)*100)):null;
+          var clsHub=(rCls[r.x]!==undefined&&rCls[r.y]!==undefined)?0.5*(rCls[r.x]+rCls[r.y]):null;
+          var clsMargin=clsHub!==null?(r.n-clsHub):null;
+          var mcHub=(mcSim!==null&&rMc&&rMc[r.x]!==undefined&&rMc[r.y]!==undefined)?0.5*(rMc[r.x]+rMc[r.y]):null;
+          var mcMargin=mcHub!==null?(mcSim-mcHub):null;
+          var ptHub=(pmRes&&rPt&&rPt[r.x]!==undefined&&rPt[r.y]!==undefined)?0.5*(rPt[r.x]+rPt[r.y]):null;
+          var ptMargin=ptHub!==null?(pmRes.sim-ptHub):null;
+          if(!pmRes&&mcSim===null&&clsMargin===null){kept.push(r);return}
+          SM.mmChecked++;
+          var loId=r.a.id<r.b.id?r.a.id:r.b.id,hiId=r.a.id<r.b.id?r.b.id:r.a.id,hk=loId+"|"+hiId;
+          var tsText=tMap[hk]||0,nInPair=pairCnt[hk]||1;
+          var ptBad=pmRes?(pmRes.sim<Math.max(48,ts-26)||(pmRes.sim<Math.max(54,ts-20)&&pmRes.top<Math.max(66,ts-10))):false;
+          var ptWeak=pmRes?(pmRes.sim<Math.max(58,ts-17)&&pmRes.top<Math.max(72,ts-5)):false;
+          var ptGood=pmRes?(pmRes.sim>=Math.max(62,ts-14)||(pmRes.sim>=Math.max(57,ts-19)&&pmRes.top>=Math.max(76,ts-2))):false;
+          var ptLowGap=pmRes?(pmRes.gap<16&&pmRes.sim<68&&pmRes.top<78):false;
+          var ptMapped=pmRes?Math.min(99,Math.round(pmRes.sim*0.72+pmRes.top*0.28+8)):0;
+          var mcBad=mcSim!==null&&mcSim<Math.max(58,ts-7);
+          var mcWeak=mcSim!==null&&mcSim<ts-3;
+          var mcGood=mcSim!==null&&mcSim>=ts;
+          var cClsBad=clsMargin!==null&&clsMargin<=2.5&&r.n<ts+3;
+          var cClsWeak=clsMargin!==null&&clsMargin<=5.0;
+          var cClsGood=clsMargin!==null&&clsMargin>=10.0;
+          var cMcBad=mcMargin!==null&&mcMargin<=2.0&&mcSim<ts+3;
+          var cMcWeak=mcMargin!==null&&mcMargin<=4.5;
+          var cMcGood=mcMargin!==null&&mcMargin>=9.0;
+          var cPtBad=ptMargin!==null&&ptMargin<=1.5&&(pmRes.sim<64||(pmRes.sim<72&&pmRes.gap<20));
+          var cPtWeak=ptMargin!==null&&ptMargin<=3.5;
+          var cPtGood=ptMargin!==null&&ptMargin>=7.0;
+          var cslsBad=false,cslsWeak=cClsWeak||cMcWeak||cPtWeak||ptLowGap,cslsGood=cClsGood||cMcGood||cPtGood;
+          if(pmRes&&mcSim!==null)cslsBad=cPtBad||(cMcBad&&cClsBad)||(cClsBad&&!ptGood&&!mcGood);
+          else if(pmRes)cslsBad=cPtBad||(cClsBad&&(ptWeak||ptLowGap||r.n<ts+2));
+          else if(mcSim!==null)cslsBad=cMcBad||(cClsBad&&(mcWeak||r.n<ts+2));
+          else cslsBad=cClsBad&&((nInPair===1&&tsText<1)?r.n<ts+3:r.n<ts+1);
+          var drop=false;
+          if(pmRes&&mcSim!==null){
+            if(ptBad&&(mcBad||r.n<ts+3))drop=true;
+            else if(mcBad&&!ptGood&&r.n<ts+3)drop=true;
+            else if(ptBad&&!mcGood&&r.n<ts+2)drop=true;
+            else if(cslsBad&&r.n<ts+3)drop=true;
+            else if(nInPair===1&&tsText<1&&r.n<ts+2&&(ptWeak||mcWeak||(cslsWeak&&!ptGood&&!mcGood)))drop=true;
+          }else if(pmRes){
+            if(ptBad&&r.n<ts+4)drop=true;
+            else if(cslsBad&&r.n<ts+3)drop=true;
+            else if(nInPair===1&&tsText<1&&r.n<ts+2&&(ptWeak||(cslsWeak&&!ptGood)))drop=true;
+          }else if(mcSim!==null){
+            if(mcBad&&r.n<ts+3)drop=true;
+            else if(cslsBad&&r.n<ts+3)drop=true;
+            else if(nInPair===1&&tsText<1&&r.n<ts+2&&(mcWeak||(cslsWeak&&!mcGood)))drop=true;
+          }else{
+            if(cslsBad)drop=true;
+            else if(nInPair===1&&tsText<1&&r.n<ts+1&&cClsWeak)drop=true;
+          }
+          if(drop){SM.mmCut++;return}
+          if(ptGood||mcGood||(cslsGood&&!ptWeak&&!mcWeak&&r.n>=ts-2)){
+            var ens=r.n,tagK="",cAdj=(cslsGood&&!cslsWeak)?2:(cslsWeak&&!cslsGood?-2:0);
+            if(ptGood&&mcGood){ens=Math.round(r.n*0.45+ptMapped*0.30+mcSim*0.25)+cAdj;tagK="pm"}
+            else if(ptGood){ens=Math.round(r.n*0.60+ptMapped*0.40)+cAdj;tagK="pt"}
+            else if(mcGood){ens=Math.round(r.n*0.65+mcSim*0.35)+cAdj;tagK="mc"}
+            else{ens=r.n+cAdj;tagK="cs"}
+            ens=Math.max(Math.max(tl,r.n-2),Math.min(99,Math.min(r.n+5,ens)));
+            r={a:r.a,b:r.b,x:r.x,y:r.y,n:ens,d:100-ens,k:tagK,o:r.o};
+            SM.mmBoost++;
+          }
+          kept.push(r);
+        });
+        var cutN=SM.mmCut;
+        var finalOut=cutN?smartFilter(kept):kept;
+        finalOut.rej=cutN;
+        return finalOut;
       });
-      var cutN=SM.mmCut;
-      var finalOut=cutN?smartFilter(kept):kept;
-      finalOut.rej=cutN;
-      return finalOut;
     });
   });
 }
@@ -1497,10 +1894,10 @@ function verifyList(list,isScan){
   return verifyGrayZonePairs(pre,isScan);
 }
 /* ===== So khớp ảnh theo từng lượt BATCH căn, lưu kết quả để lần sau chỉ so ảnh mới ===== */
-var BATCH=20,FAIL_TTL=300000,PM_KEY="dpm6"+(DS===256?"":"r"+DS)+(F16?"":"x"),pm=null,pmLoaded=false,pmP=null,sigMemo={};
+var BATCH=20,FAIL_TTL=300000,pm=null,pmLoaded=false,pmP=null,sigMemo={};
 function sigOf(s){var v=sigMemo[s];if(v!==undefined)return v;var c=cache[s];v=c?parseSig(c):null;if(c!==undefined)sigMemo[s]=v;return v}
 function pmEmpty(){return{th:TH,vf:VL,cal:smartCalc().cal,algo:ALGO_VER,mm:MM_MODE,done:{},pairs:[],seen:{},fail:{}}}
-function pmStale(){return pm.th!==TH||(pm.vf||0)!==VL||(pm.cal||0)!==smartCalc().cal||(pm.algo||0)<ALGO_VER||(pm.mm!==undefined?pm.mm:2)!==MM_MODE}
+function pmStale(){return pm.th!==TH||(pm.vf||0)!==VL||(pm.cal||0)!==smartCalc().cal||(pm.algo||0)<ALGO_VER||(pm.mm!==undefined?pm.mm:3)!==MM_MODE}
 function loadPm(){
   if(pmLoaded)return Promise.resolve(pm);
   if(pmP)return pmP;
@@ -1777,17 +2174,16 @@ function init(nt){
     s.value=(v===87||v===80||v===77||v===73)?String(v):"custom";
   }
   function applyEngineSettings(newEng){
-    var oldCacheKey=CACHE_KEY,oldGpu=DINO_GPU,oldDs=DS,oldF16=F16;
+    var oldCacheKey=CACHE_KEY,oldPmKey=PM_KEY,oldGpu=DINO_GPU,oldDs=DS,oldF16=F16;
     ENG=newEng;engSave();
-    MM_MODE=(newEng.mm===0||newEng.mm===1||newEng.mm===2)?newEng.mm:2;
+    MM_MODE=mmNorm(newEng);
     F16=window.DUP_DINO_F16!==undefined?window.DUP_DINO_F16!==false:ENG.f16!==false;
     DS=(function(){var r=+window.DUP_DINO_RES||+ENG.res;return(r>=112&&r<=448&&r%16===0)?r:224})();
     DINO_GPU=window.DUP_DINO_GPU!==undefined?window.DUP_DINO_GPU!==false:ENG.dev!=="cpu";
     BN=window.DUP_DINO_BN>0?Math.min(8,+window.DUP_DINO_BN|0):(ENG.bn===0?(DS<=160?4:(DS<=224?2:1)):(ENG.bn>0?Math.min(8,ENG.bn|0):4));
     PACE=window.DUP_DINO_PACE>=0?+window.DUP_DINO_PACE:(ENG.pace>=0?+ENG.pace:0.6);
-    var newCacheKey="dhc11"+(DS===256?"":"r"+DS)+(F16?"":"x");
-    var newPmKey="dpm6"+(DS===256?"":"r"+DS)+(F16?"":"x");
-    var keyChanged=newCacheKey!==oldCacheKey;
+    var sfx=cfgSfx(DS,F16),newCacheKey="dhc12"+sfx,newPmKey="dpm7"+sfx;
+    var keyChanged=newCacheKey!==oldCacheKey||newPmKey!==oldPmKey;
     var modelReset=keyChanged||DS!==oldDs||F16!==oldF16||DINO_GPU!==oldGpu;
     if(modelReset){
       if(cacheLoaded)saveCache();
@@ -1795,9 +2191,10 @@ function init(nt){
       failPend(new Error("Cấu hình mô hình đã thay đổi"));
       killWorker();
       DINO.p=null;DINO.m=null;DINO.err=null;
-      DW.dev="";DW.gpu=false;DW.q=[];DW.busy=false;
+      var q=DW.q;DW.dev="";DW.gpu=false;DW.q=[];DW.busy=false;
+      q.forEach(function(x){try{x.bad(new Error("Cấu hình mô hình đã thay đổi"))}catch(e){}});
       if(DW.tm){clearTimeout(DW.tm);DW.tm=0}
-      mcCache={};
+      mcCache={};mcOrder=[];ptCache={};ptOrder=[];
     }
     if(keyChanged){
       CACHE_KEY=newCacheKey;PM_KEY=newPmKey;
@@ -1818,14 +2215,15 @@ function init(nt){
       var paceRaw=+G("duppace").value;
       var bnRaw=+G("dupbn").value;
       var mmEl=G("dupmm"),newMm=mmEl?(+mmEl.value|0):MM_MODE;
-      if(newMm!==0&&newMm!==1&&newMm!==2)newMm=2;
+      if(newMm!==0&&newMm!==2&&newMm!==3&&newMm!==4)newMm=3;
       var newEng={
         res:+G("dupres").value||224,
         f16:G("duppre").value==="16",
         dev:G("dupdev").value==="cpu"?"cpu":"auto",
         bn:isNaN(bnRaw)?4:(bnRaw|0),
         pace:isNaN(paceRaw)?0.6:paceRaw,
-        mm:newMm
+        mm:newMm,
+        mmv:2
       };
       var thChanged=newTh!==TH;
       var skipChanged=newSkip!==skipOut;
