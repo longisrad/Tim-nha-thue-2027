@@ -2966,7 +2966,7 @@ function evalPairsAtTh(rawList,ignRawList,ts,src,byId,tMap){
       var s=o.img[i].n!=null?o.img[i].n:Math.max(0,100-o.img[i].d);
       if(s>mx)mx=s;
     }
-    if(hasExact||nImg>=2||(ctx.sameDist&&!ctx.conflict&&(mx>=ts+2||tsText>=1))||mx>=Math.min(92,ts+7))trustedPairs++;
+    if(hasExact||nImg>=2||(ctx.sameDist&&!ctx.conflict&&(mx>=Math.max(76,ts+2)||tsText>=1))||mx>=Math.min(92,Math.max(85,ts+7)))trustedPairs++;
     if(nImg===1&&ctx.conflict)conflictPairs++;
     else if(nImg===1&&!ctx.support&&tsText<1&&mx<ts+3)riskyPairs++;
   });
@@ -3033,7 +3033,9 @@ function analyzeThresholds(){
       var tiers=[87,84,80,77,73,70],res=[];
       tiers.forEach(function(t){res.push(evalPairsAtTh(raw,ignRaw,t,src,byId,tMap))});
       smartCalc();
-      var elbow=null,noiseOnset=null,maxCandIdx=res.length-1,i;
+      var nH=Math.max(1,src.length),minManyNoise=Math.max(2,Math.min(5,Math.ceil(nH*0.03)));
+      var baseBad=res[0].conflictPairs+res[0].riskyPairs;
+      var noiseMark=null,maxCandIdx=res.length-1,i;
       for(i=0;i<res.length-1;i++){
         var cur=res[i],nxt=res[i+1];
         var dPairs=nxt.housePairs-cur.housePairs;
@@ -3041,44 +3043,46 @@ function analyzeThresholds(){
         var dConflict=Math.max(0,nxt.conflictPairs-cur.conflictPairs);
         var dRisky=Math.max(0,nxt.riskyPairs-cur.riskyPairs);
         var dBad=dConflict+dRisky;
-        var cumBad=nxt.conflictPairs+nxt.riskyPairs;
+        var addedBad=Math.max(0,(nxt.conflictPairs+nxt.riskyPairs)-baseBad);
         var dRisk=dRisky+dConflict*1.5;
-        var notSingleOutlier=dBad>=2||(nxt.th<=80&&cumBad>=2&&dBad>=1&&(dConflict>=1||nxt.conflictPairs>=1||dRisk>dTrusted));
-        if(noiseOnset===null&&dPairs>0&&notSingleOutlier&&dRisk>dTrusted*1.2){
-          if(nxt.th<84||dConflict>=2||(dBad>=3&&dBad>dTrusted)){
-            noiseOnset=nxt.th;
-          }
-        }
-        if(dBad>=2&&((nxt.housePairs>=Math.max(cur.housePairs*1.9,cur.housePairs+6)&&dRisk>=dTrusted)
-          ||(cur.maxComp>=2&&nxt.maxComp>=Math.max(cur.maxComp*2,cur.maxComp+5)&&dPairs>0&&dRisk>=dTrusted))){
-          elbow=nxt.th;maxCandIdx=i;break;
+        var highOk=nxt.th<84||dConflict>=minManyNoise||(dBad>=minManyNoise+1&&dBad>dTrusted);
+        var manyNoise=highOk&&dPairs>0&&(
+          (dBad>=minManyNoise&&dRisk>dTrusted*1.2)
+          ||(nxt.th<=80&&addedBad>=minManyNoise&&dBad>=2&&(dConflict>=1||dRisk>dTrusted))
+          ||(dBad>=2&&nxt.housePairs>=Math.max(cur.housePairs*1.9,cur.housePairs+Math.max(5,Math.ceil(nH*0.15)))&&dRisk>=dTrusted)
+          ||(dBad>=2&&cur.maxComp>=2&&nxt.maxComp>=Math.max(cur.maxComp*2,cur.maxComp+Math.max(4,Math.ceil(nH*0.12)))&&dRisk>=dTrusted)
+        );
+        if(manyNoise){
+          noiseMark=nxt.th;maxCandIdx=i;break;
         }
       }
       var best=80,bestScore=-1e9;
-      if(elbow!==null){
-        best=Math.min(99,elbow+2);
-      }else if(noiseOnset!==null){
-        best=Math.min(99,noiseOnset+2);
+      if(noiseMark!==null){
+        best=Math.min(99,noiseMark+2);
       }else if(res[res.length-1].housePairs===0){
         best=80;
       }else{
         var pref={80:0.45,77:0.35,84:0.25,87:0.1,73:0.05,70:0};
+        var pairCap=Math.max(2,nH*0.35),compCap=Math.max(3,Math.round(nH*0.25));
         function softPen(cnt,firstW,restW){return cnt<=0?0:cnt===1?firstW:firstW+(cnt-1)*restW}
         for(i=0;i<=maxCandIdx;i++){
           var r=res[i],neutral=Math.max(0,r.housePairs-r.trustedPairs-r.riskyPairs-r.conflictPairs);
+          var pairExcess=Math.max(0,r.housePairs-pairCap),compExcess=Math.max(0,r.maxComp-compCap);
+          var bloatPen=pairExcess*(2.6+Math.min(3.0,(r.housePairs/nH)*2.5))+compExcess*(2.2+(r.maxComp/nH)*4.0);
           var sc2=r.trustedPairs*2.2+neutral*0.85
             -softPen(r.riskyPairs,0.1,1.1)
             -softPen(r.conflictPairs,0.15,2.6)
             -softPen(r.ignFP,0.05,0.65)
+            -bloatPen
             -(r.th<77?1.5:0)+(pref[r.th]||0);
           if(r.housePairs===0&&res[maxCandIdx].housePairs>0)sc2-=50;
           if(sc2>bestScore){bestScore=sc2;best=r.th}
         }
       }
       var parts=res.map(function(x){return x.th+"%: "+x.housePairs});
-      var noiseNote=elbow?" · Nhiễu ≤"+elbow+"%":(noiseOnset?" · Nhiễu ≤"+noiseOnset+"%":"");
+      var noiseNote=noiseMark?" · Nhiễu ≤"+noiseMark+"%":"";
       var txt=parts.join(" · ")+" cặp"+noiseNote+" · Gợi ý: "+best+"%";
-      return{ok:true,imgs:allJ.length,excludedOut:outCnt,excludedIgnored:ignActiveCnt,ignoredOver75:ignOver75Cnt,rawEdges:raw.length,tiers:res,elbow:elbow,noiseOnset:noiseOnset,recommended:best,summary:txt};
+      return{ok:true,imgs:allJ.length,houses:nH,excludedOut:outCnt,excludedIgnored:ignActiveCnt,ignoredOver75:ignOver75Cnt,rawEdges:raw.length,tiers:res,noiseOnset:noiseMark,recommended:best,summary:txt};
     }
     return Promise.resolve().then(step);
   });
