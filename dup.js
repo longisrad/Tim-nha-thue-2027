@@ -3004,7 +3004,7 @@ function analyzeThresholds(){
       var ids=k.split("|");
       if(byId[ids[0]]&&byId[ids[1]])ignActiveCnt++;
     });
-    var tMap=textScoreMap(src),raw=[],ignRaw=[],seen={},ignSeen={},p=0,FLOOR=64;
+    var tMap=textScoreMap(src),raw=[],ignRaw=[],seen={},ignSeen={},ignOver75={},p=0,FLOOR=64;
     function step(){
       var end=Math.min(p+25,allJ.length),j,a,b,m,k,loId,hiId,pk,isIgn;
       for(;p<end;p++){
@@ -3014,11 +3014,14 @@ function analyzeThresholds(){
           if(a.it.id===b.it.id)continue;
           loId=a.it.id<b.it.id?a.it.id:b.it.id;hiId=a.it.id<b.it.id?b.it.id:a.it.id;pk=loId+"|"+hiId;
           isIgn=!!ignored[pk];
-          m=a.s===b.s?{d:0,n:100,k:"",o:A[p].ori}:cmpSig(A[j],A[p],FLOOR);
+          m=a.s===b.s?{d:0,n:100,k:"",o:A[p].ori}:cmpSig(A[j],A[p],isIgn?76:FLOOR);
           if(m){
             k=a.it.id+"|"+b.it.id+"|"+a.s+"|"+b.s;
             if(isIgn){
-              if(!ignSeen[k]){ignSeen[k]=1;ignRaw.push({a:a.it,b:b.it,x:a.s,y:b.s,d:m.d,k:m.k,o:m.o||"",n:m.n})}
+              if(m.n>75){
+                ignOver75[pk]=1;
+                if(!ignSeen[k]){ignSeen[k]=1;ignRaw.push({a:a.it,b:b.it,x:a.s,y:b.s,d:m.d,k:m.k,o:m.o||"",n:m.n})}
+              }
             }else if(!seen[k]){
               seen[k]=1;raw.push({a:a.it,b:b.it,x:a.s,y:b.s,d:m.d,k:m.k,o:m.o||"",n:m.n});
             }
@@ -3026,6 +3029,7 @@ function analyzeThresholds(){
         }
       }
       if(p<allJ.length)return new Promise(function(r){setTimeout(r,0)}).then(step);
+      var ignOver75Cnt=Object.keys(ignOver75).length;
       var tiers=[87,84,80,77,73,70],res=[];
       tiers.forEach(function(t){res.push(evalPairsAtTh(raw,ignRaw,t,src,byId,tMap))});
       smartCalc();
@@ -3033,15 +3037,24 @@ function analyzeThresholds(){
       for(i=0;i<res.length-1;i++){
         var cur=res[i],nxt=res[i+1];
         var dPairs=nxt.housePairs-cur.housePairs;
-        var dTrusted=nxt.trustedPairs-cur.trustedPairs;
-        var dRisk=(nxt.riskyPairs-cur.riskyPairs)+(nxt.conflictPairs-cur.conflictPairs)+(nxt.ignFP-cur.ignFP)*2;
-        var dIgn=nxt.ignFP-cur.ignFP;
-        if(noiseOnset===null&&(dIgn>=1||(dRisk>dTrusted&&dPairs>0))){
-          noiseOnset=nxt.th;
+        var dTrusted=Math.max(0,nxt.trustedPairs-cur.trustedPairs);
+        var dIgn=Math.max(0,nxt.ignFP-cur.ignFP);
+        var dConflict=Math.max(0,nxt.conflictPairs-cur.conflictPairs);
+        var dRisky=Math.max(0,nxt.riskyPairs-cur.riskyPairs);
+        var dBad=dIgn+dConflict+dRisky;
+        var dStrongBad=dIgn+dConflict;
+        var cumBad=nxt.ignFP+nxt.conflictPairs+nxt.riskyPairs;
+        var cumStrongBad=nxt.ignFP+nxt.conflictPairs;
+        var dRisk=dRisky+dConflict*1.5+dIgn*2;
+        var notSingleOutlier=dBad>=2||(nxt.th<=80&&cumBad>=2&&dBad>=1&&(dStrongBad>=1||cumStrongBad>=1||dRisk>dTrusted));
+        if(noiseOnset===null&&(dPairs>0||dIgn>0)&&notSingleOutlier&&dRisk>dTrusted*1.2){
+          if(nxt.th<84||dStrongBad>=2||(dBad>=3&&dBad>dTrusted)){
+            noiseOnset=nxt.th;
+          }
         }
-        if((nxt.housePairs>=Math.max(cur.housePairs*1.9,cur.housePairs+6)&&dRisk>=dTrusted)
+        if(dBad>=2&&((nxt.housePairs>=Math.max(cur.housePairs*1.9,cur.housePairs+6)&&dRisk>=dTrusted)
           ||(dIgn>=2&&dTrusted<=dIgn)
-          ||(cur.maxComp>=2&&nxt.maxComp>=Math.max(cur.maxComp*2,cur.maxComp+5)&&dPairs>0&&dRisk>=dTrusted)){
+          ||(cur.maxComp>=2&&nxt.maxComp>=Math.max(cur.maxComp*2,cur.maxComp+5)&&dPairs>0&&dRisk>=dTrusted))){
           elbow=nxt.th;maxCandIdx=i;break;
         }
       }
@@ -3054,20 +3067,26 @@ function analyzeThresholds(){
         best=80;
       }else{
         var pref={80:0.45,77:0.35,84:0.25,87:0.1,73:0.05,70:0};
+        function softPen(cnt,firstW,restW){return cnt<=0?0:cnt===1?firstW:firstW+(cnt-1)*restW}
         for(i=0;i<=maxCandIdx;i++){
           var r=res[i],neutral=Math.max(0,r.housePairs-r.trustedPairs-r.riskyPairs-r.conflictPairs);
-          var sc2=r.trustedPairs*2.2+neutral*0.85-r.riskyPairs*1.1-r.conflictPairs*2.6-r.ignFP*3.0-(r.th<77?1.5:0)+(pref[r.th]||0);
+          var sc2=r.trustedPairs*2.2+neutral*0.85
+            -softPen(r.riskyPairs,0.1,1.1)
+            -softPen(r.conflictPairs,0.15,2.6)
+            -softPen(r.ignFP,0.15,3.0)
+            -(r.th<77?1.5:0)+(pref[r.th]||0);
           if(r.housePairs===0&&res[maxCandIdx].housePairs>0)sc2-=50;
           if(sc2>bestScore){bestScore=sc2;best=r.th}
         }
       }
       var excl=[];
       if(outCnt>0)excl.push(outCnt+" căn Loại");
-      if(ignActiveCnt>0)excl.push(ignActiveCnt+" cặp không trùng");
+      if(ignOver75Cnt>0)excl.push(ignOver75Cnt+(ignActiveCnt>ignOver75Cnt?"/"+ignActiveCnt:"")+" cặp không trùng (>75%)");
+      else if(ignActiveCnt>0)excl.push("bỏ "+ignActiveCnt+" cặp không trùng ≤75%");
       var parts=res.map(function(x){return x.th+"%: "+x.housePairs+" cặp"});
       var noiseNote=elbow?" · Nhiễu tăng mạnh từ ≤"+elbow+"%":(noiseOnset?" · Bắt đầu có nhiễu từ ≤"+noiseOnset+"%":"");
-      var txt="Phân tích đa ngưỡng ("+allJ.length+" ảnh"+(excl.length?" · đã bỏ "+excl.join(" & "):"")+"): "+parts.join(" · ")+noiseNote+" · Gợi ý tối ưu: "+best+"%.";
-      return{ok:true,imgs:allJ.length,excludedOut:outCnt,excludedIgnored:ignActiveCnt,rawEdges:raw.length,tiers:res,elbow:elbow,noiseOnset:noiseOnset,recommended:best,summary:txt};
+      var txt="Phân tích đa ngưỡng ("+allJ.length+" ảnh"+(excl.length?" · đã lọc "+excl.join(" & "):"")+"): "+parts.join(" · ")+noiseNote+" · Gợi ý tối ưu: "+best+"%.";
+      return{ok:true,imgs:allJ.length,excludedOut:outCnt,excludedIgnored:ignActiveCnt,ignoredOver75:ignOver75Cnt,rawEdges:raw.length,tiers:res,elbow:elbow,noiseOnset:noiseOnset,recommended:best,summary:txt};
     }
     return Promise.resolve().then(step);
   });
