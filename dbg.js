@@ -2,6 +2,8 @@
    Đã đối chiếu chuẩn xác với kiến trúc sw.js (v51, cơ chế next-* -> promote), index.html (IDBM, NK, NI, NT, NB),
    dup.js (dhc12/dpm7 theo hậu tố cấu hình, ALGO_VER=6 CSLS + Patch MaxSim, DINOv3 lib-v1, Dup.retire), ck.js, img.js, bk.js và manifest.webmanifest.
    - Chạy ngầm ~3 giây sau khi trang tải xong, không hiện gì khi mọi thứ ổn (chỉ có nút ⚠ nhỏ khi có lỗi nghiêm trọng).
+   - Thanh cảnh báo trên màn hình (#dbgw): hiện ngay các lỗi nghiêm trọng của bộ kiểm tra và lỗi chạy thực tế (error/promise/load) để xác nhận;
+     bấm Chi tiết để mở bảng kiểm tra, Chép để sao chép, × để ẩn. Thử nhanh: Dbg.test() hoặc mở trang với ?dbgtest=1.
    - Tự động sửa lỗi (Auto-Fix) cho cả:
      1) Máy mới cài chưa cache (fresh): đăng ký sw.js (kèm ?app=1 cho APK), nạp bù SHELL_FILES còn thiếu vào shell-{ver},
         khởi tạo kho IndexedDB "nha-thue-kv" (store "kv"), xin lưu trữ bền, và đồng bộ sẵn danh sách căn + hash ảnh.
@@ -12,12 +14,22 @@
    - Bảo vệ dữ liệu tuyệt đối: khóa toàn bộ thao tác ghi/xóa/tải lại khi đang sửa/tải ảnh (ckDirty, ckSaveN, ckUpN, ckUpQ, ckTrashQ, ckErr)
      và từ chối tự tải lại khi đang ở màn hình Checklist (tab==="ck") hoặc đang mở hộp thoại khác.
    - Chống lặp tải lại (Loop Breaker): tối đa 2 lần/phiên và không lặp cùng mã lỗi trong 5 phút.
-   - API: window.Dbg = { run, show, all, report, autoFix, plan, profile }. */
+   - API: window.Dbg = { run, show, all, report, autoFix, plan, profile, test }. */
 (function(){
 "use strict";
 var G=function(i){return document.getElementById(i)};
 var NOTRAP=!window.__dbg;
 var B=window.__dbg||(window.__dbg={e:[],lt:0,ltn:0,lts:[],t:Date.now()});
+if(NOTRAP){
+  (function(){
+    function put(o){try{o.t=Date.now()-B.t;B.e.push(o);if(B.e.length>50)B.e.shift()}catch(x){}}
+    window.addEventListener("error",function(e){
+      var t=e&&e.target;
+      if(t&&t!==window&&(t.src||t.href)){var u=t.src||t.href;put({k:"load",m:"Không nạp được "+u,s:u,l:0});return}
+      put({k:"error",m:String(e&&(e.message||(e.error&&e.error.message))||"error"),s:(e&&e.filename)||"",l:(e&&e.lineno)||0})},true);
+    window.addEventListener("unhandledrejection",function(e){
+      var r=e&&e.reason;put({k:"promise",m:String(r&&r.message||r||"promise rejected"),s:"",l:0})})
+  })()}
 var R=null,running=false,taps=0,tapT=0;
 var FILES=["ck.js","img.js","dup.js","bk.js","dbg.js"];
 var NK_KEYS=["tab","$","CK","LP","PARTS","TIPS","VW","canW","ckA","ckC","ckCopy","ckCur","ckDirty","ckFresh","ckId","ckLiteOf","ckLoad","ckQ","ckSaveOff","ckSnap","ckStat","ckT","ckTrashQ","ckUpQ","ckcSave","closeCk","esc","fail","findItem","imgSrc","items","jumpTop","openLb","persist","rtgH","runPool","shrink","trashIds","uname","upBusy","upMon","upSafe"];
@@ -1130,7 +1142,12 @@ var CSS="#dbgd .form{gap:10px}"+
 "#dbgd .dbga{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}"+
 "#dbgd .dbgaf{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:grid;gap:6px;font-size:var(--fs-xs)}"+
 "#dbgd button:disabled{opacity:.5;cursor:default}"+
-"#dbgb{position:fixed;left:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:25;border:0;border-radius:999px;padding:6px 12px;min-height:34px;background:var(--danger);color:#fff;font-weight:700;font-size:var(--fs-s);box-shadow:0 3px 10px rgba(0,0,0,.3);cursor:pointer}";
+"#dbgb{position:fixed;left:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:25;border:0;border-radius:999px;padding:6px 12px;min-height:34px;background:var(--danger);color:#fff;font-weight:700;font-size:var(--fs-s);box-shadow:0 3px 10px rgba(0,0,0,.3);cursor:pointer}"+
+"#dbgw{position:fixed;left:8px;right:8px;top:calc(8px + env(safe-area-inset-top,0px));z-index:24;max-width:640px;margin:0 auto;background:var(--surface,#fff);color:var(--ink,#111);border:1px solid var(--danger,#c00);border-left-width:5px;border-radius:10px;padding:8px 10px;box-shadow:0 4px 16px rgba(0,0,0,.28);font-size:var(--fs-xs,12px);display:grid;gap:4px}#dbgw[hidden]{display:none}"+
+"#dbgw .dbgwh{display:flex;align-items:center;justify-content:space-between;gap:8px}#dbgw .dbgwh b{color:var(--danger,#c00);font-size:var(--fs-s,13px)}#dbgw .dbgwh span{display:flex;gap:6px}"+
+"#dbgw button{border:1px solid var(--line,#ccc);background:transparent;color:inherit;border-radius:999px;min-height:28px;padding:2px 10px;font-size:var(--fs-xs,12px);cursor:pointer}"+
+"#dbgw .dbgwi{display:flex;gap:6px;align-items:flex-start;border-top:1px dashed var(--line,#ccc);padding-top:4px}#dbgw .dbgwi i{flex:none;font-style:normal;width:16px;text-align:center;font-weight:800}#dbgw .dbgwi.bad i{color:var(--danger,#c00)}#dbgw .dbgwi.warn i{color:#b45309}"+
+"#dbgw .dbgwi span{min-width:0;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}#dbgw .dbgwm{color:var(--mute,#666)}";
 var ICON={ok:"✓",warn:"⚠",bad:"✕",info:"•"};
 var FLT="issues",OPEN={},MSG="",LH="",busy=false;
 function style(){if(G("dbgcss"))return;var st=document.createElement("style");st.id="dbgcss";st.textContent=CSS;document.head.appendChild(st)}
@@ -1242,12 +1259,59 @@ function allRun(){
   if(busy||srvBusy)return Promise.resolve();
   busy=true;say("Đang kiểm tra thiết bị…");draw();
   return run(true).then(function(){busy=false;return srvRun()}).then(function(){busy=false;draw()})}
+/* ---------- Thanh cảnh báo lỗi hiện trên màn hình ---------- */
+var WE=[],WSEEN={},WDIS={},WLAST=null;
+function wLv(x){
+  var own=/\/(ck|img|dup|dbg|sw)\.js|index\.html/.test(x.s||"")||x.k==="load";
+  return NET.test(x.m||"")?"info":own?"bad":"warn"}
+function wPoll(){
+  var a=B.e||[],i=WLAST?a.lastIndexOf(WLAST):-1,n=a.slice(i+1),ch=false;
+  if(!a.length)return;
+  WLAST=a[a.length-1];
+  n.forEach(function(x){
+    var lv=wLv(x),k="e|"+x.k+"|"+x.t+"|"+x.m;
+    if(lv==="info"||WSEEN[k])return;
+    WSEEN[k]=1;ch=true;
+    var where=x.s?" ("+String(x.s).split("/").pop()+(x.l?":"+x.l:"")+")":"";
+    WE.push({k:k,lv:lv,h:"Lỗi chạy ["+x.k+"]",t:(x.k==="load"?"Không nạp được ":"")+String(x.m)+where});
+    if(WE.length>20)WE.shift()});
+  if(ch)wDraw()}
+function wItems(){
+  var out=[],hide=false;
+  try{hide=sessionStorage.getItem("dbg-hide")==="1"}catch(e){}
+  if(hide)return out;
+  allL().forEach(function(x){if(x.s==="bad")out.push({k:"c|"+x.g+"|"+x.t,lv:"bad",h:x.g,t:x.t})});
+  WE.forEach(function(x){out.push(x)});
+  return out.filter(function(x){return !WDIS[x.k]})}
+function wDraw(){
+  if(!document.body)return;
+  var it=wItems(),w=G("dbgw");
+  if(!it.length){if(w)w.hidden=true;return}
+  if(!w){style();w=document.createElement("div");w.id="dbgw";w.setAttribute("role","alert");w.addEventListener("click",wClick);document.body.appendChild(w)}
+  var h='<div class="dbgwh"><b>⚠ '+it.length+' cảnh báo lỗi</b><span><button type="button" data-w="open">Chi tiết</button><button type="button" data-w="copy">Chép</button><button type="button" data-w="x" aria-label="Ẩn">×</button></span></div>';
+  it.slice(-3).reverse().forEach(function(x){
+    h+='<div class="dbgwi '+x.lv+'"><i>'+(x.lv==="bad"?"✕":"⚠")+'</i><span>'+esc(x.h)+": "+esc(x.t)+'</span></div>'});
+  if(it.length>3)h+='<div class="dbgwm">… và '+(it.length-3)+' mục khác (bấm Chi tiết)</div>';
+  w.innerHTML=h;w.hidden=false}
+function wClick(e){
+  var b=e.target.closest&&e.target.closest("[data-w]");if(!b)return;
+  var a=b.dataset.w;
+  if(a==="x"){wItems().forEach(function(x){WDIS[x.k]=1});wDraw();return}
+  if(a==="open"){show();return}
+  if(a==="copy"){
+    var t=wItems().map(function(x){return x.h+": "+x.t}).join("\n");
+    copy(t).then(function(){b.textContent="Đã chép"},function(){b.textContent="Lỗi chép"});
+    setTimeout(function(){b.textContent="Chép"},1500)}}
+function wTest(){
+  setTimeout(function(){throw new Error("Lỗi thử nghiệm từ Dbg.test(): nếu thấy thanh này là cơ chế cảnh báo hoạt động")},0);
+  return "Đã phát lỗi thử, thanh cảnh báo sẽ hiện trong ~1 giây"}
+setInterval(wPoll,1000);wPoll();
 function badge(){
   var b=G("dbgb"),n=cnt("bad"),hide=false;
   try{hide=sessionStorage.getItem("dbg-hide")==="1"}catch(e){}
-  if(!n||hide){if(b)b.hidden=true;return}
+  if(!n||hide){if(b)b.hidden=true;wDraw();return}
   if(!b){style();b=document.createElement("button");b.id="dbgb";b.type="button";b.onclick=function(){show()};document.body.appendChild(b)}
-  b.hidden=false;b.textContent="⚠ "+n+" lỗi"}
+  b.hidden=false;b.textContent="⚠ "+n+" lỗi";wDraw()}
 function report(){
   var t0=Math.max(R?R.at:0,S?S.at:0);
   var P=R&&R.P?R.P:detectProfile();
@@ -1369,6 +1433,7 @@ function autoHealSilent(){
   return autoFix({silent:true,allowReload:false})}
 function start(){
   autoPersist();
+  if(/[?&]dbgtest=1/.test(location.search))wTest();
   var go=function(){
     run().then(function(){return autoHealSilent()}).then(function(){
       if(/[?&]debug=1/.test(location.search))show()})};
@@ -1381,6 +1446,7 @@ window.Dbg={
   report:function(){return R||S?report():""},
   autoFix:autoFix,
   plan:function(){return buildFixPlan()},
-  profile:function(){return detectProfile(R&&R.M)}
+  profile:function(){return detectProfile(R&&R.M)},
+  test:wTest
 };
 })();
