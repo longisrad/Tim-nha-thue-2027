@@ -39,7 +39,7 @@ var NI_FN=["imgSrc","findItem","segArr","curSeg","ckWarm","tab","items"];
 var NB_KEYS=["$","IDBM","apiGet","apiPost","apiUrl","capP","hs","netMsg","nrm","refresh","items","canW","pendAdd","bumpVer"];
 var NB_FN=["$","apiGet","apiPost","apiUrl","capP","hs","netMsg","nrm","refresh","pendAdd","bumpVer"];
 var NT_KEYS=["apiGet","apiPost","items","esc","su","imgSrc","addrOf","stName","fmt","ls","openDv","openEdit","canW","idbGet","idbSave","del"];
-var MM_NAMES={0:"Tắt (Chỉ DINOv3)",2:"Trung tâm 75% + CSLS",3:"Patch Token + MaxSim + CSLS",4:"Patch MaxSim + Trung tâm 75% + CSLS"};
+var MM_NAMES={0:"Tắt (Chỉ DINOv3)",2:"Trung tâm 75% + CSLS",3:"Patch Token + MaxSim + Spatial + CSLS",4:"Patch + Spatial + Trung tâm + CSLS"};
 function dupSfx(){
   var e=null,ds=224,f16=true,r;
   try{e=JSON.parse(localStorage.getItem("dup_eng")||"null")}catch(x){}
