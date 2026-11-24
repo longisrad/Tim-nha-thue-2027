@@ -3058,7 +3058,7 @@ function analyzeThresholds(){
       }
       var best=80,bestScore=-1e9;
       if(noiseMark!==null){
-        best=Math.min(99,noiseMark+2);
+        best=Math.min(99,noiseMark+4);
       }else if(res[res.length-1].housePairs===0){
         best=80;
       }else{
