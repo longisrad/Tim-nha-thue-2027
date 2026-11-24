@@ -2880,7 +2880,7 @@ function init(nt){
   };
   G("dupanalyze").onclick=function(){
     var ab=G("dupanalyze");if(ab){ab.disabled=true;ab.textContent="Đang phân tích…"}
-    cfgDirtyUi(false,"Đang phân tích nhiều ngưỡng trên hash đã lưu…");
+    cfgDirtyUi(false,"Đang phân tích đa ngưỡng…");
     analyzeThresholds().then(function(res){
       if(ab){ab.disabled=false;ab.textContent="Phân tích đa ngưỡng"}
       if(!res||!res.ok){cfgDirtyUi(false,(res&&res.msg)||"Chưa phân tích được.","bad");return}
@@ -3038,22 +3038,18 @@ function analyzeThresholds(){
         var cur=res[i],nxt=res[i+1];
         var dPairs=nxt.housePairs-cur.housePairs;
         var dTrusted=Math.max(0,nxt.trustedPairs-cur.trustedPairs);
-        var dIgn=Math.max(0,nxt.ignFP-cur.ignFP);
         var dConflict=Math.max(0,nxt.conflictPairs-cur.conflictPairs);
         var dRisky=Math.max(0,nxt.riskyPairs-cur.riskyPairs);
-        var dBad=dIgn+dConflict+dRisky;
-        var dStrongBad=dIgn+dConflict;
-        var cumBad=nxt.ignFP+nxt.conflictPairs+nxt.riskyPairs;
-        var cumStrongBad=nxt.ignFP+nxt.conflictPairs;
-        var dRisk=dRisky+dConflict*1.5+dIgn*2;
-        var notSingleOutlier=dBad>=2||(nxt.th<=80&&cumBad>=2&&dBad>=1&&(dStrongBad>=1||cumStrongBad>=1||dRisk>dTrusted));
-        if(noiseOnset===null&&(dPairs>0||dIgn>0)&&notSingleOutlier&&dRisk>dTrusted*1.2){
-          if(nxt.th<84||dStrongBad>=2||(dBad>=3&&dBad>dTrusted)){
+        var dBad=dConflict+dRisky;
+        var cumBad=nxt.conflictPairs+nxt.riskyPairs;
+        var dRisk=dRisky+dConflict*1.5;
+        var notSingleOutlier=dBad>=2||(nxt.th<=80&&cumBad>=2&&dBad>=1&&(dConflict>=1||nxt.conflictPairs>=1||dRisk>dTrusted));
+        if(noiseOnset===null&&dPairs>0&&notSingleOutlier&&dRisk>dTrusted*1.2){
+          if(nxt.th<84||dConflict>=2||(dBad>=3&&dBad>dTrusted)){
             noiseOnset=nxt.th;
           }
         }
         if(dBad>=2&&((nxt.housePairs>=Math.max(cur.housePairs*1.9,cur.housePairs+6)&&dRisk>=dTrusted)
-          ||(dIgn>=2&&dTrusted<=dIgn)
           ||(cur.maxComp>=2&&nxt.maxComp>=Math.max(cur.maxComp*2,cur.maxComp+5)&&dPairs>0&&dRisk>=dTrusted))){
           elbow=nxt.th;maxCandIdx=i;break;
         }
@@ -3073,19 +3069,15 @@ function analyzeThresholds(){
           var sc2=r.trustedPairs*2.2+neutral*0.85
             -softPen(r.riskyPairs,0.1,1.1)
             -softPen(r.conflictPairs,0.15,2.6)
-            -softPen(r.ignFP,0.15,3.0)
+            -softPen(r.ignFP,0.05,0.65)
             -(r.th<77?1.5:0)+(pref[r.th]||0);
           if(r.housePairs===0&&res[maxCandIdx].housePairs>0)sc2-=50;
           if(sc2>bestScore){bestScore=sc2;best=r.th}
         }
       }
-      var excl=[];
-      if(outCnt>0)excl.push(outCnt+" căn Loại");
-      if(ignOver75Cnt>0)excl.push(ignOver75Cnt+(ignActiveCnt>ignOver75Cnt?"/"+ignActiveCnt:"")+" cặp không trùng (>75%)");
-      else if(ignActiveCnt>0)excl.push("bỏ "+ignActiveCnt+" cặp không trùng ≤75%");
-      var parts=res.map(function(x){return x.th+"%: "+x.housePairs+" cặp"});
-      var noiseNote=elbow?" · Nhiễu tăng mạnh từ ≤"+elbow+"%":(noiseOnset?" · Bắt đầu có nhiễu từ ≤"+noiseOnset+"%":"");
-      var txt="Phân tích đa ngưỡng ("+allJ.length+" ảnh"+(excl.length?" · đã lọc "+excl.join(" & "):"")+"): "+parts.join(" · ")+noiseNote+" · Gợi ý tối ưu: "+best+"%.";
+      var parts=res.map(function(x){return x.th+"%: "+x.housePairs});
+      var noiseNote=elbow?" · Nhiễu ≤"+elbow+"%":(noiseOnset?" · Nhiễu ≤"+noiseOnset+"%":"");
+      var txt=parts.join(" · ")+" cặp"+noiseNote+" · Gợi ý: "+best+"%";
       return{ok:true,imgs:allJ.length,excludedOut:outCnt,excludedIgnored:ignActiveCnt,ignoredOver75:ignOver75Cnt,rawEdges:raw.length,tiers:res,elbow:elbow,noiseOnset:noiseOnset,recommended:best,summary:txt};
     }
     return Promise.resolve().then(step);
