@@ -165,10 +165,38 @@ var CSS2=[
 ".dpundo button{border-radius:6px;min-height:24px;padding:2px 8px;font-size:11.5px}",
 ".dpundo button.x{padding:2px 6px;min-width:22px}",
 "@media (max-width:420px){.dpa .dpv{margin-left:0;flex-basis:100%;text-align:left}}",
+".dpviewbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:2px 0 0}",
+".dpseg{display:inline-flex;align-items:center;gap:3px;padding:3px;border-radius:10px;border:1px solid var(--line);background:var(--bg)}",
+".dpsegbtn{border:0;background:transparent;color:var(--mute);border-radius:7px;padding:5px 11px;min-height:30px;font-size:var(--fs-s);font-weight:700;cursor:pointer;white-space:nowrap;transition:background-color .15s ease,color .15s ease,box-shadow .15s ease,transform .1s ease}",
+".dpsegbtn[aria-pressed=\"true\"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.1)}",
+".dpsegbtn:active{transform:scale(.96)}",
+".dpapply{border:1px solid var(--accent);background:var(--surface);color:var(--accent);border-radius:999px;padding:4px 12px;min-height:30px;font-size:var(--fs-s);font-weight:700;cursor:pointer;white-space:nowrap;transition:background-color .15s ease,color .15s ease,transform .1s ease}",
+".dpapply:active{transform:scale(.96)}",
+".dpclusthdr{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:12px 0 4px;padding:5px 10px;border-radius:9px;background:var(--bg);border:1px solid var(--line);font-size:var(--fs-s)}",
+".dpclusthdr:first-child{margin-top:4px}",
+".dpclusthdr b{color:var(--ink);font-weight:700}",
+".dpclusthdr span{color:var(--mute);font-size:11.5px;font-weight:600;white-space:nowrap}",
+".dpclcard{border:1px solid var(--line);border-left:4px solid var(--danger);border-radius:12px;padding:8px 10px;margin-top:8px;background:var(--surface)}",
+".dpclhead{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:6px;border-bottom:1px solid var(--line);margin-bottom:4px}",
+".dpclhead b{font-size:var(--fs-s);color:var(--danger)}",
+".dpclhead span{font-size:11.5px;color:var(--mute);font-weight:600}",
+".dpadj{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:5px 8px;margin:2px 0 4px;border-radius:8px;background:var(--bg);border:1px dashed var(--line)}",
+".dpadj-l{display:flex;align-items:center;gap:6px;min-width:0;flex:1;font-size:11.5px;font-weight:700;color:var(--danger)}",
+".dpadj-thumbs{display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap;flex:none}",
+".dpadj-pair{display:inline-grid;grid-template-columns:1fr 1fr;gap:2px;cursor:zoom-in;border-radius:5px}",
+".dpadj-thumbs img{width:34px;height:26px;object-fit:cover;border-radius:4px;background:var(--line);display:block}",
+".dpadj-act{display:inline-flex;align-items:center;gap:5px;flex:none}",
+".dpclchords{margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);display:grid;gap:4px}",
+".dpclchord{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:11.5px;color:var(--mute)}",
+".dpclchord b{color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
+".dpset .dpstep{flex:none;min-width:42px;min-height:36px;padding:4px 9px;font-size:var(--fs-s);font-weight:700;border-radius:8px;white-space:nowrap}",
+".dpanact{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0}",
+".dpanact[hidden]{display:none}",
+".dpanact .btn{min-height:32px;padding:4px 11px;font-size:var(--fs-s);white-space:nowrap}",
 "@media (prefers-reduced-motion:reduce){.dpbtn,#dupd,#dupd *,.dpz,.dpz *{animation:none!important;transition:none!important}}"
 ].join("\n");
-var DLG="<dialog id=\"dupd\"><div class=\"form\" id=\"dupmain\">\n  <div class=\"dpmhdr\"><div class=\"dpmhdr-t\"><h2>Kiểm tra trùng</h2><p class=\"pm\" id=\"dupsum\"></p></div><button type=\"button\" class=\"dpzcls\" id=\"dupx3\" aria-label=\"Đóng\">×</button></div>\n  <div class=\"dpctl\"><div class=\"dpact\"><div class=\"foot2\"><button class=\"btn p\" type=\"button\" id=\"dupimg\">Quét ảnh trùng</button><button class=\"btn\" type=\"button\" id=\"dupstop\" hidden>Dừng</button></div></div><div class=\"dpb\" id=\"dupbar\" hidden><i></i></div><p class=\"pm\" id=\"dupm\" role=\"status\"></p></div>\n  <details class=\"dpcfg\"><summary id=\"dupcfgbtn\"><span class=\"dpcfg-l\"><svg class=\"dpcfg-ic\" viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.6.86 1 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"/></svg><span>Cài đặt</span></span><span class=\"dpcfg-r\"><span class=\"dpcfg-tag\" id=\"dupcfgtag\"></span><span class=\"dpcfg-ar\" aria-hidden=\"true\">▾</span></span></summary><div class=\"dpset\"><div class=\"dpsens dpfull\"><label for=\"dupsens\">Độ nhạy ảnh</label><div class=\"dpsens-row\"><select id=\"dupsens\"><option value=\"87\">Ít nhầm · 87%</option><option value=\"80\" selected>Vừa · 80%</option><option value=\"77\">Nhạy · 77%</option><option value=\"73\">Rất nhạy · 73%</option><option value=\"custom\">Tùy chỉnh</option></select><input id=\"dupth\" type=\"number\" inputmode=\"numeric\" min=\"60\" max=\"99\" step=\"1\" aria-label=\"Ngưỡng giống (%)\"></div></div>\n  <div class=\"dpsens dpfull\"><label for=\"dupmm\">Xác minh vùng xám</label><select id=\"dupmm\"><option value=\"3\" selected>Patch Token + MaxSim + Spatial + CSLS (mặc định)</option><option value=\"4\">Kỹ nhất (Patch + Spatial + Trung tâm + CSLS)</option><option value=\"2\">Trung tâm 75% + CSLS (Multi-crop)</option><option value=\"0\">Tắt (Chỉ DINOv3)</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupimgv\">Xem ảnh</label><select id=\"dupimgv\"><option value=\"manual\" selected>Bấm để mở</option><option value=\"both\">Mở sẵn · 2 cột</option><option value=\"stack\">Mở sẵn · xếp dọc</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupres\">Độ phân giải</label><select id=\"dupres\"><option value=\"192\">192 · nhanh</option><option value=\"224\" selected>224 · mặc định</option><option value=\"256\">256</option><option value=\"288\">288</option><option value=\"320\">320 · chi tiết</option></select></div>\n  <div class=\"dpsens\"><label for=\"duppre\">Độ chính xác</label><select id=\"duppre\"><option value=\"16\" selected>fp16 · nhanh</option><option value=\"32\">fp32 · chính xác hơn</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupdev\">Thiết bị</label><select id=\"dupdev\"><option value=\"auto\" selected>Tự động (GPU nếu có)</option><option value=\"cpu\">Chỉ CPU</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupbn\">Batch</label><select id=\"dupbn\"><option value=\"0\">Tự động</option><option value=\"1\">1</option><option value=\"2\">2</option><option value=\"4\" selected>4</option><option value=\"8\">8</option></select></div>\n  <div class=\"dpsens\"><label for=\"duppace\">Nhịp quét</label><select id=\"duppace\"><option value=\"0\">Nhanh nhất</option><option value=\"0.6\" selected>Cân bằng</option><option value=\"1.5\">Mát máy</option></select></div>\n  <p class=\"dpst dpfull\" id=\"dupengnote\" hidden></p>\n  <p class=\"dpst dpfull\" id=\"dupretnote\" hidden></p>\n  <div class=\"dpcfgact dpfull\"><label class=\"dpopt\"><input type=\"checkbox\" id=\"dupnoout\" checked><span>Bỏ qua căn Loại</span></label><div class=\"dpcfgbtns\"><button type=\"button\" class=\"btn\" id=\"dupanalyze\">Phân tích đa ngưỡng</button><button type=\"button\" class=\"btn\" id=\"duprst\">Đặt lại</button><button type=\"button\" class=\"btn p\" id=\"dupsave\">Lưu &amp; quét lại ảnh</button></div></div></div></details>\n  <div class=\"dpbar2\" id=\"duplinks\" hidden><button type=\"button\" class=\"dptogbtn\" id=\"duptog\" hidden></button></div>\n  <div class=\"dpignbar\" id=\"dupignbar\" hidden><span class=\"dpign-t\">Không phải trùng</span><button type=\"button\" class=\"dpignbtn\" id=\"dupigntog\" hidden></button></div>\n  <div id=\"dupl\"></div>\n  <div class=\"foot\"><button class=\"btn p\" type=\"button\" id=\"dupx\">Đóng</button></div>\n</div><div class=\"form\" id=\"dupignview\" hidden>\n  <div class=\"dphead\"><button type=\"button\" class=\"btn\" id=\"dupback\">← Quay lại</button><h2>Không phải trùng</h2></div>\n  <p class=\"pm\" id=\"dupignsum\"></p>\n  <button type=\"button\" class=\"link\" id=\"dupignclr\" hidden>Khôi phục tất cả về danh sách kiểm tra</button>\n  <div id=\"dupignl\"></div>\n  <div class=\"foot\"><button class=\"btn\" type=\"button\" id=\"dupback2\">← Quay lại</button><button class=\"btn p\" type=\"button\" id=\"dupx2\">Đóng</button></div>\n</div><div class=\"dpz\" id=\"dupz\" hidden><div class=\"dpzb\"><div class=\"dpzhdr\"><p class=\"dpzt\" id=\"dupzt\"></p><button type=\"button\" class=\"dpzlay\" id=\"dupzlay\">Xếp dọc</button><button type=\"button\" class=\"dpzcls\" id=\"dupzx2\" aria-label=\"Đóng\">×</button></div><div class=\"dpzm\" id=\"dupzm\" hidden></div><div class=\"dpzg\" id=\"dupzg\"><div class=\"dpzcol\"><div class=\"dpzstage\"><img id=\"dupz1\" alt=\"Ảnh căn 1\"><span class=\"dpzempty\" id=\"dupze1\" hidden>Chưa có ảnh</span></div><div class=\"dpzmeta\"><b id=\"dupz1n\"></b><small id=\"dupz1m\"></small></div><div class=\"dpzctrl\" id=\"dupzc1\" hidden><button type=\"button\" id=\"dupz1prev\" aria-label=\"Ảnh trước căn 1\">‹</button><span id=\"dupz1c\"></span><button type=\"button\" id=\"dupz1next\" aria-label=\"Ảnh sau căn 1\">›</button></div></div><div class=\"dpzcol\"><div class=\"dpzstage\"><img id=\"dupz2\" alt=\"Ảnh căn 2\"><span class=\"dpzempty\" id=\"dupze2\" hidden>Chưa có ảnh</span></div><div class=\"dpzmeta\"><b id=\"dupz2n\"></b><small id=\"dupz2m\"></small></div><div class=\"dpzctrl\" id=\"dupzc2\" hidden><button type=\"button\" id=\"dupz2prev\" aria-label=\"Ảnh trước căn 2\">‹</button><span id=\"dupz2c\"></span><button type=\"button\" id=\"dupz2next\" aria-label=\"Ảnh sau căn 2\">›</button></div></div></div><div class=\"dpzact\" id=\"dupzact\"><button type=\"button\" class=\"dpno\" id=\"dupzign\">Không phải trùng</button><button type=\"button\" class=\"dpdel\" id=\"dupzdel1\">Xóa căn 1</button><button type=\"button\" class=\"dpdel\" id=\"dupzdel2\">Xóa căn 2</button></div><div class=\"foot\"><button class=\"btn p\" type=\"button\" id=\"dupzx\">Đóng</button></div></div></div><div class=\"dpundo\" id=\"dupundo\" hidden><span id=\"dupundot\"></span><button type=\"button\" id=\"dupundob\">↶ Hoàn tác</button><button type=\"button\" class=\"x\" id=\"dupundox\" aria-label=\"Ẩn\">✕</button></div></dialog>";
-var TH=80,VL=1,ALGO_VER=7,MIN=2,imgPairs=null,scanning=false,stopFlag=false,cache={},cacheLoaded=false,cacheP=null,inflight={},LIMIT=50,limMain=50,limIgn=50,memo=null,syncT=0,showOne=false,showIgn=false,skipOut=true,skipLoaded=false,imgAutoMode="manual",imgModeLoaded=false,viewList=[],openSet={},openImgSet={},pairImgMode={},ignored={},ignLoaded=false,pairImgMsg={},zoomCmp=null;
+var DLG="<dialog id=\"dupd\"><div class=\"form\" id=\"dupmain\">\n  <div class=\"dpmhdr\"><div class=\"dpmhdr-t\"><h2>Kiểm tra trùng</h2><p class=\"pm\" id=\"dupsum\"></p></div><button type=\"button\" class=\"dpzcls\" id=\"dupx3\" aria-label=\"Đóng\">×</button></div>\n  <div class=\"dpctl\"><div class=\"dpact\"><div class=\"foot2\"><button class=\"btn p\" type=\"button\" id=\"dupimg\">Quét ảnh trùng</button><button class=\"btn\" type=\"button\" id=\"dupstop\" hidden>Dừng</button></div></div><div class=\"dpb\" id=\"dupbar\" hidden><i></i></div><p class=\"pm\" id=\"dupm\" role=\"status\"></p></div>\n  <details class=\"dpcfg\"><summary id=\"dupcfgbtn\"><span class=\"dpcfg-l\"><svg class=\"dpcfg-ic\" viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.6.86 1 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"/></svg><span>Cài đặt</span></span><span class=\"dpcfg-r\"><span class=\"dpcfg-tag\" id=\"dupcfgtag\"></span><span class=\"dpcfg-ar\" aria-hidden=\"true\">▾</span></span></summary><div class=\"dpset\"><div class=\"dpsens dpfull\"><label for=\"dupsens\">Độ nhạy ảnh</label><div class=\"dpsens-row\"><select id=\"dupsens\"><option value=\"87\">Ít nhầm · 87%</option><option value=\"80\" selected>Vừa · 80%</option><option value=\"77\">Nhạy · 77%</option><option value=\"73\">Rất nhạy · 73%</option><option value=\"custom\">Tùy chỉnh</option></select><input id=\"dupth\" type=\"number\" inputmode=\"numeric\" min=\"60\" max=\"99\" step=\"1\" aria-label=\"Ngưỡng giống (%)\"><button type=\"button\" class=\"btn dpstep\" id=\"dupthp3\" title=\"Tăng ngưỡng thêm 3%\">+3</button></div></div>\n  <div class=\"dpsens dpfull\"><label for=\"dupmm\">Xác minh vùng xám</label><select id=\"dupmm\"><option value=\"3\" selected>Patch Token + MaxSim + Spatial + CSLS (mặc định)</option><option value=\"4\">Kỹ nhất (Patch + Spatial + Trung tâm + CSLS)</option><option value=\"2\">Trung tâm 75% + CSLS (Multi-crop)</option><option value=\"0\">Tắt (Chỉ DINOv3)</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupimgv\">Xem ảnh</label><select id=\"dupimgv\"><option value=\"manual\" selected>Bấm để mở</option><option value=\"both\">Mở sẵn · 2 cột</option><option value=\"stack\">Mở sẵn · xếp dọc</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupres\">Độ phân giải</label><select id=\"dupres\"><option value=\"192\">192 · nhanh</option><option value=\"224\" selected>224 · mặc định</option><option value=\"256\">256</option><option value=\"288\">288</option><option value=\"320\">320 · chi tiết</option></select></div>\n  <div class=\"dpsens\"><label for=\"duppre\">Độ chính xác</label><select id=\"duppre\"><option value=\"16\" selected>fp16 · nhanh</option><option value=\"32\">fp32 · chính xác hơn</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupdev\">Thiết bị</label><select id=\"dupdev\"><option value=\"auto\" selected>Tự động (GPU nếu có)</option><option value=\"cpu\">Chỉ CPU</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupbn\">Batch</label><select id=\"dupbn\"><option value=\"0\">Tự động</option><option value=\"1\">1</option><option value=\"2\">2</option><option value=\"4\" selected>4</option><option value=\"8\">8</option></select></div>\n  <div class=\"dpsens\"><label for=\"duppace\">Nhịp quét</label><select id=\"duppace\"><option value=\"0\">Nhanh nhất</option><option value=\"0.6\" selected>Cân bằng</option><option value=\"1.5\">Mát máy</option></select></div>\n  <p class=\"dpst dpfull\" id=\"dupengnote\" hidden></p>\n  <div class=\"dpanact dpfull\" id=\"dupanact\" hidden><button type=\"button\" class=\"btn p\" id=\"dupapplyrec\">Áp dụng gợi ý</button><button type=\"button\" class=\"btn\" id=\"dupapplyrec3\">+3% ở ngưỡng</button></div>\n  <p class=\"dpst dpfull\" id=\"dupretnote\" hidden></p>\n  <div class=\"dpcfgact dpfull\"><label class=\"dpopt\"><input type=\"checkbox\" id=\"dupnoout\" checked><span>Bỏ qua căn Loại</span></label><div class=\"dpcfgbtns\"><button type=\"button\" class=\"btn\" id=\"dupanalyze\">Phân tích đa ngưỡng</button><button type=\"button\" class=\"btn\" id=\"duprst\">Đặt lại</button><button type=\"button\" class=\"btn p\" id=\"dupsave\">Lưu &amp; quét lại ảnh</button></div></div></div></details>\n  <div class=\"dpbar2\" id=\"duplinks\" hidden><button type=\"button\" class=\"dptogbtn\" id=\"duptog\" hidden></button></div>\n  <div class=\"dpignbar\" id=\"dupignbar\" hidden><span class=\"dpign-t\">Không phải trùng</span><button type=\"button\" class=\"dpignbtn\" id=\"dupigntog\" hidden></button></div>\n  <div class=\"dpviewbar\" id=\"dupviewbar\" hidden><div class=\"dpseg\" role=\"tablist\" aria-label=\"Kiểu hiển thị\"><button type=\"button\" class=\"dpsegbtn\" id=\"dupvpair\" aria-pressed=\"true\">Theo cặp</button><button type=\"button\" class=\"dpsegbtn\" id=\"dupvclust\" aria-pressed=\"false\">Cụm liền kề</button></div><button type=\"button\" class=\"dpapply\" id=\"dupapplyord\" hidden>Xếp liền kề ra danh sách</button></div>\n  <div id=\"dupl\"></div>\n  <div class=\"foot\"><button class=\"btn p\" type=\"button\" id=\"dupx\">Đóng</button></div>\n</div><div class=\"form\" id=\"dupignview\" hidden>\n  <div class=\"dphead\"><button type=\"button\" class=\"btn\" id=\"dupback\">← Quay lại</button><h2>Không phải trùng</h2></div>\n  <p class=\"pm\" id=\"dupignsum\"></p>\n  <button type=\"button\" class=\"link\" id=\"dupignclr\" hidden>Khôi phục tất cả về danh sách kiểm tra</button>\n  <div id=\"dupignl\"></div>\n  <div class=\"foot\"><button class=\"btn\" type=\"button\" id=\"dupback2\">← Quay lại</button><button class=\"btn p\" type=\"button\" id=\"dupx2\">Đóng</button></div>\n</div><div class=\"dpz\" id=\"dupz\" hidden><div class=\"dpzb\"><div class=\"dpzhdr\"><p class=\"dpzt\" id=\"dupzt\"></p><button type=\"button\" class=\"dpzlay\" id=\"dupzlay\">Xếp dọc</button><button type=\"button\" class=\"dpzcls\" id=\"dupzx2\" aria-label=\"Đóng\">×</button></div><div class=\"dpzm\" id=\"dupzm\" hidden></div><div class=\"dpzg\" id=\"dupzg\"><div class=\"dpzcol\"><div class=\"dpzstage\"><img id=\"dupz1\" alt=\"Ảnh căn 1\"><span class=\"dpzempty\" id=\"dupze1\" hidden>Chưa có ảnh</span></div><div class=\"dpzmeta\"><b id=\"dupz1n\"></b><small id=\"dupz1m\"></small></div><div class=\"dpzctrl\" id=\"dupzc1\" hidden><button type=\"button\" id=\"dupz1prev\" aria-label=\"Ảnh trước căn 1\">‹</button><span id=\"dupz1c\"></span><button type=\"button\" id=\"dupz1next\" aria-label=\"Ảnh sau căn 1\">›</button></div></div><div class=\"dpzcol\"><div class=\"dpzstage\"><img id=\"dupz2\" alt=\"Ảnh căn 2\"><span class=\"dpzempty\" id=\"dupze2\" hidden>Chưa có ảnh</span></div><div class=\"dpzmeta\"><b id=\"dupz2n\"></b><small id=\"dupz2m\"></small></div><div class=\"dpzctrl\" id=\"dupzc2\" hidden><button type=\"button\" id=\"dupz2prev\" aria-label=\"Ảnh trước căn 2\">‹</button><span id=\"dupz2c\"></span><button type=\"button\" id=\"dupz2next\" aria-label=\"Ảnh sau căn 2\">›</button></div></div></div><div class=\"dpzact\" id=\"dupzact\"><button type=\"button\" class=\"dpno\" id=\"dupzign\">Không phải trùng</button><button type=\"button\" class=\"dpdel\" id=\"dupzdel1\">Xóa căn 1</button><button type=\"button\" class=\"dpdel\" id=\"dupzdel2\">Xóa căn 2</button></div><div class=\"foot\"><button class=\"btn p\" type=\"button\" id=\"dupzx\">Đóng</button></div></div></div><div class=\"dpundo\" id=\"dupundo\" hidden><span id=\"dupundot\"></span><button type=\"button\" id=\"dupundob\">↶ Hoàn tác</button><button type=\"button\" class=\"x\" id=\"dupundox\" aria-label=\"Ẩn\">✕</button></div></dialog>";
+var TH=80,VL=1,ALGO_VER=7,MIN=2,imgPairs=null,scanning=false,stopFlag=false,cache={},cacheLoaded=false,cacheP=null,inflight={},LIMIT=50,limMain=50,limIgn=50,memo=null,syncT=0,showOne=false,showIgn=false,skipOut=true,skipLoaded=false,imgAutoMode="manual",imgModeLoaded=false,viewList=[],openSet={},openImgSet={},pairImgMode={},ignored={},ignLoaded=false,pairImgMsg={},zoomCmp=null,viewMode="pairs",lastGraph=null,lastRecTh=null;
 
 /* ---------- Lưu danh sách "không phải trùng" vào localStorage ---------- */
 var undoSt=[],zlay=null,cmpAll={};
@@ -380,6 +408,297 @@ function textPairs(src){
   var F=src.map(feat),out=[],i,j,w,a,b;
   for(i=0;i<F.length;i++)for(j=i+1;j<F.length;j++){w=cmp(F[i],F[j]);if(w.length){a=F[i].it;b=F[j].it;out.push(a.id<b.id?{a:a.id,b:b.id,why:w}:{a:b.id,b:a.id,why:w})}}
   memo={sig:sig,list:out};return out}
+/* ===== Graph Clustering & Sắp xếp liền kề (Connected Components + Weighted Louvain Modularity + MinLA Seriation) ===== */
+function pairEdgeWeight(p){
+  var imgs=p.img||[];
+  if(!imgs.length)return{w:(p.sc||1)*0.3,maxSim:0,nImg:0};
+  var simSum=0,maxSim=0,i,m,s;
+  for(i=0;i<imgs.length;i++){
+    m=imgs[i];
+    s=(m.n!=null?m.n:Math.max(0,100-m.d))/100;
+    if(s>maxSim)maxSim=s;
+    simSum+=s+(m.x===m.y?0.25:0);
+  }
+  var tsText=0;
+  (p.why||[]).forEach(function(lb){
+    if(lb==="img")return;
+    tsText+=(lb==="Cùng SĐT sale")?0.15:(WT[lb]||1);
+  });
+  return{w:imgs.length*1.0+simSum*0.8+maxSim*0.5+Math.min(1.5,tsText*0.25),maxSim:Math.round(maxSim*100),nImg:imgs.length};
+}
+function louvainSplitComponent(compNodes,adj,nodeWeight,total2m,pairMeta){
+  var k=compNodes.length;
+  if(k<4||!(total2m>0))return[compNodes];
+  var GAMMA=1.05,comm={},commTot={},sorted=compNodes.slice().sort(function(a,b){return(nodeWeight[b]-nodeWeight[a])||(a<b?-1:1)}),i,pass,changed;
+  for(i=0;i<k;i++){comm[sorted[i]]=i;commTot[i]=nodeWeight[sorted[i]]}
+  for(pass=0;pass<15;pass++){
+    changed=false;
+    for(i=0;i<k;i++){
+      var u=sorted[i],curC=comm[u],wu=nodeWeight[u],nb=adj[u]||{},kToC={};
+      commTot[curC]-=wu;
+      Object.keys(nb).forEach(function(v){var cv=comm[v];kToC[cv]=(kToC[cv]||0)+nb[v]});
+      var bestC=curC,bestQ=-1e9;
+      if(kToC[curC]===undefined)kToC[curC]=0;
+      Object.keys(kToC).forEach(function(cStr){
+        var c=+cStr,dq=kToC[c]-GAMMA*(wu*(commTot[c]||0))/total2m;
+        if(dq>bestQ+1e-9||(Math.abs(dq-bestQ)<=1e-9&&c===curC)){bestQ=dq;bestC=c}
+      });
+      comm[u]=bestC;
+      commTot[bestC]=(commTot[bestC]||0)+wu;
+      if(bestC!==curC)changed=true;
+    }
+    if(!changed)break;
+  }
+  var gMap={},groups=[];
+  compNodes.forEach(function(id){var c=comm[id];(gMap[c]||(gMap[c]=[])).push(id)});
+  Object.keys(gMap).sort(function(a,b){return(+a)-(+b)}).forEach(function(c){groups.push(gMap[c])});
+  if(groups.length<=1)return[compNodes];
+  /* Bảo vệ chống tách lẻ (node đơn lẻ phải nhập vào cụm nối mạnh nhất) & bảo vệ cầu nối mạnh */
+  var merged=true;
+  while(merged&&groups.length>1){
+    merged=false;
+    var gi,gj,uIdx,vIdx;
+    for(gi=0;gi<groups.length;gi++){
+      if(groups[gi].length===1){
+        var solo=groups[gi][0],bestGi=-1,bestW=-1;
+        for(gj=0;gj<groups.length;gj++){
+          if(gj===gi)continue;
+          var sumW=0;
+          groups[gj].forEach(function(v){sumW+=(adj[solo]&&adj[solo][v])||0});
+          if(sumW>bestW){bestW=sumW;bestGi=gj}
+        }
+        if(bestGi>=0){groups[bestGi].push(solo);groups.splice(gi,1);merged=true;break}
+      }
+    }
+    if(merged)continue;
+    for(gi=0;gi<groups.length&&!merged;gi++){
+      for(gj=gi+1;gj<groups.length&&!merged;gj++){
+        var ga=groups[gi],gb=groups[gj],cutW=0,cutCnt=0,maxCutImgs=0,maxCutSim=0;
+        for(uIdx=0;uIdx<ga.length;uIdx++){
+          var uId=ga[uIdx],nu=adj[uId]||{};
+          for(vIdx=0;vIdx<gb.length;vIdx++){
+            var vId=gb[vIdx],wuv=nu[vId];
+            if(wuv>0){
+              cutW+=wuv;cutCnt++;
+              var pk=uId<vId?uId+"|"+vId:vId+"|"+uId,pm=pairMeta[pk];
+              if(pm){if(pm.nImg>maxCutImgs)maxCutImgs=pm.nImg;if(pm.maxSim>maxCutSim)maxCutSim=pm.maxSim}
+            }
+          }
+        }
+        if(cutCnt>0&&((maxCutImgs>=2&&maxCutSim>=85)||(cutCnt>=Math.min(ga.length,gb.length)&&(cutW/cutCnt)>=2.6))){
+          groups[gi]=ga.concat(gb);groups.splice(gj,1);merged=true;
+        }
+      }
+    }
+  }
+  return groups;
+}
+function orderClusterNodes(nodeIds,adj,origIdx){
+  var k=nodeIds.length;
+  if(k<=1)return nodeIds.slice();
+  if(k===2){
+    var a=nodeIds[0],b=nodeIds[1];
+    return (origIdx[a]||0)<=(origIdx[b]||0)?[a,b]:[b,a];
+  }
+  var deg={},wDeg={},i,j;
+  nodeIds.forEach(function(u){
+    var nb=adj[u]||{},dc=0,dw=0;
+    nodeIds.forEach(function(v){if(v!==u&&nb[v]>0){dc++;dw+=nb[v]}});
+    deg[u]=dc;wDeg[u]=dw;
+  });
+  function scoreSeq(seq){
+    var pos={},adjSum=0,spanPen=0,m,n,u,v,w;
+    for(m=0;m<k;m++)pos[seq[m]]=m;
+    for(m=0;m<k-1;m++){u=seq[m];v=seq[m+1];adjSum+=(adj[u]&&adj[u][v])||0}
+    for(m=0;m<k;m++){
+      u=seq[m];
+      for(n=m+1;n<k;n++){v=seq[n];w=(adj[u]&&adj[u][v])||0;if(w>0)spanPen+=w*(n-m)}
+    }
+    return adjSum*1000-spanPen;
+  }
+  var cands;
+  if(k<=12){cands=nodeIds.slice()}
+  else{
+    var byLow=nodeIds.slice().sort(function(x,y){return(deg[x]-deg[y])||(wDeg[y]-wDeg[x])||(origIdx[x]-origIdx[y])});
+    var byHigh=nodeIds.slice().sort(function(x,y){return(wDeg[y]-wDeg[x])||(origIdx[x]-origIdx[y])});
+    cands=[];
+    byLow.slice(0,4).concat(byHigh.slice(0,4)).forEach(function(id){if(cands.indexOf(id)<0)cands.push(id)});
+  }
+  var bestSeq=null,bestScore=-1e18;
+  cands.forEach(function(start){
+    var seq=[start],used={};used[start]=1;
+    while(seq.length<k){
+      var cur=seq[seq.length-1],nbCur=adj[cur]||{},pick=null,pDirect=-1,pPull=-1;
+      for(i=0;i<k;i++){
+        var u=nodeIds[i];if(used[u])continue;
+        var dW=nbCur[u]||0,pull=0;
+        for(j=seq.length-1;j>=0;j--){
+          var wj=(adj[seq[j]]&&adj[seq[j]][u])||0;
+          if(wj>0)pull+=wj/(seq.length-j);
+        }
+        if(dW>pDirect+1e-9||(Math.abs(dW-pDirect)<=1e-9&&(pull>pPull+1e-9||(Math.abs(pull-pPull)<=1e-9&&(origIdx[u]||0)<(origIdx[pick]||0))))){
+          pick=u;pDirect=dW;pPull=pull;
+        }
+      }
+      seq.push(pick);used[pick]=1;
+    }
+    var sc=scoreSeq(seq);
+    if(sc>bestScore){bestScore=sc;bestSeq=seq}
+  });
+  if(k<=40){
+    var pass,improved=true;
+    for(pass=0;pass<4&&improved;pass++){
+      improved=false;
+      for(i=0;i<k;i++){
+        for(j=i+1;j<k;j++){
+          var tmp=bestSeq[i];bestSeq[i]=bestSeq[j];bestSeq[j]=tmp;
+          var s1=scoreSeq(bestSeq);
+          if(s1>bestScore+1e-9){bestScore=s1;improved=true}
+          else{tmp=bestSeq[i];bestSeq[i]=bestSeq[j];bestSeq[j]=tmp}
+          if(j-i>=2){
+            var l=i,r=j;while(l<r){tmp=bestSeq[l];bestSeq[l]=bestSeq[r];bestSeq[r]=tmp;l++;r--}
+            var s2=scoreSeq(bestSeq);
+            if(s2>bestScore+1e-9){bestScore=s2;improved=true}
+            else{l=i;r=j;while(l<r){tmp=bestSeq[l];bestSeq[l]=bestSeq[r];bestSeq[r]=tmp;l++;r--}}
+          }
+        }
+      }
+    }
+  }
+  return bestSeq;
+}
+function clusterDupGraph(imgPairList,allItems){
+  var adj={},nodeWeight={},byId={},origIdx={},pairMap={},pairMeta={},nodes=[],seenN={};
+  (allItems||[]).forEach(function(it,idx){byId[it.id]=it;origIdx[it.id]=idx});
+  (imgPairList||[]).forEach(function(p){
+    var u=p.a.id,v=p.b.id;if(u===v)return;
+    var lo=u<v?u:v,hi=u<v?v:u,pk=lo+"|"+hi;
+    if(!byId[u])byId[u]=p.a;if(!byId[v])byId[v]=p.b;
+    if(!seenN[u]){seenN[u]=1;nodes.push(u)}
+    if(!seenN[v]){seenN[v]=1;nodes.push(v)}
+    var em=pairEdgeWeight(p);
+    pairMap[pk]=p;pairMeta[pk]=em;
+    (adj[u]||(adj[u]={}))[v]=em.w;
+    (adj[v]||(adj[v]={}))[u]=em.w;
+    nodeWeight[u]=(nodeWeight[u]||0)+em.w;
+    nodeWeight[v]=(nodeWeight[v]||0)+em.w;
+  });
+  var visited={},rawComps=[],total2m=0;
+  nodes.forEach(function(id){total2m+=nodeWeight[id]||0});
+  nodes.sort(function(a,b){return(origIdx[a]||0)-(origIdx[b]||0)});
+  nodes.forEach(function(start){
+    if(visited[start])return;
+    var q=[start],comp=[],qi=0;visited[start]=1;
+    while(qi<q.length){
+      var u=q[qi++];comp.push(u);
+      var nb=adj[u]||{};
+      Object.keys(nb).forEach(function(v){if(!visited[v]){visited[v]=1;q.push(v)}});
+    }
+    rawComps.push(comp);
+  });
+  var splitCount=0,subComps=[];
+  rawComps.forEach(function(comp){
+    if(comp.length>=4){
+      var cAdj={},cW={},c2m=0,cMap={};
+      comp.forEach(function(u){cMap[u]=1;cAdj[u]={};cW[u]=0});
+      comp.forEach(function(u){
+        var nb=adj[u]||{};
+        Object.keys(nb).forEach(function(v){if(cMap[v]){cAdj[u][v]=nb[v];cW[u]+=nb[v];c2m+=nb[v]}});
+      });
+      var parts=louvainSplitComponent(comp,cAdj,cW,c2m,pairMeta);
+      if(parts.length>1)splitCount+=(parts.length-1);
+      parts.forEach(function(pt){subComps.push(pt)});
+    }else subComps.push(comp);
+  });
+  var clusters=[],nodeCluster={};
+  subComps.forEach(function(nodeIds,ci){
+    var cSet={},cAdj={},i,j;
+    nodeIds.forEach(function(u){cSet[u]=1;cAdj[u]={}});
+    nodeIds.forEach(function(u){var nb=adj[u]||{};Object.keys(nb).forEach(function(v){if(cSet[v])cAdj[u][v]=nb[v]})});
+    var ordIds=orderClusterNodes(nodeIds,cAdj,origIdx);
+    var posInC={};ordIds.forEach(function(id,idx){posInC[id]=idx});
+    var cPairs=[],maxImg=0,maxSim=0,totW=0,simAcc=0;
+    for(i=0;i<ordIds.length;i++){
+      for(j=i+1;j<ordIds.length;j++){
+        var u=ordIds[i],v=ordIds[j],pk=u<v?u+"|"+v:v+"|"+u,pr=pairMap[pk];
+        if(pr){
+          cPairs.push(pr);
+          var em=pairMeta[pk];
+          totW+=em.w;simAcc+=em.maxSim;
+          if(em.nImg>maxImg)maxImg=em.nImg;
+          if(em.maxSim>maxSim)maxSim=em.maxSim;
+        }
+      }
+    }
+    cPairs.sort(function(p,q){
+      var pa0=posInC[p.a.id],pb0=posInC[p.b.id],qa0=posInC[q.a.id],qb0=posInC[q.b.id];
+      var pLo=Math.min(pa0,pb0),pHi=Math.max(pa0,pb0),qLo=Math.min(qa0,qb0),qHi=Math.max(qa0,qb0);
+      return (pLo-qLo)||(pHi-qHi)||q.img.length-p.img.length;
+    });
+    var nNodes=ordIds.length,possibleE=nNodes*(nNodes-1)/2;
+    clusters.push({
+      id:ci+1,
+      nodeIds:ordIds,
+      nodes:ordIds.map(function(id){return byId[id]}),
+      pairs:cPairs,
+      maxImgCount:maxImg,
+      maxSim:maxSim,
+      totalWeight:Math.round(totW*100)/100,
+      avgSim:cPairs.length?Math.round(simAcc/cPairs.length):0,
+      density:possibleE>0?Math.round((cPairs.length/possibleE)*100)/100:1,
+      _pos:posInC
+    });
+  });
+  clusters.sort(function(a,b){
+    return (b.maxImgCount-a.maxImgCount)||(b.maxSim-a.maxSim)||(b.totalWeight-a.totalWeight)||(b.nodes.length-a.nodes.length)||(a.nodeIds[0]<b.nodeIds[0]?-1:1);
+  });
+  var nodePos={},orderedDupIds=[],modQ=0;
+  clusters.forEach(function(cl,idx){
+    cl.id=idx+1;
+    var sigmaIn=0,sigmaTot=0;
+    cl.nodeIds.forEach(function(id){
+      nodeCluster[id]=cl.id;
+      nodePos[id]=orderedDupIds.length;
+      orderedDupIds.push(id);
+      sigmaTot+=nodeWeight[id]||0;
+    });
+    cl.pairs.forEach(function(p){var pk=p.a.id<p.b.id?p.a.id+"|"+p.b.id:p.b.id+"|"+p.a.id;sigmaIn+=2*(pairMeta[pk]?pairMeta[pk].w:0)});
+    if(total2m>0)modQ+=(sigmaIn/total2m)-1.05*Math.pow(sigmaTot/total2m,2);
+  });
+  var bridgePairs=[];
+  Object.keys(pairMap).forEach(function(pk){
+    var p=pairMap[pk];
+    if(nodeCluster[p.a.id]!==nodeCluster[p.b.id])bridgePairs.push(p);
+  });
+  bridgePairs.sort(function(a,b){return b.img.length-a.img.length||b.sc-a.sc});
+  return{
+    clusters:clusters,
+    bridgePairs:bridgePairs,
+    nodeCluster:nodeCluster,
+    nodePos:nodePos,
+    orderedDupIds:orderedDupIds,
+    orderedDupItems:orderedDupIds.map(function(id){return byId[id]}),
+    pairMap:pairMap,
+    pairMeta:pairMeta,
+    stats:{
+      clusterCount:clusters.length,
+      nodeCount:orderedDupIds.length,
+      edgeCount:Object.keys(pairMap).length,
+      bridgeCount:bridgePairs.length,
+      splitCount:splitCount,
+      modularity:total2m>0?Math.round(modQ*1000)/1000:0
+    }
+  };
+}
+function sortHousesAdjacent(list,graphObj){
+  var arr=(list||[]).slice(),g=graphObj||build().graph;
+  if(!g||!g.orderedDupIds||!g.orderedDupIds.length)return arr;
+  var byId={},inDup={},out=[];
+  arr.forEach(function(it){byId[it.id]=it});
+  g.orderedDupIds.forEach(function(id){if(byId[id]){inDup[id]=1;out.push(byId[id])}});
+  arr.forEach(function(it){if(!inDup[it.id])out.push(it)});
+  return out;
+}
 function build(){
   loadIgnored();
   var src=activeItems(),P={},byId={};
@@ -394,10 +713,31 @@ function build(){
     if(!ih(p)&&p.sc>=MIN&&priceDiffOver20(p.a,p.b))return;
     active.push(p);
   });
+  var imgActive=active.filter(ih),txtStrong=active.filter(function(o){return !ih(o)&&o.sc>=MIN});
+  var graph=clusterDupGraph(imgActive,src),emitted={},orderedStrong=[];
+  graph.clusters.forEach(function(cl){
+    cl.pairs.forEach(function(p){
+      var pk=p.a.id+"|"+p.b.id;
+      if(emitted[pk])return;
+      emitted[pk]=1;p.cid=cl.id;p.cSize=cl.nodes.length;p.bridge=false;
+      orderedStrong.push(p);
+    });
+    graph.bridgePairs.forEach(function(bp){
+      var pk=bp.a.id+"|"+bp.b.id;
+      if(emitted[pk])return;
+      if(graph.nodeCluster[bp.a.id]===cl.id||graph.nodeCluster[bp.b.id]===cl.id){
+        emitted[pk]=1;bp.cid=cl.id;bp.cSize=cl.nodes.length;bp.bridge=true;
+        orderedStrong.push(bp);
+      }
+    });
+  });
+  txtStrong.forEach(function(p){p.cid=0;p.cSize=0;p.bridge=false;orderedStrong.push(p)});
+  lastGraph=graph;
   return{
-    strong:active.filter(function(o){return o.sc>=MIN||ih(o)}),
+    strong:orderedStrong,
     weak:active.filter(function(o){return o.sc<MIN&&!ih(o)}),
     ign:ign,
+    graph:graph,
     nSrc:src.length,
     nSkip:items.length-src.length
   }}
@@ -520,8 +860,55 @@ function ignStat(r){
     if(shown[k]){ok++;return}
     if(skipOut&&((A.st||"new")==="out"||(B.st||"new")==="out"))out++;else none++});
   return{total:keys.length,shown:ok,out:out,none:none,img:imgPairs!==null}}
+function clusterCardsH(graph){
+  var cls=(graph&&graph.clusters)||[],allowDel=canWrite();
+  if(!cls.length)return '<p class="dpmess">Chưa có cụm căn nào trùng ảnh. Hãy bấm «Quét ảnh trùng» hoặc chuyển sang «Theo cặp».</p>';
+  var h="";
+  cls.forEach(function(cl){
+    var idxByPairKey={};
+    cl.pairs.forEach(function(p){
+      var idx=viewList.push(p)-1;
+      idxByPairKey[p.a.id+"|"+p.b.id]=idx;
+    });
+    function refForNode(id){
+      for(var i=0;i<cl.pairs.length;i++){
+        var p=cl.pairs[i],idx=idxByPairKey[p.a.id+"|"+p.b.id];
+        if(p.a.id===id)return{idx:idx,side:"a"};
+        if(p.b.id===id)return{idx:idx,side:"b"};
+      }
+      return{idx:0,side:"a"};
+    }
+    var usedEdge={},i;
+    h+='<div class="dpclcard"><div class="dpclhead"><b>Cụm ảnh #'+cl.id+' · '+cl.nodes.length+' căn liền kề</b><span>'+cl.pairs.length+' cặp trùng ảnh · max '+cl.maxSim+'%</span></div>';
+    for(i=0;i<cl.nodes.length;i++){
+      var it=cl.nodes[i],rf=refForNode(it.id);
+      h+=rowH(it,rf.idx,rf.side,allowDel);
+      if(i<cl.nodes.length-1){
+        var nxt=cl.nodes[i+1],pk=it.id<nxt.id?it.id+"|"+nxt.id:nxt.id+"|"+it.id,ep=graph.pairMap[pk];
+        if(ep&&idxByPairKey[pk]!==undefined){
+          usedEdge[pk]=1;
+          var eIdx=idxByPairKey[pk],em=graph.pairMeta[pk]||{maxSim:0,nImg:ep.img.length};
+          var thumbs=ep.img.slice(0,3).map(function(m,mi){return '<span class="dpadj-pair" data-zoom="'+eIdx+':'+mi+'" title="Bấm để phóng to"><img alt="Ảnh căn 1" loading="lazy" src="'+esc(imgSrc(m.x,200))+'"><img alt="Ảnh căn 2" loading="lazy" src="'+esc(imgSrc(m.y,200))+'"></span>'}).join("");
+          h+='<div class="dpadj"><span class="dpadj-l">↕ Liền kề · Trùng '+ep.img.length+' ảnh ('+em.maxSim+'%)</span><span class="dpadj-thumbs">'+thumbs+'</span><span class="dpadj-act"><button type="button" class="dpimgbtn" data-cmpfull="'+eIdx+'">So sánh</button><button type="button" class="dpno" data-ign="'+eIdx+'">Không trùng</button></span></div>';
+        }
+      }
+    }
+    var chords=cl.pairs.filter(function(p){return !usedEdge[p.a.id+"|"+p.b.id]});
+    if(chords.length){
+      h+='<div class="dpclchords">';
+      chords.forEach(function(cp){
+        var cIdx=idxByPairKey[cp.a.id+"|"+cp.b.id],cm=graph.pairMeta[cp.a.id+"|"+cp.b.id]||{maxSim:0};
+        h+='<div class="dpclchord"><b>'+esc(cp.a.n)+' ↔ '+esc(cp.b.n)+' ('+cp.img.length+' ảnh · '+cm.maxSim+'%)</b><button type="button" class="dpimgbtn" data-cmpfull="'+cIdx+'">So sánh</button></div>';
+      });
+      h+='</div>';
+    }
+    h+='</div>';
+  });
+  return h;
+}
 function render(){
-  var r=build(),list=showOne?r.strong.concat(r.weak):r.strong,el=G("dupl"),n=r.nSrc,sk=r.nSkip?" (đã bỏ qua "+r.nSkip+" căn Loại)":"",hi=r.strong.filter(function(o){return o.sc>=3}).length,tg=G("duptog"),itg=G("dupigntog"),ignEl=G("dupignl");
+  var r=build(),list=showOne?r.strong.concat(r.weak):r.strong,el=G("dupl"),n=r.nSrc,hi=r.strong.filter(function(o){return o.sc>=3}).length,tg=G("duptog"),itg=G("dupigntog"),ignEl=G("dupignl");
+  var gStats=r.graph&&r.graph.stats?r.graph.stats:{clusterCount:0,nodeCount:0};
   viewList=[];
   G("dupmain").hidden=showIgn;
   G("dupignview").hidden=!showIgn;
@@ -539,10 +926,33 @@ function render(){
     afterRender();return;
   }
   ignEl.innerHTML="";
-  var mainSlice=list.slice(0,limMain);
-  var mainHtml=mainSlice.map(function(o){var idx=viewList.push(o)-1;return pairH(o,idx,false)}).join("")+(list.length>limMain?'<button type="button" class="link" data-more="main">Hiện thêm '+Math.min(LIMIT,list.length-limMain)+' cặp (còn '+(list.length-limMain)+')</button>':'');
-  G("dupsum").textContent=!items.length?"Chưa có căn nào.":!n?"Tất cả căn đều đã Loại.":(r.strong.length?r.strong.length+" cặp nghi trùng"+(hi?" · "+hi+" gần như chắc chắn":""):"Không có cặp nghi trùng")+" · "+n+" căn"+(r.nSkip?" (bỏ "+r.nSkip+" Loại)":"");
-  tg.hidden=!r.weak.length;tg.textContent=showOne?"Ẩn "+r.weak.length+" cặp chỉ trùng 1 điều kiện":"Hiện thêm "+r.weak.length+" cặp chỉ trùng 1 điều kiện";tg.setAttribute("aria-pressed",showOne?"true":"false");
+  if(gStats.clusterCount===0&&viewMode==="clusters")viewMode="pairs";
+  var vbar=G("dupviewbar"),vp=G("dupvpair"),vc=G("dupvclust"),va=G("dupapplyord");
+  if(vbar)vbar.hidden=!gStats.clusterCount;
+  if(vp)vp.setAttribute("aria-pressed",viewMode==="pairs"?"true":"false");
+  if(vc){vc.setAttribute("aria-pressed",viewMode==="clusters"?"true":"false");vc.textContent="Cụm liền kề ("+gStats.clusterCount+" cụm · "+gStats.nodeCount+" căn)"}
+  if(va)va.hidden=!(gStats.clusterCount>0&&N()&&typeof N().reorder==="function");
+  var mainHtml="";
+  if(viewMode==="clusters"&&gStats.clusterCount>0){
+    mainHtml=clusterCardsH(r.graph);
+  }else{
+    var mainSlice=list.slice(0,limMain),prevCid=null,showClusterHdr=gStats.clusterCount>0;
+    mainHtml=mainSlice.map(function(o){
+      var idx=viewList.push(o)-1,hdr="";
+      if(showClusterHdr&&o.cid!==prevCid){
+        prevCid=o.cid;
+        if(o.cid>0){
+          var cl=r.graph.clusters[o.cid-1];
+          hdr='<div class="dpclusthdr"><b>Cụm ảnh #'+o.cid+' · '+cl.nodes.length+' căn liền kề</b><span>'+cl.pairs.length+' cặp ảnh · max '+cl.maxSim+'%</span></div>';
+        }else{
+          hdr='<div class="dpclusthdr"><b>Trùng thông tin (không trùng ảnh)</b><span>'+r.strong.filter(function(x){return !x.cid}).length+' cặp</span></div>';
+        }
+      }
+      return hdr+pairH(o,idx,false);
+    }).join("")+(list.length>limMain?'<button type="button" class="link" data-more="main">Hiện thêm '+Math.min(LIMIT,list.length-limMain)+' cặp (còn '+(list.length-limMain)+')</button>':'');
+  }
+  G("dupsum").textContent=!items.length?"Chưa có căn nào.":!n?"Tất cả căn đều đã Loại.":(r.strong.length?r.strong.length+" cặp nghi trùng"+(gStats.clusterCount?" · "+gStats.clusterCount+" cụm ảnh ("+gStats.nodeCount+" căn liền kề)":(hi?" · "+hi+" gần như chắc chắn":"")):"Không có cặp nghi trùng")+" · "+n+" căn"+(r.nSkip?" (bỏ "+r.nSkip+" Loại)":"");
+  tg.hidden=!r.weak.length||viewMode==="clusters";tg.textContent=showOne?"Ẩn "+r.weak.length+" cặp chỉ trùng 1 điều kiện":"Hiện thêm "+r.weak.length+" cặp chỉ trùng 1 điều kiện";tg.setAttribute("aria-pressed",showOne?"true":"false");
   itg.hidden=!r.ign.length;itg.textContent="Xem "+r.ign.length+" cặp →";
   G("duplinks").hidden=tg.hidden;
   var ib=G("dupignbar");if(ib)ib.hidden=!r.ign.length;
@@ -1511,9 +1921,9 @@ function textScoreMap(src){
     var s=0;(t.why||[]).forEach(function(w){s+=WT[w]||1});
     m[t.a+"|"+t.b]=s});
   return m}
-function smartFilter(list,thOv){
+function smartFilter(list,thOv,preSrc,preTMap){
   var cfg=smartCalc(thOv),ts=cfg.ts,mid=cfg.mid,tl=cfg.tl,strong=cfg.strong;
-  var tMap=textScoreMap(activeItems()),g={},out=[];
+  var tMap=preTMap||textScoreMap(preSrc||activeItems()),g={},out=[];
   SM.kept=0;SM.cut=0;SM.dedupCut=0;SM.ctxCut=0;
   list.forEach(function(r){
     var lo=r.a.id<r.b.id?r.a:r.b,hi=r.a.id<r.b.id?r.b:r.a,k=lo.id+"|"+hi.id;
@@ -2323,11 +2733,23 @@ function init(nt){
     if(closeZoom()){e.preventDefault();return}
     if(showIgn){e.preventDefault();goMain()}
   });
-  function cfgDirtyUi(dirty,text,cls){
-    var e=G("dupengnote"),b=G("dupsave"),preEl=G("duppre");
+  function cfgDirtyUi(dirty,text,cls,recTh){
+    var e=G("dupengnote"),b=G("dupsave"),preEl=G("duppre"),aa=G("dupanact"),rb=G("dupapplyrec"),rb3=G("dupapplyrec3");
     var f16Draft=!!(dirty&&preEl&&(preEl.value==="16")!==F16);
     cfgTagUi(dirty);
     if(b){b.classList.toggle("dirty",!!dirty);b.textContent=dirty?"Lưu & quét lại ảnh *":"Lưu & quét lại ảnh"}
+    if(aa){
+      if(recTh>0){
+        lastRecTh=recTh;
+        var rec3=Math.min(99,recTh+3);
+        if(rb)rb.textContent="Áp dụng gợi ý ("+recTh+"%)";
+        if(rb3){rb3.textContent="+3 ("+rec3+"%)";rb3.disabled=recTh>=99}
+        aa.hidden=false;
+      }else{
+        lastRecTh=null;
+        aa.hidden=true;
+      }
+    }
     if(!e)return;
     if(text){e.className="dpst dpfull"+(cls?" "+cls:"");e.textContent=text;e.hidden=false}
     else if(dirty){e.className="dpst dpfull";e.textContent=f16Draft?"Đổi giữa fp16 ↔ fp32 sẽ xóa cache mô hình & hash cũ — bấm «Lưu & quét lại ảnh» để áp dụng.":"Có thay đổi cài đặt — bấm «Lưu & quét lại ảnh» để áp dụng.";e.hidden=false}
@@ -2432,6 +2854,14 @@ function init(nt){
     if(!(v>=60&&v<=99))this.value=String(TH);
     syncSensDraft();cfgDirtyUi(true);
   };
+  G("dupthp3").onclick=function(){
+    var i=G("dupth");if(!i)return;
+    var cur=Math.round(+i.value)||TH;
+    var nxt=Math.min(99,cur+3);
+    i.value=String(nxt);
+    syncSensDraft();
+    cfgDirtyUi(true);
+  };
   G("dupimgv").onchange=function(){cfgDirtyUi(true)};
   G("dupmm").onchange=function(){cfgDirtyUi(true)};
   G("dupnoout").onchange=function(){cfgDirtyUi(true)};
@@ -2441,13 +2871,26 @@ function init(nt){
   G("dupbn").onchange=function(){cfgDirtyUi(true)};
   G("duppace").onchange=function(){cfgDirtyUi(true)};
   G("dupsave").onclick=function(){applyAndSaveSettings()};
+  G("dupapplyrec").onclick=function(){
+    if(!(lastRecTh>=60&&lastRecTh<=99))return;
+    var i=G("dupth");if(i)i.value=String(lastRecTh);
+    syncSensDraft();
+    applyAndSaveSettings();
+  };
+  G("dupapplyrec3").onclick=function(){
+    if(!(lastRecTh>=60&&lastRecTh<=99))return;
+    var nxt=Math.min(99,lastRecTh+3);
+    var i=G("dupth");if(i)i.value=String(nxt);
+    syncSensDraft();
+    applyAndSaveSettings();
+  };
   G("dupanalyze").onclick=function(){
     var ab=G("dupanalyze");if(ab){ab.disabled=true;ab.textContent="Đang phân tích…"}
     cfgDirtyUi(false,"Đang phân tích nhiều ngưỡng trên hash đã lưu…");
     analyzeThresholds().then(function(res){
       if(ab){ab.disabled=false;ab.textContent="Phân tích đa ngưỡng"}
       if(!res||!res.ok){cfgDirtyUi(false,(res&&res.msg)||"Chưa phân tích được.","bad");return}
-      cfgDirtyUi(false,res.summary,"ok");
+      cfgDirtyUi(false,res.summary,"ok",res.recommended);
     },function(){
       if(ab){ab.disabled=false;ab.textContent="Phân tích đa ngưỡng"}
       cfgDirtyUi(false,"Lỗi khi phân tích đa ngưỡng.","bad");
@@ -2462,6 +2905,15 @@ function init(nt){
   };
   G("dupimg").onclick=function(){items=N().items();scan()};
   G("dupstop").onclick=stopScan;
+  G("dupvpair").onclick=function(){if(viewMode!=="pairs"){viewMode="pairs";render()}};
+  G("dupvclust").onclick=function(){if(viewMode!=="clusters"){viewMode="clusters";render()}};
+  G("dupapplyord").onclick=function(){
+    if(!(N()&&typeof N().reorder==="function"))return;
+    var r=build(),sorted=sortHousesAdjacent(N().items(),r.graph);
+    N().reorder(sorted,r.graph);
+    items=N().items();
+    msg("Đã sắp xếp "+r.graph.stats.nodeCount+" căn trong "+r.graph.stats.clusterCount+" cụm trùng ảnh nằm liền kề.");
+  };
   G("duptog").onclick=function(){showOne=!showOne;render()};
   G("dupigntog").onclick=function(){showIgn=true;render();G("dupd").scrollTop=0;dpPage(G("dupignview"),"dp-fwd")};
   G("dupback").onclick=goMain;
@@ -2477,23 +2929,69 @@ function init(nt){
   G("dupignl").onclick=onPairClick;
   G("dupl").onchange=onPairChange;
   G("dupignl").onchange=onPairChange}
-function evalPairsAtTh(rawList,ts,src,byId){
-  var filtered=smartFilter(rawList,ts),P={};
+function maxCompSizeOf(P){
+  var adj={},nodes=[],seen={};
+  Object.keys(P).forEach(function(k){
+    var o=P[k];if(!o||!o.img||!o.img.length)return;
+    var u=o.a.id,v=o.b.id;
+    if(!seen[u]){seen[u]=1;nodes.push(u)}
+    if(!seen[v]){seen[v]=1;nodes.push(v)}
+    (adj[u]||(adj[u]={}))[v]=1;(adj[v]||(adj[v]={}))[u]=1;
+  });
+  var vis={},mx=0;
+  nodes.forEach(function(st){
+    if(vis[st])return;
+    var q=[st],qi=0;vis[st]=1;
+    while(qi<q.length){
+      var u=q[qi++],nb=adj[u]||{};
+      Object.keys(nb).forEach(function(v){if(!vis[v]){vis[v]=1;q.push(v)}});
+    }
+    if(q.length>mx)mx=q.length;
+  });
+  return mx;
+}
+function evalPairsAtTh(rawList,ignRawList,ts,src,byId,tMap){
+  var filtered=smartFilter(rawList,ts,src,tMap),P={};
   filtered.forEach(function(r){
     var a=byId[r.a.id],b=byId[r.b.id];if(!a||!b)return;
+    var loId=a.id<b.id?a.id:b.id,hiId=a.id<b.id?b.id:a.id;
+    if(ignored[loId+"|"+hiId])return;
     var o=addP(P,a,b,"img");if(!o)return;
     var sw=o.a.id!==r.a.id;
     o.img.push(sw?{x:r.y,y:r.x,d:r.d,k:r.k||"",o:r.o||"",n:r.n}:{x:r.x,y:r.y,d:r.d,k:r.k||"",o:r.o||"",n:r.n});
   });
   filterGenericImgs(P,src.length,ts);
-  var imgHousePairs=0,totalImgEdges=0;
-  Object.keys(P).forEach(function(k){if(P[k].img.length){imgHousePairs++;totalImgEdges+=P[k].img.length}});
-  return{th:ts,housePairs:imgHousePairs,imgPairs:totalImgEdges};
+  var imgHousePairs=0,totalImgEdges=0,trustedPairs=0,riskyPairs=0,conflictPairs=0;
+  Object.keys(P).forEach(function(k){
+    var o=P[k];if(!o.img.length)return;
+    imgHousePairs++;totalImgEdges+=o.img.length;
+    var tsText=tMap[k]||0,ctx=pairCtx(o.a,o.b,tsText),nImg=o.img.length;
+    var mx=0,hasExact=false,i;
+    for(i=0;i<nImg;i++){
+      if(o.img[i].x===o.img[i].y)hasExact=true;
+      var s=o.img[i].n!=null?o.img[i].n:Math.max(0,100-o.img[i].d);
+      if(s>mx)mx=s;
+    }
+    if(hasExact||nImg>=2||(ctx.sameDist&&!ctx.conflict&&(mx>=ts+2||tsText>=1))||mx>=Math.min(92,ts+7))trustedPairs++;
+    if(nImg===1&&ctx.conflict)conflictPairs++;
+    else if(nImg===1&&!ctx.support&&tsText<1&&mx<ts+3)riskyPairs++;
+  });
+  var ignFP=0;
+  if(ignRawList&&ignRawList.length){
+    var fIgn=smartFilter(ignRawList,ts,src,tMap),ignSeen={};
+    fIgn.forEach(function(r){
+      var loId=r.a.id<r.b.id?r.a.id:r.b.id,hiId=r.a.id<r.b.id?r.b.id:r.a.id,pk=loId+"|"+hiId;
+      if(!ignSeen[pk]){ignSeen[pk]=1;ignFP++}
+    });
+  }
+  return{th:ts,housePairs:imgHousePairs,imgPairs:totalImgEdges,trustedPairs:trustedPairs,riskyPairs:riskyPairs,conflictPairs:conflictPairs,ignFP:ignFP,maxComp:maxCompSizeOf(P)};
 }
 function analyzeThresholds(){
   items=N().items();
+  loadIgnored();
   return loadCache().then(function(){
-    var src=activeItems(),byId={},allJ=[],A=[];
+    var src=items.filter(function(it){return (it.st||"new")!=="out"});
+    var outCnt=items.length-src.length,byId={},allJ=[],A=[];
     src.forEach(function(it){
       byId[it.id]=it;
       (it.im||[]).forEach(function(s){
@@ -2503,40 +3001,71 @@ function analyzeThresholds(){
       });
     });
     if(allJ.length<2){
-      return{ok:false,imgs:allJ.length,msg:"Chưa đủ hash ảnh trên máy ("+allJ.length+" ảnh). Hãy bấm «Quét ảnh trùng» trước."};
+      smartCalc();
+      return{ok:false,imgs:allJ.length,msg:"Chưa đủ hash ảnh trên máy ("+allJ.length+" ảnh từ căn đang hoạt động). Hãy bấm «Quét ảnh trùng» trước."};
     }
-    var raw=[],seen={},p=0,FLOOR=64;
+    var ignActiveCnt=0;
+    Object.keys(ignored).forEach(function(k){
+      if(!ignored[k])return;
+      var ids=k.split("|");
+      if(byId[ids[0]]&&byId[ids[1]])ignActiveCnt++;
+    });
+    var tMap=textScoreMap(src),raw=[],ignRaw=[],seen={},ignSeen={},p=0,FLOOR=64;
     function step(){
-      var end=Math.min(p+25,allJ.length),j,a,b,m,k;
+      var end=Math.min(p+25,allJ.length),j,a,b,m,k,loId,hiId,pk,isIgn;
       for(;p<end;p++){
         b=allJ[p];
         for(j=0;j<p;j++){
           a=allJ[j];
           if(a.it.id===b.it.id)continue;
+          loId=a.it.id<b.it.id?a.it.id:b.it.id;hiId=a.it.id<b.it.id?b.it.id:a.it.id;pk=loId+"|"+hiId;
+          isIgn=!!ignored[pk];
           m=a.s===b.s?{d:0,n:100,k:"",o:A[p].ori}:cmpSig(A[j],A[p],FLOOR);
           if(m){
             k=a.it.id+"|"+b.it.id+"|"+a.s+"|"+b.s;
-            if(!seen[k]){seen[k]=1;raw.push({a:a.it,b:b.it,x:a.s,y:b.s,d:m.d,k:m.k,o:m.o||"",n:m.n})}
+            if(isIgn){
+              if(!ignSeen[k]){ignSeen[k]=1;ignRaw.push({a:a.it,b:b.it,x:a.s,y:b.s,d:m.d,k:m.k,o:m.o||"",n:m.n})}
+            }else if(!seen[k]){
+              seen[k]=1;raw.push({a:a.it,b:b.it,x:a.s,y:b.s,d:m.d,k:m.k,o:m.o||"",n:m.n});
+            }
           }
         }
       }
       if(p<allJ.length)return new Promise(function(r){setTimeout(r,0)}).then(step);
       var tiers=[87,84,80,77,73,70],res=[];
-      tiers.forEach(function(t){res.push(evalPairsAtTh(raw,t,src,byId))});
-      var elbow=null,best=80;
-      for(var i=0;i<res.length-1;i++){
+      tiers.forEach(function(t){res.push(evalPairsAtTh(raw,ignRaw,t,src,byId,tMap))});
+      smartCalc();
+      var elbow=null,maxCandIdx=res.length-1,i;
+      for(i=0;i<res.length-1;i++){
         var cur=res[i],nxt=res[i+1];
-        if(nxt.housePairs>=Math.max(cur.housePairs*2.2,cur.housePairs+8)){
-          elbow=nxt.th;best=cur.th;break;
+        var dPairs=nxt.housePairs-cur.housePairs;
+        var dTrusted=nxt.trustedPairs-cur.trustedPairs;
+        var dRisk=(nxt.riskyPairs-cur.riskyPairs)+(nxt.conflictPairs-cur.conflictPairs)+(nxt.ignFP-cur.ignFP)*2;
+        var dIgn=nxt.ignFP-cur.ignFP;
+        if((nxt.housePairs>=Math.max(cur.housePairs*1.9,cur.housePairs+6)&&dRisk>=dTrusted)
+          ||(dIgn>=2&&dTrusted<=dIgn)
+          ||(cur.maxComp>=2&&nxt.maxComp>=Math.max(cur.maxComp*2,cur.maxComp+5)&&dPairs>0&&dRisk>=dTrusted)){
+          elbow=nxt.th;maxCandIdx=i;break;
         }
       }
-      if(!elbow){
-        var r80=res[2],r77=res[3];
-        best=(r77.housePairs<=r80.housePairs+Math.max(6,Math.round(r80.housePairs*0.4)))?77:80;
+      var best=80,bestScore=-1e9;
+      if(res[res.length-1].housePairs===0){
+        best=80;
+      }else{
+        var pref={80:0.45,77:0.35,84:0.25,87:0.1,73:0.05,70:0};
+        for(i=0;i<=maxCandIdx;i++){
+          var r=res[i],neutral=Math.max(0,r.housePairs-r.trustedPairs-r.riskyPairs-r.conflictPairs);
+          var sc2=r.trustedPairs*2.2+neutral*0.85-r.riskyPairs*1.1-r.conflictPairs*2.6-r.ignFP*3.0-(r.th<77?1.5:0)+(pref[r.th]||0);
+          if(r.housePairs===0&&res[maxCandIdx].housePairs>0)sc2-=50;
+          if(sc2>bestScore){bestScore=sc2;best=r.th}
+        }
       }
+      var excl=[];
+      if(outCnt>0)excl.push(outCnt+" căn Loại");
+      if(ignActiveCnt>0)excl.push(ignActiveCnt+" cặp không trùng");
       var parts=res.map(function(x){return x.th+"%: "+x.housePairs+" cặp"});
-      var txt="Phân tích đa ngưỡng ("+allJ.length+" ảnh đã cache): "+parts.join(" · ")+(elbow?" · Nhiễu tăng mạnh từ ≤"+elbow+"%":"")+" · Gợi ý tối ưu: "+best+"%.";
-      return{ok:true,imgs:allJ.length,rawEdges:raw.length,tiers:res,elbow:elbow,recommended:best,summary:txt};
+      var txt="Phân tích đa ngưỡng ("+allJ.length+" ảnh"+(excl.length?" · đã bỏ "+excl.join(" & "):"")+"): "+parts.join(" · ")+(elbow?" · Nhiễu tăng mạnh từ ≤"+elbow+"%":"")+" · Gợi ý tối ưu: "+best+"%.";
+      return{ok:true,imgs:allJ.length,excludedOut:outCnt,excludedIgnored:ignActiveCnt,rawEdges:raw.length,tiers:res,elbow:elbow,recommended:best,summary:txt};
     }
     return Promise.resolve().then(step);
   });
@@ -2552,9 +3081,10 @@ function open(nt){
   G("dupimgv").value=imgAutoMode;
   G("dupnoout").checked=skipOut;
   engUi();
-  var sb=G("dupsave"),en=G("dupengnote");
+  var sb=G("dupsave"),en=G("dupengnote"),aa=G("dupanact");
   if(sb){sb.classList.remove("dirty");sb.textContent="Lưu & quét lại ảnh"}
   if(en){en.hidden=true;en.textContent="";en.className="dpst dpfull"}
+  if(aa){aa.hidden=true;lastRecTh=null}
   items=N().items();cleanImgPairs();limMain=limIgn=LIMIT;openSet={};openImgSet={};pairImgMode={};pairImgMsg={};cmpAll={};zoomCmp=null;showIgn=false;msg(imgPairs&&imgPairs.length?imgPairs.length+" cặp ảnh giống":"");G("dupbar").hidden=!scanning;G("dupstop").hidden=!scanning;G("dupz").hidden=true;render();dpEnter();if(scanning)msg("Đang dừng lượt quét trước…");
   if(!G("dupd").open)G("dupd").showModal();G("dupd").scrollTop=0;
   loadCache().then(function(){if(G("dupd").open&&!scanning){if(imgPairs===null)applyCachedPairs();autoScan()}});
@@ -2578,7 +3108,7 @@ function sync(){
     if(cacheLoaded&&!scanning)autoScan()
   },120)}
 
-window.Dup={retire:function(){return retList().map(function(x){return x.c})},ignStat:function(){return ignStat()},smart:function(){loadImgMode();var s=smartCalc();return{th:TH,ts:s.ts,mid:s.mid,tl:s.tl,strong:s.strong,algo:ALGO_VER,mm:MM_MODE,np:s.np,lv:s.lv,cal:s.cal,kept:s.kept,cut:s.cut,dedupCut:s.dedupCut,ctxCut:s.ctxCut,mmChecked:s.mmChecked,mmCut:s.mmCut,mmBoost:s.mmBoost,spChecked:s.spChecked,spCut:s.spCut,spSave:s.spSave}},analyze:analyzeThresholds,keys:function(){return{h:CACHE_KEY,p:PM_KEY}},cached:function(){return cacheLoaded?Object.keys(cache).length:-1},dino:function(){
+window.Dup={retire:function(){return retList().map(function(x){return x.c})},ignStat:function(){return ignStat()},smart:function(){loadImgMode();var s=smartCalc();return{th:TH,ts:s.ts,mid:s.mid,tl:s.tl,strong:s.strong,algo:ALGO_VER,mm:MM_MODE,np:s.np,lv:s.lv,cal:s.cal,kept:s.kept,cut:s.cut,dedupCut:s.dedupCut,ctxCut:s.ctxCut,mmChecked:s.mmChecked,mmCut:s.mmCut,mmBoost:s.mmBoost,spChecked:s.spChecked,spCut:s.spCut,spSave:s.spSave,clusters:lastGraph?lastGraph.stats.clusterCount:0}},clusters:function(customImgPairs,customItems){if(customItems)items=customItems;else if(N())items=N().items();if(customImgPairs){imgPairs=customImgPairs}var r=build();return r.graph},sortAdjacent:function(list,customImgPairs){if(customImgPairs)imgPairs=customImgPairs;var srcList=list||(N()?N().items():items);if(!items.length&&srcList.length)items=srcList;var r=build();return sortHousesAdjacent(srcList,r.graph)},analyze:analyzeThresholds,keys:function(){return{h:CACHE_KEY,p:PM_KEY}},cached:function(){return cacheLoaded?Object.keys(cache).length:-1},dino:function(){
     if(DW.w)return"worker/"+DW.dev+" x"+BN+" res"+DS;
     if(DINO.m)return"main/wasm x"+BN+" res"+DS;
     if(DINO.p)return"đang tải";
