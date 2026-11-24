@@ -1,14 +1,18 @@
-/* dbg.js: tự kiểm tra sau khi các thành phần đã nạp xong + công cụ gỡ lỗi.
+/* dbg.js: tự kiểm tra sau khi các thành phần đã nạp xong + công cụ gỡ lỗi + tự động sửa lỗi hệ thống.
+   Đã đối chiếu chuẩn xác với kiến trúc sw.js (v51, cơ chế next-* -> promote), index.html (IDBM, NK, NI, NT, NB),
+   dup.js (dhc11/dpm6, DINOv3 lib-v1, Dup.retire), ck.js, img.js, bk.js và manifest.webmanifest.
    - Chạy ngầm ~3 giây sau khi trang tải xong, không hiện gì khi mọi thứ ổn (chỉ có nút ⚠ nhỏ khi có lỗi nghiêm trọng).
-     Chạy ngầm không gửi loạt yêu cầu HEAD kiểm tra tệp cài đặt, chỉ làm mỗi 12 giờ một lần (bấm tay thì luôn làm).
-   - Mở bảng báo cáo: chạm 7 lần liên tiếp vào tiêu đề trang, hoặc thêm ?debug=1 vào địa chỉ (PWA), hoặc gọi Dbg.show() trong console.
-   - Bảng gồm: tóm tắt trạng thái cố định ở trên, lọc "Cần xử lý"/"Tất cả", nhóm thu gọn (tự mở nhóm có lỗi), nút "Kiểm tra toàn bộ" (thiết bị + máy chủ), nút Dừng.
-   - Chỉ ĐỌC dữ liệu (ngoại lệ: mỗi phiên xin trình duyệt lưu trữ bền một lần, không hiện hộp thoại, không áp dụng cho APK; và nút "Thử gửi (POST)" do bạn tự bấm, có hỏi xác nhận).
-   - Kiểm tra máy chủ chỉ chạy khi bạn bấm (không chạy ngầm): cấu hình, đường truyền tới Google và trang app (tự thử lại 1 lần để tránh báo lỗi oan), tải danh sách, làm mới nhanh 3 lần (đo độ dao động), tải checklist, tải thử 1 ảnh Drive. Toàn bộ chỉ đọc. Báo cáo không chứa link Web app, mã truy cập hay tên căn (chỉ số lượng).
-   - Theo dõi thụ động số lần mất/có mạng từ lúc mở trang; kiểm tra đọc được kho IndexedDB của app.
-   - Đồng bộ dữ liệu quét trùng giữa các bản cài (PWA/APK): nhóm "Đồng bộ" đọc kết quả quét (dpm3), hash ảnh (dhc7), danh sách "Không phải trùng" (dign1) và phát hiện mục cũ/lệch cài đặt; in 5 mã đối chiếu ngắn để so PWA với APK; khi bấm kiểm tra máy chủ thì đối chiếu thêm danh sách căn/ảnh và cặp "Không phải trùng" với Sheet. Chỉ đọc.
-   - Các nút sửa lỗi đều hỏi xác nhận, không động tới dữ liệu trên Sheet/Drive, và từ chối khi đang có thay đổi chưa lưu hoặc ảnh đang tải lên.
-   Cần đoạn bắt lỗi sớm (window.__dbg) trong <head> của index.html; thiếu đoạn đó thì dbg.js vẫn chạy nhưng chỉ thấy lỗi xảy ra sau khi nó nạp. */
+   - Tự động sửa lỗi (Auto-Fix) cho cả:
+     1) Máy mới cài chưa cache (fresh): đăng ký sw.js (kèm ?app=1 cho APK), nạp bù SHELL_FILES còn thiếu vào shell-{ver},
+        khởi tạo kho IndexedDB "nha-thue-kv" (store "kv"), xin lưu trữ bền, và đồng bộ sẵn danh sách căn + hash ảnh.
+     2) Máy đã cài thành công (installed): kích hoạt bản cập nhật đang chờ trong next-{ver} qua reload có kiểm soát,
+        làm mới vỏ app khi lệch cầu nối (giữ nguyên img-v1, lib-v1 DINOv3 và IndexedDB), tỉa cache ảnh >95% xuống 75%,
+        dọn localStorage >4 MB (không chạm hàng đợi Dup.retire), phẫu thuật làm sạch dpm6 (giữ nguyên dhc11),
+        đồng bộ hai chiều dign1 và khôi phục ckc1 hỏng.
+   - Bảo vệ dữ liệu tuyệt đối: khóa toàn bộ thao tác ghi/xóa/tải lại khi đang sửa/tải ảnh (ckDirty, ckSaveN, ckUpN, ckUpQ, ckTrashQ, ckErr)
+     và từ chối tự tải lại khi đang ở màn hình Checklist (tab==="ck") hoặc đang mở hộp thoại khác.
+   - Chống lặp tải lại (Loop Breaker): tối đa 2 lần/phiên và không lặp cùng mã lỗi trong 5 phút.
+   - API: window.Dbg = { run, show, all, report, autoFix, plan, profile }. */
 (function(){
 "use strict";
 var G=function(i){return document.getElementById(i)};
@@ -23,12 +27,12 @@ var NI_FN=["imgSrc","findItem","segArr","curSeg","ckWarm","tab","items"];
 var NB_KEYS=["$","IDBM","apiGet","apiPost","apiUrl","capP","hs","netMsg","nrm","refresh","items","canW","pendAdd","bumpVer"];
 var NB_FN=["$","apiGet","apiPost","apiUrl","capP","hs","netMsg","nrm","refresh","pendAdd","bumpVer"];
 var NT_KEYS=["apiGet","apiPost","items","esc","su","imgSrc","addrOf","stName","fmt","ls","openDv","openEdit","canW","idbGet","idbSave","del"];
-function KH(){try{return window.Dup.keys().h}catch(e){return"dhc7"}}   /* khóa hash ảnh đang dùng (dhc7, hoặc dhc7r160 khi đổi độ phân giải) */
-function KP(){try{return window.Dup.keys().p}catch(e){return"dpm3"}}   /* khóa kết quả quét */
+function KH(){try{return window.Dup.keys().h}catch(e){return"dhc11"}}
+function KP(){try{return window.Dup.keys().p}catch(e){return"dpm6"}}
 var MOD={Ck:["init","renderCk","ckFlush","ckPersist"],Img:["init","openLb","iwGal","iwNow","iwIntent","iwCkNow"],Dup:["pull","init","open","close","sync","closeZoom"],Bk:["init"]};
 var IDS=["list","ckb","lb","lbi","lbc","lbn","lbp","upd","pgCk","bk","bd","bsel","bim","bm"];
 var NET=/failed to fetch|load failed|networkerror|network request|internet connection|mất kết nối|aborted/i;
-var LIM={s:3000,l:700,w:360};   // mặc định; sw.js mới trả đúng số đang dùng
+var LIM={s:3000,l:700,w:360};
 
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function kb(n){return n>=1048576?(n/1048576).toFixed(1)+" MB":Math.round(n/1024)+" KB"}
@@ -51,41 +55,61 @@ function whyNoPersist(){
   if(!isStandalone())return "Đang mở trong tab trình duyệt: Chrome không cấp quyền lưu trữ bền cho tab. Hãy chọn \"Cài đặt ứng dụng\" (menu ⋮) để đưa app ra màn hình chính, rồi mở từ biểu tượng đó.";
   return "Chrome chưa cấp (thường tự cấp cho app đã cài sau vài ngày dùng thường xuyên). Có thể thử lại sau.";}
 
+/* ---------- Thu thập trạng thái có cấu trúc cho thuật toán Auto-Fix ---------- */
+function freshMeta(){
+  return {
+    swReg:null,swActive:false,swWaiting:false,swNoController:false,swCallMissing:false,swVer:"",swList:[],
+    shellCacheName:"",hasShellCache:false,shellCachedCount:0,shellMiss:[],nextCaches:[],
+    imgCount:0,imgS:0,imgL:0,imgPS:0,imgPL:0,
+    lsBytes:0,persisted:true,canPersist:false,
+    idbExists:false,idbMissingStore:false,idbUnreadable:false,idbCount:0,
+    compBroken:false,bridgeBroken:false,missingIgnStat:false,
+    itemsCount:0,hasDpm:false,hasDhc:false,
+    pmBad:false,pmThMismatch:false,pmTargetTh:80,pmStale:0,pmOrphan:0,pmExpiredFail:0,
+    hcBad:false,
+    igBad:false,igLsN:-1,igIdbN:-1,igQueueCount:0,igRawLs:"",igRawIdb:"",
+    ckcBad:false,ckNeedCount:0,
+    srvItemMismatch:false,srvRoleMismatch:false,srvHashBehind:false,srvDupDesync:false
+  }}
+
 /* ---------- Các nhóm kiểm tra ---------- */
-function chkComponents(add,w){
+function chkComponents(add,w,M){
   var g="Thành phần";
   if(!w.ok){
-    ["NK","NI","NT","NB","Ck","Img","Dup","Bk"].forEach(function(k){if(!window[k])add("bad",g,k+" chưa sẵn sàng sau 10 giây (tệp liên quan không nạp được hoặc index.html chạy lỗi)")});
+    M.compBroken=true;
+    ["NK","NI","NT","NB","Ck","Img","Dup","Bk"].forEach(function(k){if(!window[k])add("bad",g,k+" chưa sẵn sàng sau 10 giây (tệp liên quan không nạp được hoặc index.html chạy lỗi)","COMP_NOT_READY")});
   }else add("ok",g,"Đủ NK, NI, NT, NB, Ck, Img, Dup, Bk (sẵn sàng sau "+w.ms+" ms kể từ lúc kiểm tra)");
   Object.keys(MOD).forEach(function(m){
     if(!window[m])return;
     var miss=MOD[m].filter(function(k){return typeof window[m][k]!=="function"});
-    if(miss.length)add("bad",g,m+" thiếu hàm: "+miss.join(", ")+" (có thể lệch phiên bản giữa các tệp)")});
-  if(window.Ck&&!(G("ckb")&&typeof G("ckb").onclick==="function"))add("bad",g,"ck.js đã nạp nhưng chưa khởi tạo (Ck.init chưa chạy)");
-  if(window.Img&&!(G("lb")&&typeof G("lb").onclick==="function"))add("bad",g,"img.js đã nạp nhưng chưa khởi tạo (Img.init chưa chạy)");
-  if(window.Bk&&!(G("bk")&&G("bk").dataset.ready==="1"))add("bad",g,"bk.js đã nạp nhưng chưa khởi tạo (Bk.init chưa chạy, nút Sao lưu/khôi phục sẽ không hoạt động)");
-  if(window.Dup&&!(G("dupd")&&G("dupb")))add("bad",g,"dup.js đã nạp nhưng chưa dựng giao diện Kiểm tra trùng");
+    if(miss.length){M.compBroken=true;add("bad",g,m+" thiếu hàm: "+miss.join(", ")+" (có thể lệch phiên bản giữa các tệp)","MOD_METHOD_MISSING")}});
+  if(window.Ck&&!(G("ckb")&&typeof G("ckb").onclick==="function")){M.compBroken=true;add("bad",g,"ck.js đã nạp nhưng chưa khởi tạo (Ck.init chưa chạy)","MOD_NOT_INIT")}
+  if(window.Img&&!(G("lb")&&typeof G("lb").onclick==="function")){M.compBroken=true;add("bad",g,"img.js đã nạp nhưng chưa khởi tạo (Img.init chưa chạy)","MOD_NOT_INIT")}
+  if(window.Bk&&!(G("bk")&&G("bk").dataset.ready==="1")){M.compBroken=true;add("bad",g,"bk.js đã nạp nhưng chưa khởi tạo (Bk.init chưa chạy, nút Sao lưu/khôi phục sẽ không hoạt động)","MOD_NOT_INIT")}
+  if(window.Dup&&!(G("dupd")&&G("dupb"))){M.compBroken=true;add("bad",g,"dup.js đã nạp nhưng chưa dựng giao diện Kiểm tra trùng","MOD_NOT_INIT")}
   if(NOTRAP)add("warn",g,"Thiếu đoạn bắt lỗi sớm (window.__dbg) trong <head> của index.html: lỗi và tác vụ treo xảy ra trước khi dbg.js nạp sẽ không được ghi lại");
   var noId=IDS.filter(function(i){return !G(i)});
-  if(noId.length)add("bad",g,"Thiếu phần tử trong trang: "+noId.join(", "))}
-function bridge(add,obj,name,keys,fns){
-  if(!obj){add("bad","Cầu nối",name+" chưa khai báo");return}
+  if(noId.length){M.compBroken=true;add("bad",g,"Thiếu phần tử trong trang: "+noId.join(", "),"DOM_MISSING")}}
+function bridge(add,obj,name,keys,fns,M){
+  if(!obj){M.bridgeBroken=true;add("bad","Cầu nối",name+" chưa khai báo","BRIDGE_MISSING");return}
   var miss=keys.filter(function(k){return !(k in obj)});
   var bad=fns.filter(function(k){var v;try{v=obj[k]}catch(e){return true}return k in obj&&typeof v!=="function"});
-  if(miss.length||bad.length)add("bad","Cầu nối",name+": thiếu "+(miss.join(", ")||"–")+(bad.length?" · sai kiểu "+bad.join(", "):"")+" (index.html và các tệp con không cùng phiên bản)");
-  else add("ok","Cầu nối",name+": đủ "+keys.length+" mục")}
-function chkBridges(add){
-  bridge(add,window.NK,"NK (ck.js)",NK_KEYS,NK_FN);
-  bridge(add,window.NI,"NI (img.js)",NI_KEYS,NI_FN);
-  bridge(add,window.NT,"NT (dup.js)",NT_KEYS,NT_KEYS);
-  bridge(add,window.NB,"NB (bk.js)",NB_KEYS,NB_FN)}
+  if(miss.length||bad.length){
+    M.bridgeBroken=true;
+    add("bad","Cầu nối",name+": thiếu "+(miss.join(", ")||"–")+(bad.length?" · sai kiểu "+bad.join(", "):"")+" (index.html và các tệp con không cùng phiên bản)","BRIDGE_SKEW");
+  }else add("ok","Cầu nối",name+": đủ "+keys.length+" mục")}
+function chkBridges(add,M){
+  bridge(add,window.NK,"NK (ck.js)",NK_KEYS,NK_FN,M);
+  bridge(add,window.NI,"NI (img.js)",NI_KEYS,NI_FN,M);
+  bridge(add,window.NT,"NT (dup.js)",NT_KEYS,NT_KEYS,M);
+  bridge(add,window.NB,"NB (bk.js)",NB_KEYS,NB_FN,M)}
 function chkRes(add){
   var rs=[];try{rs=performance.getEntriesByType("resource")||[]}catch(e){}
   FILES.forEach(function(f){
     var r=rs.filter(function(x){return x.name.split("?")[0].slice(-f.length-1)==="/"+f})[0];
     if(!r){add("info","Tệp",f+": không có trong số liệu tải (có thể bị trình duyệt giới hạn)");return}
-    if(r.responseStatus&&r.responseStatus>=400){add("bad","Tệp",f+": lỗi HTTP "+r.responseStatus);return}
-    var local=r.transferSize===0&&!r.decodedBodySize;   // APK: tệp lấy thẳng từ gói app, trình duyệt không đo được dung lượng
+    if(r.responseStatus&&r.responseStatus>=400){add("bad","Tệp",f+": lỗi HTTP "+r.responseStatus,"ASSET_HTTP_ERR");return}
+    var local=r.transferSize===0&&!r.decodedBodySize;
     var from=local?"gói app":(r.transferSize===0?"bộ nhớ đệm":"mạng");
     add(r.duration>2500?"warn":"ok","Tệp",f+": "+Math.round(r.duration)+" ms · "+from+(r.decodedBodySize?" · "+kb(r.decodedBodySize):""))})}
 function ping(sw){
@@ -97,42 +121,44 @@ function ping(sw){
     navigator.serviceWorker.addEventListener("message",on);
     try{sw.postMessage({type:"ping"})}catch(e){fin(null)}
     setTimeout(function(){fin(null)},1500)})}
-function chkSw(add){
+function chkSw(add,M){
   var g="Service worker";
   if(!("serviceWorker" in navigator)){add("info",g,"Không được hỗ trợ ở môi trường này");return Promise.resolve()}
   if(!/^https?:$/i.test(location.protocol)){add("info",g,"Không chạy ở giao thức "+location.protocol);return Promise.resolve()}
   return navigator.serviceWorker.getRegistration().then(function(reg){
+    M.swReg=reg||null;
     if(!reg){
-      add("warn",g,"Chưa đăng ký (ảnh chưa được lưu bền)");
-      if(B.swCall===undefined)add("bad",g,"Mã đăng ký service worker chưa từng được gọi (trang tải xong trước khi đoạn đăng ký kịp chạy)");
+      add("warn",g,"Chưa đăng ký (ảnh chưa được lưu bền)","SW_NOT_REGISTERED");
+      if(B.swCall===undefined){M.swCallMissing=true;add("bad",g,"Mã đăng ký service worker chưa từng được gọi (trang tải xong trước khi đoạn đăng ký kịp chạy)","SW_CALL_MISSING")}
       else add("info",g,"Đã gọi đăng ký lúc +"+(B.swCall/1000).toFixed(1)+"s"+(B.swOk!==undefined?", hoàn tất lúc +"+(B.swOk/1000).toFixed(1)+"s":", chưa hoàn tất (xem mục Lỗi đã ghi)"));
       return}
     if(B.swCall!==undefined)add("info",g,"Đăng ký được gọi lúc +"+(B.swCall/1000).toFixed(1)+"s"+(B.swOk!==undefined?", sẵn sàng lúc +"+(B.swOk/1000).toFixed(1)+"s":""));
     var sw=reg.active;
+    M.swActive=!!sw;
     add(sw?"ok":"warn",g,"Đăng ký rồi · "+(sw?sw.state:reg.installing?"đang cài":reg.waiting?"đang chờ":"?")+" · phạm vi "+reg.scope.replace(location.origin,""));
-    if(!navigator.serviceWorker.controller)add("warn",g,"Chưa kiểm soát trang này: ảnh chưa được lưu bền. Mở lại trang một lần nữa.");
-    if(reg.waiting)add("warn",g,"Có bản service worker mới đang chờ kích hoạt. Đóng hết cửa sổ app rồi mở lại.");
+    if(!navigator.serviceWorker.controller){M.swNoController=true;add("warn",g,"Chưa kiểm soát trang này: ảnh chưa được lưu bền. Mở lại trang một lần nữa.","SW_NO_CONTROLLER")}
+    if(reg.waiting){M.swWaiting=true;add("warn",g,"Có bản service worker mới đang chờ kích hoạt. Đóng hết cửa sổ app rồi mở lại.","SW_WAITING")}
     return ping(sw).then(function(p){
       if(!p){add("info",g,"Chưa đọc được phiên bản (service worker cũ chưa hỗ trợ lệnh kiểm tra)");return}
       if(p.lim)LIM=p.lim;
       add("ok",g,"Phiên bản "+p.v+" · chế độ "+(p.app?"APK/App (không lưu vỏ app)":"PWA"));
       if(window.Capacitor&&!p.app)add("warn",g,"Đang chạy trong APK nhưng service worker ở chế độ PWA");
-      if(!window.Capacitor&&p.app)add("warn",g,"Service worker ở chế độ APK nhưng trang không chạy trong APK")})})}
+      if(!window.Capacitor&&p.app)add("warn",g,"Service worker ở chế độ APK nhưng trang không chạy trong APK")})},function(){})}
 function headOk(u){return fetch(u,{method:"HEAD",cache:"no-store"}).then(function(r){return r.status},function(){return 0})}
-function swFiles(tx){   // đọc danh sách SHELL_FILES và VERSION từ sw.js
+function swFiles(tx){
   var o={v:"",list:[]},m=/const\s+VERSION\s*=\s*'([^']+)'/.exec(tx);if(m)o.v=m[1];
   var map={},re=/const\s+(\w+)\s*=\s*'(\.\/[^']+)'/g,x;
   while((x=re.exec(tx)))map[x[1]]=x[2];
   var l=/SHELL_FILES\s*=\s*\[([\s\S]*?)\]\s*;/.exec(tx);
   if(l)l[1].split(",").forEach(function(t){t=t.replace(/\/\/.*$/gm,"").trim();var q=/^'([^']+)'$/.exec(t);var f=q?q[1]:map[t];if(f&&f!=="./")o.list.push(f)});
   return o}
-function chkAssets(add){
+function chkAssets(add,M){
   var g="Tệp cài đặt";
   if(!/^https?:$/i.test(location.protocol))return Promise.resolve();
   var sw={v:"",list:[]};
   return fetch("sw.js",{cache:"no-store"}).then(function(r){
     if(!r.ok){add("bad",g,"sw.js: HTTP "+r.status);return}
-    return r.text().then(function(tx){sw=swFiles(tx)})
+    return r.text().then(function(tx){sw=swFiles(tx);M.swVer=sw.v;M.swList=sw.list.slice()})
   },function(){}).then(function(){
     return fetch("manifest.webmanifest",{cache:"no-store"}).then(function(r){
       if(!r.ok){add("bad",g,"manifest.webmanifest: HTTP "+r.status+" (không cài được ra màn hình chính)");return null}
@@ -158,17 +184,18 @@ function chkAssets(add){
     return Promise.all(urls.map(function(u){return headOk(u).then(function(c){return{u:u,c:c,ok:c>=200&&c<400}})})).then(function(rs){
       var bad=rs.filter(function(x){return !x.ok});
       bad.forEach(function(x){
-        var font=/\/fonts\//.test(x.u);   // sw.js bỏ qua tệp thiếu khi cài, nên font thiếu chỉ là cảnh báo
+        var font=/\/fonts\//.test(x.u);
         add(font?"warn":"bad",g,x.u.replace(location.origin,"")+": "+(x.c?"HTTP "+x.c:"không tải được")+(font?" (sw.js liệt kê nhưng không có: không lưu offline được, chữ có thể đổi font)":/icon/.test(x.u)?" (thiếu tệp icon hoặc sai đường dẫn)":""))});
       if(!bad.length)add("ok",g,"Đủ "+rs.length+" tệp (sw.js"+(sw.v?" "+sw.v:"")+", manifest, icon, font, mã nguồn)");
-      // PWA: tệp nào có trên máy chủ mà chưa nằm trong bộ nhớ đệm vỏ app thì offline sẽ thiếu
       if(isApk()||!window.caches||!sw.v||!navigator.serviceWorker||!navigator.serviceWorker.controller)return;
+      M.shellCacheName="shell-"+sw.v;
       return caches.open("shell-"+sw.v).then(function(c){
         return Promise.all(rs.filter(function(x){return x.ok&&sw.list.some(function(f){return new URL(f,location.href).href===x.u})}).map(function(x){return c.match(x.u).then(function(h){return h?null:x.u})}))
       }).then(function(miss){
         miss=miss.filter(Boolean);
-        if(miss.length)add("warn",g,miss.length+" tệp chưa lưu để dùng offline: "+miss.map(function(u){return u.replace(location.origin+"/","")}).join(", ")+" (mở lại app một lần khi có mạng)")},function(){})})})}
-function chkCaches(add){
+        M.shellMiss=miss.slice();
+        if(miss.length)add("warn",g,miss.length+" tệp chưa lưu để dùng offline: "+miss.map(function(u){return u.replace(location.origin+"/","")}).join(", ")+" (mở lại app một lần khi có mạng)","SHELL_MISS_FILES")},function(){})})})}
+function chkCaches(add,M){
   var g="Bộ nhớ đệm";
   if(!window.caches){add("info",g,"Không hỗ trợ Cache API");return Promise.resolve()}
   return caches.keys().then(function(ks){
@@ -178,47 +205,62 @@ function chkCaches(add){
         if(x.k==="img-v1"){
           var s=0,b=0;x.l.forEach(function(r){var m=/=w(\d+)$/.exec(r.url);if(m&&+m[1]<=LIM.w)s++;else b++});
           var pS=Math.round(s*100/LIM.s),pL=Math.round(b*100/LIM.l);
-          add(pS>=95||pL>=95?"warn":"ok",g,"Ảnh: "+s+" nhỏ ("+pS+"% hạn mức "+LIM.s+") · "+b+" lớn ("+pL+"% hạn mức "+LIM.l+")"+(pS>=95||pL>=95?" — cache đầy, ảnh cũ đang bị xóa dần":""));
+          M.imgCount=x.l.length;M.imgS=s;M.imgL=b;M.imgPS=pS;M.imgPL=pL;
+          add(pS>=95||pL>=95?"warn":"ok",g,"Ảnh: "+s+" nhỏ ("+pS+"% hạn mức "+LIM.s+") · "+b+" lớn ("+pL+"% hạn mức "+LIM.l+")"+(pS>=95||pL>=95?" — cache đầy, ảnh cũ đang bị xóa dần":"") ,pS>=95||pL>=95?"IMG_CACHE_NEAR_LIMIT":null);
         }else if(/^next-/.test(x.k)){
-          add(x.l.length?"warn":"ok",g,x.k+": "+(x.l.length?x.l.length+" tệp bản mới đang chờ áp dụng, hãy tải lại trang":"trống"));
-        }else add("ok",g,x.k+": "+x.l.length+" mục")})})})}
-function chkStorage(add){
+          if(x.l.length)M.nextCaches.push(x.k);
+          add(x.l.length?"warn":"ok",g,x.k+": "+(x.l.length?x.l.length+" tệp bản mới đang chờ áp dụng, hãy tải lại trang":"trống"),x.l.length?"NEXT_CACHE_PENDING":null);
+        }else{
+          if(/^shell-/.test(x.k)){M.hasShellCache=true;M.shellCachedCount=Math.max(M.shellCachedCount,x.l.length);if(!M.shellCacheName)M.shellCacheName=x.k}
+          add("ok",g,x.k+": "+x.l.length+" mục")}})})})}
+function chkStorage(add,M){
   var g="Dung lượng";
   var p=[];
   if(navigator.storage&&navigator.storage.estimate)p.push(navigator.storage.estimate().then(function(e){
     var pc=e.quota?Math.round(e.usage*100/e.quota):0;
     add(pc>=80?"warn":"ok",g,"Đã dùng "+kb(e.usage||0)+" / "+kb(e.quota||0)+" ("+pc+"%)")},function(){}));
   if(navigator.storage&&navigator.storage.persisted)p.push(navigator.storage.persisted().then(function(v){
+    M.persisted=!!v;
     if(v)add("ok",g,"Lưu trữ bền: đã bật (trình duyệt không tự xóa khi thiếu chỗ)");
     else if(isApk())add("ok",g,whyNoPersist());
-    else{add("info",g,"Lưu trữ bền: chưa bật. "+whyNoPersist());CAN=true}},function(){}));
+    else{add("info",g,"Lưu trữ bền: chưa bật. "+whyNoPersist());CAN=true;M.canPersist=true}},function(){}));
   try{
     var n=0,i,k;
     for(i=0;i<localStorage.length;i++){k=localStorage.key(i);n+=(k.length+(localStorage.getItem(k)||"").length)*2}
-    add(n>4000000?"warn":"ok",g,"localStorage: "+kb(n)+(n>4000000?" — gần giới hạn 5 MB của iOS":""))
+    M.lsBytes=n;
+    add(n>4000000?"warn":"ok",g,"localStorage: "+kb(n)+(n>4000000?" — gần giới hạn 5 MB của iOS":""),n>4000000?"LS_NEAR_QUOTA":null)
   }catch(e){add("warn",g,"Không đọc được localStorage")}
   return Promise.all(p)}
-function chkData(add){
+function chkData(add,M){
   var g="Dữ liệu",K=window.NK,T=window.NT,items=[];
   try{items=(K&&K.items)||(T&&T.items&&T.items())||[]}catch(e){}
-  if(!items.length&&!ready()){return}
-  if(!items.length){add("warn",g,"Chưa có căn nào trên máy (chưa tải xong, đang offline, hoặc danh sách trống). Bấm \"Kiểm tra toàn bộ\" để xem lý do.");return}
+  M.itemsCount=items.length;
+  var checkCkc=rdKey("ckc1").then(function(r){
+    var raw=r.idb||r.ls;
+    if(raw){
+      var p=pjson(raw);
+      if(p.bad||(p.o&&typeof p.o.c!=="object")){M.ckcBad=true;add("warn",g,"Dữ liệu checklist đã nhớ trên máy (ckc1) bị hỏng định dạng, cần đặt lại để tải lại từ Sheet","CKC_CORRUPT")}
+    }
+  },function(){});
+  if(!items.length&&!ready()){return checkCkc}
+  if(!items.length){add("warn",g,"Chưa có căn nào trên máy (chưa tải xong, đang offline, hoặc danh sách trống). Bấm \"Kiểm tra toàn bộ\" để xem lý do.","NO_ITEMS");return checkCkc}
   var ids={},dup=0,noName=0,withCk=0,need=0,odd=0,imG=0,imV=0,imH=0,ckC={},CKIDS={};
   try{ckC=K.ckC||{}}catch(e){}
   try{(K.CK||[]).forEach(function(s){(s.i||[]).forEach(function(x){CKIDS[x[0]]=1})})}catch(e){}
   items.forEach(function(it){
     if(ids[it.id])dup++;ids[it.id]=1;
     if(!it.n)noName++;
-    imG+=(it.im||[]).length;                       // ảnh gốc (it.im)
+    imG+=(it.im||[]).length;
     var c=it.ck;if(!c)return;
-    var nv=(c.vi||[]).length,nh=(c.im||[]).length;  // ảnh đi xem (ck.vi), ảnh hư hỏng (ck.im)
+    var nv=(c.vi||[]).length,nh=(c.im||[]).length;
     imV+=nv;imH+=nh;
     var has=nv+nh>0||!!(c.nt&&String(c.nt).trim());
     try{var l=K&&K.ckLiteOf?K.ckLiteOf(c):null;if(l&&l.s&&(l.s[0]+l.s[1]+l.s[2])>0)has=true}catch(e){}
-    if(!has)return;                                 // chỉ tính checklist có nội dung thật, giống ckHas trong index.html
+    if(!has)return;
     withCk++;
     var cc=ckC[it.id];if(!(cc&&cc.h===(c.h||"")))need++;
     if(cc&&cc.ck&&cc.ck.c)for(var k in cc.ck.c)if(!CKIDS[k]){odd++;break}});
+  M.ckNeedCount=need;
   add("ok",g,items.length+" căn · ảnh gốc "+imG+" · ảnh đi xem "+imV+" · ảnh hư hỏng "+imH+" · "+withCk+" căn có checklist");
   if(dup)add("bad",g,dup+" căn bị trùng mã (id), cần kiểm tra Sheet");
   if(noName)add("warn",g,noName+" căn chưa có tên");
@@ -226,8 +268,10 @@ function chkData(add){
   if(odd)add("info",g,odd+" checklist có mục không còn trong biểu mẫu hiện tại (dữ liệu cũ, không ảnh hưởng)");
   if(K){
     if(K.ckDirty)add("info",g,"Đang có thay đổi checklist chưa lưu");
-    if(K.ckUpQ&&K.ckUpQ.length)add("info",g,K.ckUpQ.length+" ảnh đang tải lên");
-    if(K.ckTrashQ&&K.ckTrashQ.length)add("info",g,K.ckTrashQ.length+" ảnh chờ chuyển vào thùng rác")}}
+    if(K.ckSaveN)add("info",g,"Đang lưu checklist lên Sheet");
+    if((K.ckUpN||0)>0||(K.ckUpQ&&K.ckUpQ.length))add("info",g,(K.ckUpN||(K.ckUpQ&&K.ckUpQ.length))+" ảnh đang tải lên");
+    if(K.ckTrashQ&&K.ckTrashQ.length)add("info",g,K.ckTrashQ.length+" ảnh chờ chuyển vào thùng rác")}
+  return checkCkc}
 function clk(s){return new Date(B.t+s).toLocaleTimeString("vi-VN")}
 function chkPerf(add){
   var g="Hiệu năng";
@@ -249,8 +293,7 @@ function chkPerf(add){
   if(B.laf&&B.laf.length){
     var tl=B.laf.slice().sort(function(a,b){return b.d-a.d}).slice(0,5).map(function(x){return x.d+" ms lúc +"+(x.s/1000).toFixed(1)+"s ("+clk(x.s)+"): "+(x.u||"không có script")+(x.f?" "+x.f+"()":"")+(x.i?" ← "+x.i:"")+" · script "+x.c+" ms · bố cục/vẽ "+x.y+" ms"}).join(" | ");
     add("info",g,"Khung hình nặng nhất theo nguồn: "+tl)}
-  else if(B.laf)add("info",g,"Chưa ghi nhận khung hình nặng nào (trên 50 ms), hoặc trình duyệt không hỗ trợ đo theo nguồn")
-}
+  else if(B.laf)add("info",g,"Chưa ghi nhận khung hình nặng nào (trên 50 ms), hoặc trình duyệt không hỗ trợ đo theo nguồn")}
 function mb(n){return (n/1048576).toFixed(n>=104857600?0:1)+" MB"}
 function chkEnv(add){
   var g="Thiết bị & mạng",c=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
@@ -271,14 +314,13 @@ function chkEnv(add){
   if(navigator.hardwareConcurrency)add("info",g,"Số nhân CPU: "+navigator.hardwareConcurrency);
   var wg=!!navigator.gpu;
   add("info",g,"WebGPU: "+(wg?"có (DINOv3 sẽ chạy bằng GPU nếu qua bước thử)":"không có (DINOv3 chạy WASM)")+" · crossOriginIsolated: "+(window.crossOriginIsolated?"bật":"tắt"));
-  try{if(window.Dup&&typeof window.Dup.dino==="function")(function(){var ds=window.Dup.dino(),nc=typeof window.Dup.cached==="function"?window.Dup.cached():-1,lazy=/^chưa tải/.test(ds);add(lazy&&nc>0?"info":"info",g,"DINOv3: "+ds+(nc>=0?" · hash ảnh đã có trên máy: "+nc+"":""))})()}catch(e){}
+  try{if(window.Dup&&typeof window.Dup.dino==="function")(function(){var ds=window.Dup.dino(),nc=typeof window.Dup.cached==="function"?window.Dup.cached():-1;add("info",g,"DINOv3: "+ds+(nc>=0?" · hash ảnh đã có trên máy: "+nc+"":""))})()}catch(e){}
   try{if(window.Dup&&typeof window.Dup.smart==="function"){var sm=window.Dup.smart();add("info",g,"Ngưỡng ảnh: mạnh "+sm.ts+"% · yếu "+sm.tl+"% · giữ "+sm.kept+" · bỏ "+sm.cut+" cặp yếu")}}catch(e){}
   var m=null;try{m=performance.memory}catch(e){}
   if(m&&m.jsHeapSizeLimit){
     var pc=Math.round(m.usedJSHeapSize*100/m.jsHeapSizeLimit);
     add(pc>=70?"warn":"info",g,"Bộ nhớ JS của trang: "+mb(m.usedJSHeapSize)+" / giới hạn "+mb(m.jsHeapSizeLimit)+" ("+pc+"%). Chrome làm tròn thô số này, chỉ dùng để so sánh tương đối")}
   else add("info",g,"Không đọc được bộ nhớ JS của trang (trình duyệt không hỗ trợ)")}
-/* GPU (WebGPU): hỏi adapter thật trong chính môi trường đang chạy (trình duyệt hoặc WebView của APK) để biết có dùng được shader-f16 không */
 function chkGpu(add){
   var g="GPU (WebGPU)",ua=navigator.userAgent||"",cm=/Chrome\/(\d+)/.exec(ua);
   add("info",g,"Môi trường: "+(isApk()?"APK (WebView)":isStandalone()?"PWA":"tab trình duyệt")+(cm?" · Chromium "+cm[1]:"")+" · DINOv3 dùng GPU: "+(window.DUP_DINO_GPU===false?"đã tắt bằng DUP_DINO_GPU=false":"cho phép"));
@@ -303,11 +345,11 @@ function chkErrors(add){
   B.e.slice(-8).forEach(function(x){
     var own=/\/(ck|img|dup|dbg|sw)\.js|index\.html/.test(x.s||"")||x.k==="load";
     var net=NET.test(x.m);
-    var lv=net?"info":(x.k==="load"||own)?"bad":"warn";   // lỗi đăng ký service worker (k=sw) chỉ là cảnh báo
+    var lv=net?"info":(x.k==="load"||own)?"bad":"warn";
     var where=x.s?" ("+x.s.split("/").pop()+(x.l?":"+x.l:"")+")":"";
     add(lv,g,"["+x.k+" +"+(x.t/1000).toFixed(1)+"s] "+x.m+where)})}
 
-/* ---------- Theo dõi mạng thụ động (không gửi yêu cầu nào) + kiểm tra IndexedDB (chỉ đọc) ---------- */
+/* ---------- Theo dõi mạng thụ động + kiểm tra IndexedDB ---------- */
 var NL=B.nl||(B.nl={off:0,on:0,t:0,ev:[]});
 function nlog(k){NL[k]++;NL.t=Date.now();if(NL.ev.length<30)NL.ev.push({k:k,t:Date.now()-B.t})}
 window.addEventListener("offline",function(){nlog("off")});
@@ -331,31 +373,35 @@ function chkLink(add){
   if(!NL.off&&!NL.on){add("ok",g,"Từ lúc mở trang chưa có lần mất/có mạng nào");return}
   var n=NL.off,last=Math.round((Date.now()-NL.t)/1000);
   add(n>=3?"warn":"info",g,"Từ lúc mở trang: mất mạng "+n+" lần, có lại "+NL.on+" lần (gần nhất "+(last>=120?Math.round(last/60)+" phút":last+" giây")+" trước)"+(n>=3?" — kết nối chập chờn, ảnh và lưu dữ liệu dễ bị gián đoạn":""))}
-function chkIdb(add){
+function chkIdb(add,M){
   var g="Dung lượng";
-  if(!window.indexedDB||!indexedDB.databases)return Promise.resolve();
-  return indexedDB.databases().then(function(ds){
-    if(!ds.some(function(d){return d.name==="nha-thue-kv"})){add("info",g,"IndexedDB: chưa có kho dữ liệu của app (sẽ tạo khi có dữ liệu)");return}
+  if(!window.indexedDB)return Promise.resolve();
+  var checkDb=function(){
     return new Promise(function(res){
-      var done=false,tm=setTimeout(function(){fin(function(){add("warn",g,"IndexedDB: mở kho dữ liệu quá 4 giây (bị khóa bởi cửa sổ khác?)")})},4000);
+      var done=false,tm=setTimeout(function(){fin(function(){M.idbUnreadable=true;add("warn",g,"IndexedDB: mở kho dữ liệu quá 4 giây (bị khóa bởi cửa sổ khác?)","IDB_TIMEOUT")})},4000);
       function fin(f){if(done)return;done=true;clearTimeout(tm);try{f()}catch(e){}res()}
-      var r;try{r=indexedDB.open("nha-thue-kv")}catch(e){fin(function(){add("bad",g,"IndexedDB: không mở được ("+(e&&e.message||e)+")")});return}
-      r.onerror=function(){fin(function(){add("bad",g,"IndexedDB: không mở được ("+(r.error&&r.error.message||"lỗi")+"), dữ liệu bền của app có thể không lưu được")})};
+      var r;try{r=indexedDB.open("nha-thue-kv")}catch(e){fin(function(){M.idbUnreadable=true;add("bad",g,"IndexedDB: không mở được ("+(e&&e.message||e)+")","IDB_OPEN_ERR")});return}
+      r.onerror=function(){fin(function(){M.idbUnreadable=true;add("bad",g,"IndexedDB: không mở được ("+(r.error&&r.error.message||"lỗi")+"), dữ liệu bền của app có thể không lưu được","IDB_OPEN_ERR")})};
       r.onblocked=function(){};
       r.onsuccess=function(){
         var db=r.result;
-        if(!db.objectStoreNames.contains("kv")){db.close();fin(function(){add("bad",g,"IndexedDB: thiếu kho \"kv\" (kho dữ liệu bị tạo dở, hãy dùng \"Làm mới bản cài app\")")});return}
+        if(!db.objectStoreNames.contains("kv")){
+          db.close();
+          fin(function(){M.idbMissingStore=true;add("bad",g,"IndexedDB: thiếu kho \"kv\" (kho dữ liệu bị tạo dở, hãy dùng \"Làm mới bản cài app\")","IDB_NO_STORE")});
+          return}
         try{
           var q=db.transaction("kv","readonly").objectStore("kv").count();
-          q.onsuccess=function(){var n=q.result;db.close();fin(function(){add("ok",g,"IndexedDB: đọc được, "+n+" mục")})};
-          q.onerror=function(){db.close();fin(function(){add("warn",g,"IndexedDB: mở được nhưng không đọc được")})}
-        }catch(e){try{db.close()}catch(x){}fin(function(){add("warn",g,"IndexedDB: lỗi khi đọc ("+(e&&e.message||e)+")")})}}})
-  },function(){})}
+          q.onsuccess=function(){var n=q.result;M.idbExists=true;M.idbCount=n;db.close();fin(function(){add("ok",g,"IndexedDB: đọc được, "+n+" mục")})};
+          q.onerror=function(){db.close();fin(function(){M.idbUnreadable=true;add("warn",g,"IndexedDB: mở được nhưng không đọc được","IDB_READ_ERR")})}
+        }catch(e){try{db.close()}catch(x){}fin(function(){M.idbUnreadable=true;add("warn",g,"IndexedDB: lỗi khi đọc ("+(e&&e.message||e)+")","IDB_READ_ERR")})}}})};
+  if(indexedDB.databases){
+    return indexedDB.databases().then(function(ds){
+      if(!ds.some(function(d){return d.name==="nha-thue-kv"})){M.idbExists=false;add("info",g,"IndexedDB: chưa có kho dữ liệu của app (sẽ tạo khi có dữ liệu)","IDB_NOT_CREATED");return}
+      M.idbExists=true;
+      return checkDb()},function(){return checkDb()})}
+  return checkDb()}
 
-/* ---------- Đồng bộ dữ liệu quét trùng giữa các bản cài (PWA/APK). Chỉ ĐỌC ----------
-   Kết quả quét ảnh (dpm3) và hash ảnh (dhc7) chỉ nằm trong IndexedDB của TỪNG bản cài, không đi qua máy chủ.
-   Chỉ danh sách "Không phải trùng" (dign1) được đồng bộ lên Sheet. Nên PWA và APK chỉ ra cùng kết quả khi cùng danh sách căn,
-   cùng cài đặt, cùng hash ảnh. Các mã đối chiếu dưới đây giúp thấy ngay phần nào đang lệch giữa hai bên. */
+/* ---------- Đồng bộ dữ liệu quét trùng ---------- */
 function fnv(s){var h=2166136261,i;s=String(s);for(i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return("0000000"+(h>>>0).toString(16)).slice(-8)}
 function imgsOf(it){return(it.im||[]).filter(function(s){return s&&String(s).indexOf("data:")!==0})}
 function fpItems(L){return fnv(L.map(function(it){return it.id+":"+(it.st||"new")+":"+imgsOf(it).slice().sort().join(",")}).sort().join("\n"))}
@@ -365,29 +411,32 @@ function rdKey(k){
   try{v=(T&&T.ls&&T.ls(k))||""}catch(e){}
   return Promise.resolve(T&&T.idbGet?T.idbGet(k):"").then(function(x){return{ls:v,idb:typeof x==="string"?x:""}},function(){return{ls:v,idb:""}})}
 function pjson(raw){if(!raw)return{o:null};try{var o=JSON.parse(raw);return o&&typeof o==="object"?{o:o}:{o:null,bad:true}}catch(e){return{o:null,bad:true}}}
-function ignRead(){   // giống loadIgnored trong dup.js: ưu tiên localStorage, thiếu thì lấy IndexedDB
+function ignRead(){
   return Promise.all([rdKey("dign1"),rdKey("dign1q")]).then(function(r){
     var a=pjson(r[0].ls||r[0].idb),q=pjson(r[1].ls||r[1].idb);
-    return{ign:a.o||{},q:q.o||{},bad:!!(a.bad||q.bad),
+    return{ign:a.o||{},q:q.o||{},bad:!!(a.bad||q.bad),rawLs:r[0].ls,rawIdb:r[0].idb,
       lsN:r[0].ls?Object.keys(pjson(r[0].ls).o||{}).length:-1,idbN:r[0].idb?Object.keys(pjson(r[0].idb).o||{}).length:-1}})}
-function chkSync(add){
+function chkSync(add,M){
   var g="Đồng bộ · Dữ liệu quét trùng",g2="Đồng bộ · Mã đối chiếu",T=window.NT,items=[];
   try{items=(T&&T.items&&T.items())||[]}catch(e){}
   if(!T||!T.idbGet||!items.length)return Promise.resolve();
   return Promise.all([rdKey(KP()),rdKey(KH()),ignRead(),rdKey("dhs1")]).then(function(r){
     var th=80,skip=true;
-    try{if(window.Dup&&typeof window.Dup.smart==="function")th=window.Dup.smart().th;else{var t=+T.ls("dsim");if(t>0)th=t>=86?87:t>=79?80:t>=75?77:73}}catch(e){}
+    try{if(window.Dup&&typeof window.Dup.smart==="function")th=window.Dup.smart().th;else{var t=+T.ls("dsim");if(t>=60&&t<=99)th=Math.round(t)}}catch(e){}
     try{skip=T.ls("dnoout")!=="0"}catch(e){}
+    M.pmTargetTh=th;
     var pmP=pjson(r[0].idb||r[0].ls),hcP=pjson(r[1].idb||r[1].ls),ig=r[2],pm=pmP.o,hc=hcP.o||{};
-    if(pmP.bad)add("bad",g,"Kết quả quét ảnh (dpm3) bị hỏng, không đọc được. Dùng \"Xóa kết quả quét (giữ hash ảnh)\" rồi quét lại");
-    if(hcP.bad)add("bad",g,"Hash ảnh (dhc7) bị hỏng, không đọc được. Dùng \"Đặt lại dữ liệu quét trùng\"");
-    if(ig.bad)add("bad",g,"Danh sách \"Không phải trùng\" (dign1) bị hỏng, không đọc được");
+    M.hasDpm=!!pm;M.hasDhc=!!(hc&&Object.keys(hc).length);
+    if(pmP.bad){M.pmBad=true;add("bad",g,"Kết quả quét ảnh ("+KP()+") bị hỏng, không đọc được. Dùng \"Xóa kết quả quét (giữ hash ảnh)\" rồi quét lại","DPM_CORRUPT")}
+    if(hcP.bad){M.hcBad=true;add("bad",g,"Hash ảnh ("+KH()+") bị hỏng, không đọc được. Dùng \"Đặt lại dữ liệu quét trùng\"","DHC_CORRUPT")}
+    if(ig.bad){M.igBad=true;add("bad",g,"Danh sách \"Không phải trùng\" (dign1) bị hỏng, không đọc được","DIGN_CORRUPT")}
+    M.igRawLs=ig.rawLs;M.igRawIdb=ig.rawIdb;M.igLsN=ig.lsN;M.igIdbN=ig.idbN;
     var byId={},allImg={},actImg=[],active;
     items.forEach(function(it){byId[it.id]=it;imgsOf(it).forEach(function(s){allImg[s]=1})});
     active=skip?items.filter(function(it){return(it.st||"new")!=="out"}):items;
     active.forEach(function(it){imgsOf(it).forEach(function(s){actImg.push(s)})});
     var nImg=Object.keys(allImg).length,noHash=actImg.filter(function(s){return !hc[s]}).length;
-    var pairs=[],stale=0,done={},doneN=0,orphan=0,pend=0,fail=0;
+    var pairs=[],stale=0,done={},doneN=0,orphan=0,pend=0,fail=0,expFail=0,now=Date.now();
     if(pm&&pm.done&&pm.pairs){
       done=pm.done;doneN=Object.keys(done).length;
       pm.pairs.forEach(function(p){
@@ -400,10 +449,12 @@ function chkSync(add){
         var ims=(it.im||[]).filter(Boolean);
         if(!ims.length)return;
         if(ims.some(function(s){return !done[s]})||seen[it.id]!==ims.join("|"))pend++});
-      var pf=pm.fail||{};Object.keys(pf).forEach(function(s){var f=pf[s];if(f&&typeof f==="object"&&f.n>=2)fail++});
-      add(pm.th!==th?"warn":"ok",g,"Kết quả quét theo độ nhạy "+pm.th+"%"+(pm.th!==th?", nhưng cài đặt hiện tại là "+th+": lần mở Kiểm tra trùng tới máy này sẽ quét lại toàn bộ và kết quả có thể khác máy kia":" (khớp cài đặt hiện tại)")+" · "+pairs.length+" cặp ảnh giống nhau · "+doneN+" ảnh đã so");
+      var pf=pm.fail||{};Object.keys(pf).forEach(function(s){var f=pf[s];if(f&&typeof f==="object"){if(f.n>=2)fail++;if(f.t&&now-f.t>300000)expFail++}});
+      var staleMode=pm.th!==th||(pm.vf||0)!==1||(pm.cal||0)!==0;
+      M.pmThMismatch=staleMode;M.pmStale=stale;M.pmOrphan=orphan;M.pmExpiredFail=expFail;
+      add(staleMode?"warn":"ok",g,"Kết quả quét theo độ nhạy "+pm.th+"%"+(staleMode?", nhưng cài đặt hiện tại là "+th+": lần mở Kiểm tra trùng tới máy này sẽ quét lại toàn bộ và kết quả có thể khác máy kia":" (khớp cài đặt hiện tại)")+" · "+pairs.length+" cặp ảnh giống nhau · "+doneN+" ảnh đã so",staleMode?"DPM_TH_MISMATCH":null);
       add(pend?"info":"ok",g,pend?pend+"/"+active.length+" căn chưa so ảnh (căn mới, ảnh đổi hoặc chưa quét xong), nên danh sách cặp trùng chưa đầy đủ":"Mọi căn có ảnh đều đã được so");
-      if(stale)add("warn",g,stale+" cặp ảnh trỏ tới căn đã xóa hoặc ảnh đã đổi (kết quả quét cũ chưa dọn). Mở Kiểm tra trùng một lần để app tự dọn, hoặc dùng \"Xóa kết quả quét (giữ hash ảnh)\"");
+      if(stale)add("warn",g,stale+" cặp ảnh trỏ tới căn đã xóa hoặc ảnh đã đổi (kết quả quét cũ chưa dọn). Mở Kiểm tra trùng một lần để app tự dọn, hoặc dùng \"Xóa kết quả quét (giữ hash ảnh)\"","DPM_STALE");
       if(orphan)add("info",g,orphan+" ảnh đã so nhưng không còn thuộc căn nào (dữ liệu thừa, không ảnh hưởng kết quả)");
       if(fail)add("warn",g,fail+" ảnh không tính được hash sau nhiều lần thử (bị bỏ qua 5 phút rồi thử lại). Ảnh Drive lỗi hoặc mạng chặn, có thể làm kết quả thiếu so với máy kia")
     }else if(!pmP.bad)add("info",g,"Máy này chưa quét ảnh trùng (chưa có kết quả so khớp). Mở Kiểm tra trùng → Quét ảnh trùng");
@@ -415,9 +466,10 @@ function chkSync(add){
     if(unsent)add(canW?"warn":"info",g,unsent+" hash ảnh chưa gửi lên máy chủ"+(canW?": máy khác chưa dùng được, nên kết quả quét có thể khác. Mở Kiểm tra trùng và để app tự gửi (cần mạng)":" (máy này chỉ xem nên không gửi được)"));
     else if(Object.keys(hc).length)add("ok",g,"Mọi hash ảnh trên máy đã có trên máy chủ (đã kéo tới dòng "+(+hsO.n||0)+")");
     var nq=Object.keys(ig.q).length;
-    if(nq)add("warn",g,nq+" thay đổi \"Không phải trùng\" chưa gửi lên máy chủ: máy khác chưa thấy. Cần có mạng và quyền sửa; mở Kiểm tra trùng rồi đóng lại để gửi");
-    if(ig.lsN>=0&&ig.idbN>=0&&ig.lsN!==ig.idbN)add("info",g,"\"Không phải trùng\": localStorage có "+ig.lsN+" cặp, IndexedDB có "+ig.idbN+" cặp (có thể vừa thay đổi, đang ghi dở)");
-    try{if(window.Dup&&typeof window.Dup.ignStat==="function"){var st=window.Dup.ignStat();add("info",g,"Không phải trùng: "+st.total+" cặp trên máy · giao diện đang hiện "+st.shown+" · ẩn "+(st.out+st.none)+" (căn Loại "+st.out+", không còn nghi trùng "+st.none+")"+(st.img?"":" · chưa nạp kết quả quét ảnh nên cặp dựa trên ảnh có thể bị tính vào mục không còn nghi trùng; mở Kiểm tra trùng rồi chạy lại báo cáo"))}else add("info",g,"Chưa có thống kê cặp Không phải trùng bị ẩn: dup.js trên máy này là bản cũ (thiếu Dup.ignStat), hãy cập nhật dup.js")}catch(e){add("info",g,"Không đọc được thống kê cặp Không phải trùng bị ẩn: "+(e&&e.message||e))}
+    M.igQueueCount=nq;
+    if(nq)add("warn",g,nq+" thay đổi \"Không phải trùng\" chưa gửi lên máy chủ: máy khác chưa thấy. Cần có mạng và quyền sửa; mở Kiểm tra trùng rồi đóng lại để gửi","DIGN_QUEUE");
+    if(ig.lsN>=0&&ig.idbN>=0&&ig.lsN!==ig.idbN)add("info",g,"\"Không phải trùng\": localStorage có "+ig.lsN+" cặp, IndexedDB có "+ig.idbN+" cặp (có thể vừa thay đổi, đang ghi dở)","DIGN_LS_IDB_DIFF");
+    try{if(window.Dup&&typeof window.Dup.ignStat==="function"){var st=window.Dup.ignStat();add("info",g,"Không phải trùng: "+st.total+" cặp trên máy · giao diện đang hiện "+st.shown+" · ẩn "+(st.out+st.none)+" (căn Loại "+st.out+", không còn nghi trùng "+st.none+")"+(st.img?"":" · chưa nạp kết quả quét ảnh nên cặp dựa trên ảnh có thể bị tính vào mục không còn nghi trùng; mở Kiểm tra trùng rồi chạy lại báo cáo"))}else{M.missingIgnStat=true;add("info",g,"Chưa có thống kê cặp Không phải trùng bị ẩn: dup.js trên máy này là bản cũ (thiếu Dup.ignStat), hãy cập nhật dup.js","DUP_OLD_VER")}}catch(e){add("info",g,"Không đọc được thống kê cặp Không phải trùng bị ẩn: "+(e&&e.message||e))}
     var igk=Object.keys(ig.ign).filter(function(k){var a=k.split("|");return byId[a[0]]&&byId[a[1]]});
     var hcFp=fnv(actImg.slice().sort().map(function(s){return s+"="+(hc[s]||"")}).join("\n"));
     add("info",g2,"So các mã này giữa PWA và APK: mã nào khác là phần đang lệch. Kết quả quét chỉ lưu riêng từng máy, không đồng bộ qua máy chủ");
@@ -428,7 +480,7 @@ function chkSync(add){
     add("info",g2,"Không phải trùng: "+fpKeys(igk)+" · "+igk.length+" cặp"+(nq?" (đang chờ gửi "+nq+")":""))
   },function(){})}
 
-/* ---------- Kiểm tra kết nối máy chủ (Google Apps Script). Chỉ chạy khi bấm nút, toàn bộ là yêu cầu ĐỌC ---------- */
+/* ---------- Kiểm tra kết nối máy chủ ---------- */
 var S=null,srvBusy=false,stopped=false,ACT=[],PROG=null;
 function sfg(){
   var u="",k="";
@@ -450,7 +502,6 @@ function tfetch(url,opt,ms){
     done();
     var ab=!!(e&&e.name==="AbortError"),er=new Error(stopped?"đã dừng":ab?"quá thời gian chờ "+Math.round(ms/1000)+" giây":(e&&e.message)||"lỗi mạng");
     er.ms=el();er.abort=ab&&!stopped;er.stopped=stopped;throw er})}
-/* Thử lại 1 lần sau 0,8 giây khi lỗi mạng hoặc quá giờ (Apps Script khởi động nguội, sóng chập chờn), tránh báo lỗi oan. Thử lại thành công vẫn ghi nhận (v.retried) để thấy kết nối không ổn định */
 function tget(url,opt,ms,ms2){
   return tfetch(url,Object.assign({},opt),ms).then(function(v){return v},function(e){
     if(e.stopped)throw e;
@@ -497,7 +548,7 @@ function chkImg(add,g,T){
         return}
       bad.push(src[i][0].split(" ")[0]);return next(i+1)})}
   return next(0)}
-function chkSyncSrv(add,base,d){
+function chkSyncSrv(add,base,d,SM){
   var g="Máy chủ · Đồng bộ",T=window.NT,loc=[],sv=d.items||[];
   try{loc=(T&&T.items&&T.items())||[]}catch(e){}
   if(stopped)return Promise.resolve();
@@ -511,6 +562,7 @@ function chkSyncSrv(add,base,d){
   var fpS=fpItems(sv),fpL=fpItems(loc);
   if(fpS===fpL)add("ok",g,"Danh sách căn & ảnh trên máy khớp máy chủ · mã "+fpS+" · "+sv.length+" căn");
   else{
+    SM.itemMismatch=true;
     var p=[];
     if(onlyL)p.push(onlyL+" căn chỉ có trên máy");
     if(onlyS)p.push(onlyS+" căn chỉ có trên máy chủ");
@@ -531,24 +583,25 @@ function chkSyncSrv(add,base,d){
       var onlySp=sk.filter(function(k){return !ig.ign[k]&&ig.q[k]!==0}).length;
       var fS=fpKeys(sk),fL=fpKeys(lk);
       if(!onlyLp&&!onlySp)add(Object.keys(ig.q).length?"info":"ok",g,"Cặp Không phải trùng "+(Object.keys(ig.q).length?"(đang chờ gửi "+Object.keys(ig.q).length+" thay đổi) ":"")+"khớp máy chủ · mã "+fS+" · "+sk.length+" cặp");
-      else add("warn",g,"Cặp Không phải trùng lệch máy chủ (mã máy "+fL+", máy chủ "+fS+"): "+(onlyLp?onlyLp+" cặp chỉ có trên máy":"")+(onlyLp&&onlySp?", ":"")+(onlySp?onlySp+" cặp chỉ có trên máy chủ":"")+". Mở Kiểm tra trùng để kéo/gửi lại; nếu máy chỉ xem thì không gửi được");
+      else{SM.dupDesync=true;add("warn",g,"Cặp Không phải trùng lệch máy chủ (mã máy "+fL+", máy chủ "+fS+"): "+(onlyLp?onlyLp+" cặp chỉ có trên máy":"")+(onlyLp&&onlySp?", ":"")+(onlySp?onlySp+" cặp chỉ có trên máy chủ":"")+". Mở Kiểm tra trùng để kéo/gửi lại; nếu máy chỉ xem thì không gửi được")}
       if(nAll>sk.length)add("info",g,(nAll-sk.length)+" cặp trên máy chủ trỏ tới căn không còn (app bỏ qua, không ảnh hưởng)");
       add("info",g,"So mã danh sách căn & ảnh ở trên với nhóm \"Đồng bộ · Mã đối chiếu\" của từng máy (PWA, APK): mã máy chủ là chuẩn chung")})
-  },function(e){srvFail(add,g,"Tải cặp Không phải trùng",e)}).then(function(){return hashProbe(add,base,g)})}
-function hashProbe(add,base,g){
+  },function(e){srvFail(add,g,"Tải cặp Không phải trùng",e)}).then(function(){return hashProbe(add,base,g,SM)})}
+function hashProbe(add,base,g,SM){
   if(stopped)return Promise.resolve();
   return tget(base+"&action=hash&v="+encodeURIComponent(KH())+"&count=1",{cache:"no-store"},25000,15000).then(function(res){
     var d=parseSrv(res,add,g,"Đếm hash ảnh");if(!d)return;
     if(typeof d.total!=="number"){add("warn",g,"Máy chủ chưa hỗ trợ đồng bộ hash ảnh: dán Code.gs mới vào Apps Script rồi Deploy > Manage deployments > Edit > New version");return}
     return rdKey("dhs1").then(function(r){
       var o=pjson(r.idb||r.ls).o||{},n=o.v===KH()?(+o.n||0):0;
-      if(d.total>n)add("warn",g,"Tab Hash trên máy chủ có "+d.total+" dòng, máy mới kéo tới dòng "+n+": còn "+(d.total-n)+" dòng chưa kéo về. Mở Kiểm tra trùng để kéo");
+      if(d.total>n){SM.hashBehind=true;add("warn",g,"Tab Hash trên máy chủ có "+d.total+" dòng, máy mới kéo tới dòng "+n+": còn "+(d.total-n)+" dòng chưa kéo về. Mở Kiểm tra trùng để kéo")}
       else if(d.total<n)add("warn",g,"Máy đã kéo tới dòng "+n+" nhưng tab Hash chỉ còn "+d.total+" dòng (Sheet bị xóa bớt). Mở Kiểm tra trùng để máy gửi lại");
       else add("ok",g,"Hash ảnh khớp máy chủ: "+d.total+" dòng, máy đã kéo hết")})
   },function(e){srvFail(add,g,"Đếm hash ảnh",e)})}
 function chkServer(){
-  var L=[];function add(s,g,t){L.push({s:s,g:g,t:t})}
-  var X={at:Date.now(),L:L},g1="Máy chủ · Cấu hình",g2="Máy chủ · Đường truyền",g3="Máy chủ · Phản hồi",g4="Máy chủ · Ảnh Drive";
+  var L=[],SM={itemMismatch:false,roleMismatch:false,hashBehind:false,dupDesync:false};
+  function add(s,g,t){L.push({s:s,g:g,t:t})}
+  var X={at:Date.now(),L:L,SM:SM},g1="Máy chủ · Cấu hình",g2="Máy chủ · Đường truyền",g3="Máy chủ · Phản hồi",g4="Máy chủ · Ảnh Drive";
   stopped=false;
   var cf=sfg(),u=cf.u,k=cf.k,host="",okCfg=true;
   pg("1/5 · Kiểm tra cấu hình");
@@ -594,10 +647,9 @@ function chkServer(){
       add("ok",g3,"Quyền: "+(d.role==="edit"?"sửa":d.role==="view"?"chỉ xem":String(d.role))+" · máy chủ có "+n+" căn");
       var T=window.NT,K=window.NK,local=-1;
       try{local=T&&T.items?T.items().length:-1}catch(e){}
-      if(local>=0&&local!==n)add("warn",g3,"Lệch số căn: máy chủ "+n+", trên máy "+local+" (nếu vừa thêm/xóa thì bình thường, bấm Kiểm tra lại; nếu vẫn lệch hãy kéo làm mới danh sách)");
-      try{if(K&&typeof K.canW==="boolean"&&K.canW!==(d.role==="edit"))add("warn",g3,"Quyền trên máy ("+(K.canW?"sửa":"xem")+") khác máy chủ ("+(d.role==="edit"?"sửa":"xem")+"), hãy tải lại app")}catch(e){}
+      if(local>=0&&local!==n){SM.itemMismatch=true;add("warn",g3,"Lệch số căn: máy chủ "+n+", trên máy "+local+" (nếu vừa thêm/xóa thì bình thường, bấm Kiểm tra lại; nếu vẫn lệch hãy kéo làm mới danh sách)")}
+      try{if(K&&typeof K.canW==="boolean"&&K.canW!==(d.role==="edit")){SM.roleMismatch=true;add("warn",g3,"Quyền trên máy ("+(K.canW?"sửa":"xem")+") khác máy chủ ("+(d.role==="edit"?"sửa":"xem")+"), hãy tải lại app")}}catch(e){}
       if(!d.ver)add("warn",g3,"Máy chủ không trả số phiên bản dữ liệu (ver): app sẽ tải lại cả danh sách mỗi lần làm mới");
-      /* Làm mới nhanh 3 lần liên tiếp: đo độ ổn định (nhanh nhất / chậm nhất) thay vì chỉ 1 mẫu */
       var q=Promise.resolve();
       if(d.ver)q=(function(){
         var ms=[],chg=0,stop=false;
@@ -623,7 +675,7 @@ function chkServer(){
           if(!d3.ok)add("bad",g3,"Tải checklist bị từ chối: "+(d3.error||"không rõ lý do")+" · "+r3.ms+" ms");
           else add(r3.retried||r3.ms>6000?"warn":"ok",g3,"Tải checklist 1 căn: "+r3.ms+" ms"+(d3.ck?"":" (căn này chưa có nội dung checklist)")+(r3.retried?" (lần đầu lỗi, thử lại mới được)":""))
         },function(e){srvFail(add,g3,"Tải checklist",e)}):(add("info",g3,"Chưa có căn nào có checklist để thử tải"),Promise.resolve());
-        return p.then(function(){return chkSyncSrv(add,base,d)}).then(function(){return chkImg(add,g4,T)}).then(function(){return X})})
+        return p.then(function(){return chkSyncSrv(add,base,d,SM)}).then(function(){return chkImg(add,g4,T)}).then(function(){return X})})
     },function(e){srvFail(add,g3,"Tải danh sách",e);return X})})}
 function chkPost(){
   var L=[],g="Máy chủ · Gửi dữ liệu (POST)",cf=sfg();
@@ -631,7 +683,6 @@ function chkPost(){
   stopped=false;
   if(!cf.u||!cf.k){add("bad","Thiếu link Web app hoặc mã truy cập");return Promise.resolve(L)}
   var f=function(m,e){if(e&&e.stopped){add("info",m.replace(/ thất bại$/,"")+": đã dừng theo yêu cầu");return}add("bad",m+": "+(e&&e.first?"2 lần (lần 1: "+e.first+") · ":"")+(e&&e.message||e)+". Kiểm tra link /exec đã triển khai và quyền \"Bất kỳ ai\"")};
-  /* Không thử lại tự động: POST có thể đã tới máy chủ dù phản hồi bị mất */
   return tfetch(cf.u,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({key:cf.k,action:"dbg-ping"}),cache:"no-store"},25000).then(function(res){
     var d=parseSrv(res,function(s,gg,t){add(s,t)},g,"Gửi thử");if(!d)return L;
     if(d.ok===true)add("warn","Máy chủ chấp nhận lệnh lạ \"dbg-ping\" (mã máy chủ không kiểm tra tên lệnh) · "+res.ms+" ms");
@@ -645,16 +696,376 @@ function assetsDue(){
 function run(force){
   if(running)return Promise.resolve(R);
   running=true;CAN=false;
-  var L=[];
-  function add(s,g,t){L.push({s:s,g:g,t:t})}
-  function fin(){R={at:Date.now(),L:L,can:CAN};running=false;badge();var d=G("dbgd");if(d&&d.open)draw();return R}
+  var L=[],F=[],M=freshMeta();
+  function add(s,g,t,code){
+    L.push({s:s,g:g,t:t});
+    if(code)F.push({c:code,s:s,g:g,t:t})}
+  function fin(){
+    if(S&&S.SM){M.srvItemMismatch=S.SM.itemMismatch;M.srvRoleMismatch=S.SM.roleMismatch;M.srvHashBehind=S.SM.hashBehind;M.srvDupDesync=S.SM.dupDesync}
+    R={at:Date.now(),L:L,F:F,M:M,P:detectProfile(M),can:CAN};
+    running=false;badge();
+    var d=G("dbgd");if(d&&d.open)draw();
+    return R}
   return wait().then(function(w){
-    chkComponents(add,w);chkBridges(add);chkRes(add);
-    return chkSw(add).then(function(){return (force||assetsDue())?chkAssets(add):0}).then(function(){return chkCaches(add)}).then(function(){return chkStorage(add)}).then(function(){return chkIdb(add)}).then(function(){return chkSync(add)}).then(function(){return chkGpu(add)}).then(function(){
-      chkNative(add);chkData(add);chkPerf(add);chkMode(add);chkLink(add);chkEnv(add);chkErrors(add)})
-  }).then(fin,function(e){add("bad","Kiểm tra","Chính bộ kiểm tra bị lỗi: "+(e&&e.message||e));return fin()})}
+    chkComponents(add,w,M);chkBridges(add,M);chkRes(add);
+    return chkSw(add,M).then(function(){return (force||assetsDue())?chkAssets(add,M):0}).then(function(){return chkCaches(add,M)}).then(function(){return chkStorage(add,M)}).then(function(){return chkIdb(add,M)}).then(function(){return chkSync(add,M)}).then(function(){return chkGpu(add)}).then(function(){
+      chkNative(add);return chkData(add,M)}).then(function(){chkPerf(add);chkMode(add);chkLink(add);chkEnv(add);chkErrors(add)})
+  }).then(fin,function(e){add("bad","Kiểm tra","Chính bộ kiểm tra bị lỗi: "+(e&&e.message||e),"CHECKER_ERR");return fin()})}
 function allL(){return (S?S.L:[]).concat(R?R.L:[])}
 function cnt(s){return allL().filter(function(x){return x.s===s}).length}
+
+/* ==========================================================================
+   THUẬT TOÁN TỰ ĐỘNG SỬA LỖI HỆ THỐNG (AUTO-FIX ENGINE)
+   ========================================================================== */
+var AF_LOG=B.afLog||(B.afLog=[]);
+var afBusy=false;
+
+function detectProfile(M){
+  M=M||(R&&R.M)||freshMeta();
+  var apk=isApk(),pwa=isStandalone(),env=apk?"apk":(pwa?"pwa":"browser");
+  var online=navigator.onLine!==false;
+  var fresh=false,why=[];
+  if(apk){
+    if((!M.idbExists||M.idbCount===0)&&M.imgCount===0&&(!M.hasDhc||M.itemsCount===0)){
+      fresh=true;why.push("APK chưa có kho IndexedDB hoặc chưa có cache dữ liệu/ảnh")}}
+  else{
+    if(!M.swReg||!M.hasShellCache||M.shellCachedCount===0){
+      fresh=true;why.push(!M.swReg?"Service Worker chưa đăng ký":"chưa có bộ nhớ đệm vỏ app (shell-*)")}
+    else if((!M.idbExists||M.idbCount===0)&&M.imgCount===0&&!M.hasDpm&&!M.hasDhc){
+      fresh=true;why.push("chưa có dữ liệu đệm ban đầu (IndexedDB/cache ảnh trống)")}}
+  return {
+    kind:fresh?"fresh":"installed",
+    label:fresh?"Máy mới cài chưa cache":"Máy đã cài thành công",
+    env:env,
+    envLabel:apk?"APK (Capacitor)":(pwa?"PWA đã cài":"Trình duyệt"),
+    online:online,
+    reason:why.length?why.join("; "):"Đã có vỏ app/kho dữ liệu hoạt động trên máy"
+  }}
+
+/* Chống vòng lặp reload: tối đa 2 lần/phiên và không lặp cùng 1 lý do trong 5 phút */
+function rlRead(){
+  try{var raw=sessionStorage.getItem("dbg-af-rl");return raw?JSON.parse(raw):{count:0,by:{}}}catch(e){return{count:0,by:{}}}}
+function rlCan(reason){
+  var d=rlRead(),now=Date.now();
+  if((d.count||0)>=2)return false;
+  if(d.by&&d.by[reason]&&now-d.by[reason]<300000)return false;
+  return true}
+function rlMark(reason){
+  try{
+    var d=rlRead();
+    d.count=(d.count||0)+1;
+    d.by=d.by||{};d.by[reason]=Date.now();
+    sessionStorage.setItem("dbg-af-rl",JSON.stringify(d))
+  }catch(e){}}
+
+/* Khớp chính xác index.html: IDBM.set(k, "") xóa key ngay lập tức (không bị trễ 700ms của idbSave) */
+function saveKeyBoth(k,val){
+  var T=window.NT||{},M=window.NB&&window.NB.IDBM;
+  try{if(T.ls)T.ls(k,val);else if(val==="")localStorage.removeItem(k);else localStorage.setItem(k,val)}catch(e){}
+  if(M&&M.set)return M.set(k,val).catch(function(){});
+  if(T.idbSave){try{T.idbSave(k,val)}catch(e){}return new Promise(function(r){setTimeout(r,850)})}
+  return Promise.resolve()}
+
+function repairIdbKv(){
+  if(!window.indexedDB)return Promise.resolve({ok:false,msg:"Trình duyệt không hỗ trợ IndexedDB"});
+  return new Promise(function(res){
+    var delReq;
+    try{delReq=indexedDB.deleteDatabase("nha-thue-kv")}catch(e){res({ok:false,msg:"Không xóa được kho lỗi: "+(e&&e.message||e)});return}
+    var done=false,tm=setTimeout(function(){if(!done){done=true;res({ok:false,msg:"Kho đang bị cửa sổ khác giữ khóa"})}},4500);
+    function openFresh(){
+      var req=indexedDB.open("nha-thue-kv",1);
+      req.onupgradeneeded=function(){
+        var db=req.result;
+        if(!db.objectStoreNames.contains("kv"))db.createObjectStore("kv")};
+      req.onsuccess=function(){
+        var db=req.result,restored=0;
+        var keys=["nha-thue-url","nha-thue-key","nha-thue-c2","dign1","dign1q","dsim","dnoout","dimgv","dzl","dhs1","ckc1"];
+        try{
+          var tx=db.transaction("kv","readwrite"),st=tx.objectStore("kv");
+          keys.forEach(function(k){
+            var v="";try{v=localStorage.getItem(k)||""}catch(e){}
+            if(v){st.put(v,k);restored++}});
+          tx.oncomplete=function(){db.close();if(!done){done=true;clearTimeout(tm);res({ok:true,msg:"Đã tạo lại kho \"kv\" và khôi phục "+restored+" khóa từ localStorage"})}};
+          tx.onerror=function(){db.close();if(!done){done=true;clearTimeout(tm);res({ok:true,msg:"Đã tạo lại kho \"kv\""})}}
+        }catch(e){try{db.close()}catch(x){}if(!done){done=true;clearTimeout(tm);res({ok:true,msg:"Đã khởi tạo lại kho \"kv\""})}}};
+      req.onerror=function(){if(!done){done=true;clearTimeout(tm);res({ok:false,msg:"Không mở lại được IndexedDB sau khi đặt lại"})}}}
+    delReq.onsuccess=openFresh;
+    delReq.onerror=openFresh;
+    delReq.onblocked=function(){if(!done){done=true;clearTimeout(tm);res({ok:false,msg:"IndexedDB bị khóa bởi tab khác, hãy đóng tab trùng"})}}})}
+
+function trimImgCache(){
+  if(!window.caches)return Promise.resolve({ok:false,msg:"Không hỗ trợ Cache API"});
+  var T=window.NT,items=[];
+  try{items=(T&&T.items&&T.items())||[]}catch(e){}
+  var activeIds={};
+  items.forEach(function(it){if((it.st||"new")!=="out")(it.im||[]).forEach(function(id){if(id){activeIds[encodeURIComponent(id)]=1;activeIds[id]=1}})});
+  var tS=Math.floor(LIM.s*0.75),tL=Math.floor(LIM.l*0.75);
+  return caches.open("img-v1").then(function(c){
+    return c.keys().then(function(reqs){
+      var small=[],large=[];
+      reqs.forEach(function(r){var m=/=w(\d+)$/.exec(r.url);if(m&&+m[1]<=LIM.w)small.push(r);else large.push(r)});
+      function pickDel(arr,target){
+        if(arr.length<=target)return[];
+        var need=arr.length-target,out=[],keep=[];
+        arr.forEach(function(r){
+          var act=false;
+          Object.keys(activeIds).some(function(id){if(r.url.indexOf(id)>=0){act=true;return true}});
+          if(act)keep.push(r);else out.push(r)});
+        var del=out.slice(0,need);
+        if(del.length<need)del=del.concat(keep.slice(0,need-del.length));
+        return del}
+      var dels=pickDel(small,tS).concat(pickDel(large,tL));
+      if(!dels.length)return{ok:true,msg:"Cache ảnh đã ở mức an toàn"};
+      return Promise.all(dels.map(function(r){return c.delete(r)})).then(function(){
+        return{ok:true,msg:"Đã tỉa "+dels.length+" ảnh cũ/thừa (giữ ảnh đang dùng), đưa cache về ~75% hạn mức"}})})})}
+
+/* Tôn trọng hàng đợi Dup.retire() (dup_pend) và các khóa cấu hình quan trọng của app */
+function trimLocalStorage(){
+  var removed=0,freed=0,kh=KH(),kp=KP(),retireKeys={};
+  try{if(window.Dup&&typeof window.Dup.retire==="function")window.Dup.retire().forEach(function(c){retireKeys[c]=1})}catch(e){}
+  return new Promise(function(res){
+    var checks=["ckc1",kp,kh];
+    var idbDone=Promise.resolve({});
+    if(window.NT&&window.NT.idbGet){
+      idbDone=Promise.all(checks.map(function(k){return Promise.resolve(window.NT.idbGet(k)).then(function(v){return[k,!!v]},function(){return[k,false]})}))
+        .then(function(arr){var m={};arr.forEach(function(x){m[x[0]]=x[1]});return m})}
+    idbDone.then(function(hasInIdb){
+      try{
+        var keys=[],i;
+        for(i=0;i<localStorage.length;i++)keys.push(localStorage.key(i));
+        keys.forEach(function(k){
+          if(retireKeys[k])return;
+          var val=localStorage.getItem(k)||"";
+          var isOldVer=(/^dhc\d/.test(k)&&k!==kh)||(/^dpm\d/.test(k)&&k!==kp);
+          var isHeavyDup=(k===kp||k===kh||k==="ckc1")&&hasInIdb[k]&&val.length>8192;
+          if(isOldVer||isHeavyDup){
+            freed+=(k.length+val.length)*2;
+            localStorage.removeItem(k);
+            removed++}})
+      }catch(e){}
+      res({ok:true,msg:removed?"Đã giải phóng "+kb(freed)+" ("+removed+" khóa thừa/trùng bản sao IndexedDB)":"Không có khóa thừa an toàn để xóa tự động"})})})}
+
+/* Kiểm tra xem dup.js đã nạp pm vào RAM chưa (Dup.cached() >= 0):
+   Nếu dup.js chưa nạp, ghi thẳng IndexedDB có tác dụng ngay; nếu dup.js đã nạp vào RAM thì cần reload sau sửa để đồng bộ RAM. */
+function pruneDpmInPlace(targetTh){
+  var kp=KP();
+  var dupInRam=false;
+  try{dupInRam=!!(window.Dup&&typeof window.Dup.cached==="function"&&window.Dup.cached()>=0)}catch(e){}
+  return rdKey(kp).then(function(r){
+    var p=pjson(r.idb||r.ls);
+    if(p.bad||!p.o){return wipeKeys([kp]).then(function(){return{ok:true,reloadAfter:dupInRam,msg:"Đã xóa kết quả quét lỗi ("+kp+"), giữ nguyên hash ảnh "+KH()}})}
+    var pm=p.o;
+    if(pm.th!==targetTh||(pm.vf||0)!==1||(pm.cal||0)!==0){
+      return wipeKeys([kp]).then(function(){return{ok:true,reloadAfter:dupInRam,msg:"Đã đặt lại kết quả quét cũ ("+pm.th+"% → "+targetTh+"%), giữ nguyên hash ảnh "+KH()}})}
+    var T=window.NT,items=[];try{items=(T&&T.items&&T.items())||[]}catch(e){}
+    var byId={},allImg={};
+    items.forEach(function(it){byId[it.id]=it;imgsOf(it).forEach(function(s){allImg[s]=1})});
+    var oldPairs=(pm.pairs||[]).length,oldDone=pm.done?Object.keys(pm.done).length:0,prunedF=0,now=Date.now();
+    if(Array.isArray(pm.pairs)){
+      pm.pairs=pm.pairs.filter(function(q){
+        var a=byId[q.a],b=byId[q.b];
+        return !!(a&&b&&imgsOf(a).indexOf(q.x)>=0&&imgsOf(b).indexOf(q.y)>=0)})}
+    if(pm.done&&typeof pm.done==="object"){
+      Object.keys(pm.done).forEach(function(s){if(!allImg[s])delete pm.done[s]})}
+    if(pm.fail&&typeof pm.fail==="object"){
+      Object.keys(pm.fail).forEach(function(s){var f=pm.fail[s];if(f&&f.t&&now-f.t>300000){delete pm.fail[s];prunedF++}})}
+    var rmP=oldPairs-(pm.pairs||[]).length,rmD=oldDone-(pm.done?Object.keys(pm.done).length:0);
+    return saveKeyBoth(kp,JSON.stringify(pm)).then(function(){
+      return{ok:true,reloadAfter:dupInRam,msg:"Đã phẫu thuật làm sạch "+kp+": bỏ "+rmP+" cặp stale, "+rmD+" ảnh thừa"+(prunedF?", "+prunedF+" mục fail quá hạn":"")+" (giữ nguyên "+KH()+")"}})})}
+
+function repairDign(M){
+  var lsP=pjson(M.igRawLs),idbP=pjson(M.igRawIdb);
+  if(lsP.bad&&idbP.bad){
+    return wipeKeys(["dign1"]).then(function(){
+      var p=Promise.resolve();
+      if(window.Dup&&typeof window.Dup.pull==="function"){try{p=Promise.resolve(window.Dup.pull(true))}catch(e){}}
+      return p.then(function(){return{ok:true,msg:"Cả 2 bản lưu dign1 đều hỏng → đã đặt lại và kéo từ máy chủ"}})})}
+  var srcObj=null,note="";
+  if(idbP.o&&!idbP.bad&&(lsP.bad||M.igIdbN>M.igLsN)){srcObj=idbP.o;note="IndexedDB → localStorage"}
+  else if(lsP.o&&!lsP.bad&&(idbP.bad||M.igLsN>M.igIdbN)){srcObj=lsP.o;note="localStorage → IndexedDB"}
+  else if(lsP.o&&idbP.o){
+    srcObj=Object.assign({},idbP.o,lsP.o);note="hợp nhất localStorage ↔ IndexedDB"}
+  var p=srcObj?saveKeyBoth("dign1",JSON.stringify(srcObj)):Promise.resolve();
+  return p.then(function(){
+    if(M.igQueueCount>0&&navigator.onLine!==false&&window.Dup&&typeof window.Dup.pull==="function"){
+      try{window.Dup.pull(true)}catch(e){}
+      note+=(note?" + ":"")+"đẩy "+M.igQueueCount+" mục chờ gửi"}
+    return{ok:true,msg:"Đã đồng bộ \"Không phải trùng\" ("+(note||"ổn định")+")"}})}
+
+function warmMissingShell(M){
+  if(isApk()||!window.caches||!M.shellCacheName||!M.shellMiss.length)return Promise.resolve({ok:false,msg:"Không áp dụng"});
+  var targets=M.shellMiss.slice(),saved=0;
+  return caches.open(M.shellCacheName).then(function(c){
+    return Promise.all(targets.map(function(u){
+      return fetch(u,{cache:"reload"}).then(function(r){
+        if(!(r&&r.ok))return;
+        var putRes=r.redirected?r.blob().then(function(b){return new Response(b,{status:r.status,statusText:r.statusText,headers:r.headers})}):Promise.resolve(r);
+        return putRes.then(function(cleanR){
+          var ps=[c.put(u,cleanR.clone())];
+          if(/\/index\.html$/.test(new URL(u).pathname))ps.push(c.put("./",cleanR.clone()));
+          return Promise.all(ps).then(function(){saved++})})
+      },function(){})}))
+  }).then(function(){
+    return{ok:saved>0,msg:saved?"Đã nạp bù "+saved+"/"+targets.length+" tệp vào "+M.shellCacheName+" để chạy offline":"Không tải được tệp còn thiếu (mạng lỗi hoặc máy chủ từ chối)"}})}
+
+function buildFixPlan(opts){
+  opts=opts||{};
+  var M=(R&&R.M)||freshMeta();
+  var P=detectProfile(M);
+  var gd=guard(true);
+  var steps=[];
+  function addStep(st){
+    if(st.respectsGuard&&gd)st.blockedBy=gd;
+    else if(st.requiresOnline&&!P.online)st.blockedBy="Thiết bị đang offline";
+    steps.push(st)}
+
+  /* --- NHÓM 1: MÁY MỚI CÀI CHƯA CACHE (FRESH) --- */
+  if("serviceWorker"in navigator&&/^https?:$/i.test(location.protocol)&&!M.swReg){
+    addStep({
+      id:"SW_REGISTER",title:"Đăng ký Service Worker (kèm chế độ thiết bị)",target:"fresh",safeSilent:true,needsReload:false,requiresOnline:true,respectsGuard:false,
+      run:function(){
+        var swUrl="sw.js"+(isApk()?"?app=1":"");
+        return navigator.serviceWorker.register(swUrl,{updateViaCache:"none"}).then(function(reg){
+          return{ok:true,msg:"Đã đăng ký "+swUrl+" thành công (scope: "+reg.scope.replace(location.origin,"")+")"}
+        },function(e){return{ok:false,msg:"Đăng ký "+swUrl+" thất bại: "+(e&&e.message||e)}})}})}
+
+  if(M.idbMissingStore||M.idbUnreadable){
+    addStep({
+      id:"IDB_REPAIR",title:"Khởi tạo / khôi phục kho IndexedDB \"nha-thue-kv\"",target:"both",safeSilent:true,needsReload:false,requiresOnline:false,respectsGuard:true,
+      run:repairIdbKv})}
+
+  if(!isApk()&&M.shellMiss&&M.shellMiss.length){
+    addStep({
+      id:"SHELL_WARM",title:"Nạp bù "+M.shellMiss.length+" tệp vỏ app để dùng offline",target:"both",safeSilent:true,needsReload:false,requiresOnline:true,respectsGuard:false,
+      run:function(){return warmMissingShell(M)}})}
+
+  if(!isApk()&&isStandalone()&&M.canPersist&&navigator.storage&&navigator.storage.persist){
+    addStep({
+      id:"PERSIST_ENABLE",title:"Xin trình duyệt cấp quyền lưu trữ bền",target:"fresh",safeSilent:true,needsReload:false,requiresOnline:false,respectsGuard:false,
+      run:function(){
+        return navigator.storage.persist().then(function(v){
+          return{ok:v,msg:v?"Đã bật lưu trữ bền thành công":"Trình duyệt tạm chưa cấp (sẽ tự cấp sau vài lần mở app)"}})}})}
+
+  if(P.kind==="fresh"&&P.online&&(M.itemsCount===0||!M.hasDhc)&&sfg().u&&sfg().k){
+    addStep({
+      id:"FRESH_BOOTSTRAP",title:"Tải danh sách căn & kéo sẵn hash ảnh ban đầu",target:"fresh",safeSilent:true,needsReload:false,requiresOnline:true,respectsGuard:true,
+      run:function(){
+        var acts=[];
+        if(M.itemsCount===0&&window.NB&&typeof window.NB.refresh==="function"){
+          acts.push(Promise.resolve(window.NB.refresh(false)).catch(function(){}))}
+        if(!M.hasDhc&&window.Dup&&typeof window.Dup.pull==="function"){
+          acts.push(Promise.resolve(window.Dup.pull(true)).catch(function(){}))}
+        if(!acts.length)return Promise.resolve({ok:false,msg:"Hàm refresh/pull chưa sẵn sàng"});
+        return Promise.all(acts).then(function(){return{ok:true,msg:"Đã kích hoạt đồng bộ danh sách căn & hash ảnh từ máy chủ"}})}})}
+
+  /* --- NHÓM 2: MÁY ĐÃ CÀI THÀNH CÔNG (INSTALLED) --- */
+  if(M.ckcBad){
+    addStep({
+      id:"CKC_REPAIR",title:"Làm sạch dữ liệu checklist hỏng (ckc1)",target:"installed",safeSilent:true,needsReload:false,requiresOnline:false,respectsGuard:true,
+      run:function(){
+        try{if(window.NK)window.NK.ckC={}}catch(e){}
+        return wipeKeys(["ckc1"]).then(function(){return{ok:true,msg:"Đã xóa ckc1 hỏng (Sheet an toàn), app sẽ tự tải lại khi mở căn"}})}})}
+
+  if(M.hcBad){
+    addStep({
+      id:"DHC_REPAIR",title:"Đặt lại kho hash ảnh hỏng ("+KH()+")",target:"installed",safeSilent:true,needsReload:false,requiresOnline:false,respectsGuard:true,
+      run:function(){
+        var dupInRam=false;try{dupInRam=!!(window.Dup&&window.Dup.cached()>=0)}catch(e){}
+        return wipeKeys([KH(),KP(),"dhs1"]).then(function(){
+          if(P.online&&window.Dup&&typeof window.Dup.pull==="function"){try{window.Dup.pull(true)}catch(e){}}
+          return{ok:true,reloadAfter:dupInRam,msg:"Đã đặt lại "+KH()+", "+KP()+", dhs1 bị hỏng (giữ nguyên Không phải trùng)"}})}})}
+
+  if(M.pmBad||M.pmThMismatch||M.pmStale>0||M.pmOrphan>0||M.pmExpiredFail>0){
+    var dupRam=false;try{dupRam=!!(window.Dup&&window.Dup.cached()>=0)}catch(e){}
+    addStep({
+      id:"DPM_HEAL",title:(M.pmBad||M.pmThMismatch?"Đặt lại kết quả quét lỗi/lệch ngưỡng ("+KP()+")":"Phẫu thuật làm sạch "+KP()+" (stale/orphan)"),target:"installed",safeSilent:!dupRam,needsReload:dupRam,requiresOnline:false,respectsGuard:true,
+      run:function(){return pruneDpmInPlace(M.pmTargetTh)}})}
+
+  if(M.igBad||(M.igLsN>=0&&M.igIdbN>=0&&M.igLsN!==M.igIdbN)||(M.igQueueCount>0&&P.online)){
+    addStep({
+      id:"DIGN_HEAL",title:"Đồng bộ & sửa danh sách \"Không phải trùng\" (dign1)",target:"installed",safeSilent:true,needsReload:false,requiresOnline:false,respectsGuard:true,
+      run:function(){return repairDign(M)}})}
+
+  if(M.imgPS>=95||M.imgPL>=95){
+    addStep({
+      id:"IMG_CACHE_TRIM",title:"Tỉa bớt cache ảnh đầy (>95%) xuống 75%",target:"installed",safeSilent:true,needsReload:false,requiresOnline:false,respectsGuard:false,
+      run:trimImgCache})}
+
+  if(M.lsBytes>4000000){
+    addStep({
+      id:"LS_QUOTA_TRIM",title:"Giải phóng localStorage gần đầy ("+kb(M.lsBytes)+")",target:"installed",safeSilent:true,needsReload:false,requiresOnline:false,respectsGuard:true,
+      run:trimLocalStorage})}
+
+  if((M.srvItemMismatch||M.srvRoleMismatch||M.srvHashBehind||M.srvDupDesync)&&P.online){
+    addStep({
+      id:"SRV_SYNC_PULL",title:"Đồng bộ lại danh sách, quyền & hash từ máy chủ",target:"installed",safeSilent:true,needsReload:false,requiresOnline:true,respectsGuard:true,
+      run:function(){
+        var ps=[];
+        if(window.NB&&typeof window.NB.refresh==="function")ps.push(Promise.resolve(window.NB.refresh(false)).catch(function(){}));
+        if(window.Dup&&typeof window.Dup.pull==="function")ps.push(Promise.resolve(window.Dup.pull(true)).catch(function(){}));
+        return Promise.all(ps).then(function(){return{ok:true,msg:"Đã kéo lại danh sách căn, quyền & dữ liệu trùng từ máy chủ"}})}})}
+
+  /* --- NHÓM 3: KÍCH HOẠT BẢN MỚI TRONG next-* / RELOAD CÓ CHỐNG LẶP --- */
+  if(M.swWaiting||(!isApk()&&M.nextCaches.length)||(M.swActive&&M.swNoController)){
+    addStep({
+      id:"SW_ACTIVATE_RELOAD",title:(M.nextCaches.length?"Áp dụng bản mới trong "+M.nextCaches[0]+" (promote sang shell)":M.swWaiting?"Kích hoạt bản Service Worker đang chờ":"Nhận quyền kiểm soát trang cho Service Worker"),target:(M.nextCaches.length||M.swWaiting)?"installed":"fresh",safeSilent:false,needsReload:true,requiresOnline:false,respectsGuard:true,
+      run:function(){
+        if(!rlCan("SW_ACTIVATE_RELOAD"))return Promise.resolve({ok:false,skippedLoop:true,msg:"Đã bỏ qua tải lại để tránh vòng lặp (đã thử gần đây)"});
+        rlMark("SW_ACTIVATE_RELOAD");
+        return Promise.resolve({ok:true,reloadAfter:true,msg:M.nextCaches.length?"Đang tải lại trang để sw.js chuyển bản mới từ "+M.nextCaches[0]+" sang shell":"Đang tải lại trang để kích hoạt Service Worker kiểm soát"})}})}
+
+  if(M.compBroken||M.bridgeBroken||M.missingIgnStat){
+    addStep({
+      id:"VERSION_SKEW_HEAL",title:"Làm mới vỏ app do lệch phiên bản tệp con (giữ ảnh & model DINOv3)",target:"installed",safeSilent:false,needsReload:true,requiresOnline:true,respectsGuard:true,
+      run:function(){
+        if(!rlCan("VERSION_SKEW_HEAL"))return Promise.resolve({ok:false,skippedLoop:true,msg:"Đã bỏ qua tải lại để tránh vòng lặp (cần kiểm tra bản deploy trên máy chủ)"});
+        rlMark("VERSION_SKEW_HEAL");
+        if(isApk())return Promise.resolve({ok:true,reloadAfter:true,msg:"Đã tải lại WebView APK để khởi tạo lại thành phần"});
+        return (window.caches?caches.keys():Promise.resolve([])).then(function(ks){
+          return Promise.all(ks.filter(function(k){return k!=="img-v1"&&k!=="lib-v1"}).map(function(k){return caches.delete(k)}))
+        }).then(function(){return navigator.serviceWorker?navigator.serviceWorker.getRegistrations():[]})
+          .then(function(rs){return Promise.all(rs.map(function(r){return r.update().catch(function(){return r.unregister()})}))})
+          .then(function(){return{ok:true,reloadAfter:true,msg:"Đã xóa vỏ app lỗi (giữ nguyên img-v1, lib-v1 DINOv3 & dữ liệu) và tải lại bản đồng bộ"}})}})}
+
+  return{profile:P,guard:gd,steps:steps}}
+
+function autoFix(opts){
+  opts=opts||{};
+  if(afBusy)return Promise.resolve({ok:false,busy:true,results:[]});
+  var silent=!!opts.silent,allowReload=opts.allowReload!==undefined?!!opts.allowReload:!silent,dryRun=!!opts.dryRun;
+  afBusy=true;
+  var ensureRun=R?Promise.resolve(R):run(true);
+  return ensureRun.then(function(){
+    var plan=buildFixPlan(opts);
+    if(dryRun){afBusy=false;return{ok:true,dryRun:true,plan:plan,results:[]}}
+    var results=[],needReload=false;
+    var todo=plan.steps.filter(function(s){
+      if(s.blockedBy){results.push({id:s.id,title:s.title,status:"blocked",msg:s.blockedBy});return false}
+      if(silent&&!s.safeSilent){results.push({id:s.id,title:s.title,status:"deferred",msg:"Cần xác nhận hoặc tải lại trang"});return false}
+      if(s.needsReload&&!allowReload){results.push({id:s.id,title:s.title,status:"deferred",msg:"Đang tắt tự tải lại trang"});return false}
+      return true});
+    var chain=Promise.resolve();
+    todo.forEach(function(s){
+      chain=chain.then(function(){
+        if(!silent)say("Đang sửa: "+s.title+"…");
+        return Promise.resolve(s.run()).then(function(res){
+          res=res||{ok:false};
+          if(res.reloadAfter)needReload=true;
+          results.push({id:s.id,title:s.title,status:res.skippedLoop?"skipped":res.ok?"fixed":"failed",msg:res.msg||""})
+        },function(e){
+          results.push({id:s.id,title:s.title,status:"failed",msg:(e&&e.message||e)})})})});
+    return chain.then(function(){
+      var entry={at:Date.now(),profile:plan.profile.kind,silent:silent,results:results};
+      AF_LOG.push(entry);if(AF_LOG.length>15)AF_LOG.shift();
+      if(needReload&&allowReload){
+        if(!silent)say("Đã sửa xong, đang tải lại để áp dụng…");
+        reload();
+        afBusy=false;
+        return{ok:true,reloading:true,plan:plan,results:results}}
+      return run(true).then(function(){
+        afBusy=false;
+        var d=G("dbgd");if(d&&d.open)draw();
+        return{ok:true,reloading:false,plan:plan,results:results}})})},function(e){afBusy=false;return{ok:false,error:e&&e.message||e,results:[]}})}
 
 /* ---------- Giao diện ---------- */
 var CSS="#dbgd .form{gap:10px}"+
@@ -665,6 +1076,8 @@ var CSS="#dbgd .form{gap:10px}"+
 "#dbgd .big{flex:none;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:#fff;background:var(--mute)}"+
 "#dbgd .big.ok{background:var(--s-won)}#dbgd .big.warn{background:#b45309}#dbgd .big.bad{background:var(--danger)}"+
 "#dbgd .dbgv div{min-width:0}#dbgd .dbgv b{display:block;font-size:var(--fs-b);overflow-wrap:anywhere}#dbgd .dbgv small{display:block;color:var(--mute);font-size:var(--fs-xs);overflow-wrap:anywhere}"+
+"#dbgd .dbgprof{margin-top:8px;padding:6px 10px;border-radius:8px;background:var(--surface);border:1px solid var(--line);font-size:var(--fs-xs);color:var(--mute);display:flex;flex-wrap:wrap;gap:6px;align-items:center}"+
+"#dbgd .dbgprof strong{color:var(--ink)}"+
 "#dbgd .dbgbar{height:3px;border-radius:2px;background:var(--line);overflow:hidden;margin-top:8px}#dbgd .dbgbar[hidden]{display:none}"+
 "#dbgd .dbgbar::after{content:\"\";display:block;height:100%;width:35%;background:var(--accent);animation:dbgbar 1.1s ease-in-out infinite}"+
 "@keyframes dbgbar{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}"+
@@ -687,8 +1100,9 @@ var CSS="#dbgd .form{gap:10px}"+
 "#dbgd .dbgr.bad summary{color:var(--danger);font-weight:700}#dbgd .dbgr.info summary{color:var(--mute)}"+
 "#dbgd .dbgem{text-align:center;color:var(--mute);font-size:var(--fs-m);padding:18px 0}"+
 "#dbgd details.dbgt>summary{cursor:pointer;color:var(--mute);font-size:var(--fs-m);font-weight:600;min-height:36px;display:flex;align-items:center;gap:8px}"+
-"#dbgd .foot{justify-content:flex-start;flex-wrap:wrap}"+
+"#dbgd .foot{justify-content:flex-start;flex-wrap:wrap;gap:6px;display:flex}"+
 "#dbgd .dbga{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}"+
+"#dbgd .dbgaf{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:grid;gap:6px;font-size:var(--fs-xs)}"+
 "#dbgd button:disabled{opacity:.5;cursor:default}"+
 "#dbgb{position:fixed;left:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:25;border:0;border-radius:999px;padding:6px 12px;min-height:34px;background:var(--danger);color:#fff;font-weight:700;font-size:var(--fs-s);box-shadow:0 3px 10px rgba(0,0,0,.3);cursor:pointer}";
 var ICON={ok:"✓",warn:"⚠",bad:"✕",info:"•"};
@@ -700,10 +1114,12 @@ function panel(){
   d=document.createElement("dialog");d.id="dbgd";
   d.innerHTML='<div class="form"><div class="dbgst"><div class="dbgh"><h2>Kiểm tra hệ thống</h2><button type="button" class="dbgxb" id="dbgx" aria-label="Đóng">×</button></div>'+
   '<div class="dbgv"><span class="big" id="dbgbig" aria-hidden="true">•</span><div role="status" aria-live="polite"><b id="dbgt1"></b><small id="dbgt2"></small></div></div>'+
+  '<div class="dbgprof" id="dbgprof"></div>'+
   '<div class="dbgbar" id="dbgbar" hidden></div><div class="dbgfl" id="dbgfl"></div></div>'+
   '<div id="dbgl"></div>'+
+  '<details class="dbgt" id="dbgafwrap"><summary>Kế hoạch &amp; nhật ký tự động sửa lỗi</summary><div class="dbgaf" id="dbgaf"></div></details>'+
   '<details class="dbgt"><summary>Kiểm tra riêng lẻ</summary><div class="dbga" id="dbgq"></div></details>'+
-  '<details class="dbgt"><summary>Công cụ sửa lỗi</summary><div class="dbga" id="dbgtl"></div></details>'+
+  '<details class="dbgt"><summary>Công cụ sửa lỗi thủ công</summary><div class="dbga" id="dbgtl"></div></details>'+
   '<div class="foot" id="dbga"></div></div>';
   document.body.appendChild(d);
   d.addEventListener("click",onClick);
@@ -744,22 +1160,44 @@ function rowH(x){
   else h+='<span>'+esc(t)+'</span>';
   return h+'</div>'}
 function btn(a,t,cls,extra){return '<button type="button" class="btn'+(cls?" "+cls:"")+'" data-act="'+a+'"'+(extra||"")+'>'+t+'</button>'}
+function afSectionH(){
+  var plan=R?buildFixPlan():null,h="";
+  if(plan){
+    if(plan.guard)h+='<div style="color:var(--danger);font-weight:600">Khóa an toàn đang bật: '+esc(plan.guard)+'</div>';
+    if(plan.steps.length){
+      h+='<div><b>Đề xuất sửa tự động ('+plan.steps.length+' bước):</b></div>';
+      plan.steps.forEach(function(s){
+        var tag=s.blockedBy?"Bị khóa: "+s.blockedBy:(s.needsReload?"Cần tải lại trang":"An toàn · Không tải lại");
+        h+='<div style="padding-top:4px;border-top:1px dashed var(--line)">• <b>'+esc(s.title)+'</b> <span style="color:var(--mute)">('+esc(tag)+')</span></div>'})}
+    else h+='<div>Không phát hiện mục nào cần tự động sửa trên máy.</div>'}
+  if(AF_LOG.length){
+    var last=AF_LOG[AF_LOG.length-1];
+    h+='<div style="margin-top:4px;padding-top:6px;border-top:1px solid var(--line)"><b>Lần chạy gần nhất ('+hm(last.at)+' · '+(last.silent?"chạy ngầm":"thủ công")+'):</b></div>';
+    last.results.forEach(function(r){
+      var ic=r.status==="fixed"?"✓":r.status==="blocked"||r.status==="deferred"?"⚠":"✕";
+      h+='<div>'+ic+' '+esc(r.title)+(r.msg?" — "+esc(r.msg):"")+'</div>'})}
+  return h||'<div>Chưa có dữ liệu kế hoạch sửa.</div>'}
 function draw(){
   panel();
-  var b=cnt("bad"),w=cnt("warn"),o=cnt("ok"),bs=busy||running||srvBusy,has=!!(R||S);
+  var b=cnt("bad"),w=cnt("warn"),o=cnt("ok"),bs=busy||running||srvBusy||afBusy,has=!!(R||S);
   var lv=!has?"":b?"bad":w?"warn":"ok";
   var big=G("dbgbig");big.className="big "+lv;big.textContent=bs&&!has?"…":ICON[lv||"info"];
-  G("dbgt1").textContent=bs?"Đang kiểm tra…":!has?"Chưa có kết quả":b?b+" vấn đề nghiêm trọng"+(w?", "+w+" cảnh báo":""):w?w+" cảnh báo, không có lỗi nghiêm trọng":"Mọi thứ hoạt động bình thường";
+  G("dbgt1").textContent=bs?(afBusy?"Đang tự động sửa lỗi…":"Đang kiểm tra…"):!has?"Chưa có kết quả":b?b+" vấn đề nghiêm trọng"+(w?", "+w+" cảnh báo":""):w?w+" cảnh báo, không có lỗi nghiêm trọng":"Mọi thứ hoạt động bình thường";
+  var P=R&&R.P?R.P:detectProfile();
+  G("dbgprof").innerHTML='<span>Hồ sơ: <strong>'+esc(P.label)+'</strong> · '+esc(P.envLabel)+' · '+(P.online?"Có mạng":"Offline")+'</span>';
   G("dbgbar").hidden=!bs;
   G("dbgfl").innerHTML='<button type="button" class="chip" data-act="flt" data-v="issues" aria-pressed="'+(FLT==="issues")+'">Cần xử lý ('+(b+w)+')</button><button type="button" class="chip" data-act="flt" data-v="all" aria-pressed="'+(FLT==="all")+'">Tất cả ('+(b+w+o+cnt("info"))+')</button>';
   var h=groupsH(allL());
   if(h!==LH){G("dbgl").innerHTML=h;LH=h}
+  G("dbgaf").innerHTML=afSectionH();
   G("dbgq").innerHTML=btn("run","Thiết bị")+btn("srv","Máy chủ")+btn("srvpost","Thử gửi (POST)");
-  var t=btn("hide","Ẩn nút ⚠ phiên này");
+  var afOff=false;try{afOff=localStorage.getItem("dbg-af-off")==="1"}catch(e){}
+  var t=btn("toggleaf",afOff?"Bật tự sửa ngầm":"Tắt tự sửa ngầm")+btn("hide","Ẩn nút ⚠ phiên này");
   if(R&&R.can&&navigator.storage&&navigator.storage.persist)t+=btn("persist","Bật lưu trữ bền");
   t+=btn("reset","Làm mới bản cài app")+btn("img","Xóa cache ảnh")+btn("ck","Xóa checklist đã nhớ")+btn("dpm","Xóa kết quả quét (giữ hash ảnh)")+btn("dup","Đặt lại dữ liệu quét trùng");
   G("dbgtl").innerHTML=t;
-  G("dbga").innerHTML=btn("all","Kiểm tra toàn bộ","p")+(srvBusy?btn("stop","Dừng"):"")+btn("copy","Sao chép báo cáo");
+  var planNow=R?buildFixPlan():null,fixN=planNow?planNow.steps.filter(function(s){return !s.blockedBy}).length:0;
+  G("dbga").innerHTML=btn("autofix","Tự động sửa lỗi"+(fixN?" ("+fixN+")":""),"p")+btn("all","Kiểm tra toàn bộ")+(srvBusy?btn("stop","Dừng"):"")+btn("copy","Sao chép báo cáo");
   Array.prototype.forEach.call(G("dbgd").querySelectorAll("[data-act]"),function(x){var a=x.dataset.act;if(a==="copy"||a==="stop"||a==="flt")return;x.disabled=bs});
   say(MSG)}
 function show(){
@@ -786,10 +1224,15 @@ function badge(){
   b.hidden=false;b.textContent="⚠ "+n+" lỗi"}
 function report(){
   var t0=Math.max(R?R.at:0,S?S.at:0);
-  var t="Báo cáo kiểm tra · "+new Date(t0||Date.now()).toLocaleString("vi-VN")+"\n"+(navigator.userAgent||"")+"\n"+(window.Capacitor?"APK (Capacitor)":"Trình duyệt/PWA")+"\nTổng: "+cnt("bad")+" lỗi · "+cnt("warn")+" cảnh báo · "+cnt("ok")+" ổn\n",g="";
+  var P=R&&R.P?R.P:detectProfile();
+  var t="Báo cáo kiểm tra · "+new Date(t0||Date.now()).toLocaleString("vi-VN")+"\nHồ sơ: "+P.label+" ("+P.envLabel+")\n"+(navigator.userAgent||"")+"\nTổng: "+cnt("bad")+" lỗi · "+cnt("warn")+" cảnh báo · "+cnt("ok")+" ổn\n",g="";
   function sec(L){g="";L.forEach(function(x){if(x.g!==g){g=x.g;t+="\n["+g+"]\n"}t+=ICON[x.s]+" "+x.t+"\n"})}
   if(S){t+="\n=== Kết nối máy chủ · "+new Date(S.at).toLocaleString("vi-VN")+" ===";sec(S.L)}
-  if(R){t+="\n=== Thiết bị ==="+"";sec(R.L)}
+  if(R){t+="\n=== Thiết bị ===";sec(R.L)}
+  if(AF_LOG.length){
+    t+="\n=== Nhật ký tự động sửa ===\n";
+    AF_LOG.slice(-3).forEach(function(e){
+      t+="- "+hm(e.at)+" ["+e.profile+(e.silent?" · ngầm":" · tay")+"]: "+e.results.map(function(r){return r.id+"="+r.status}).join(", ")+"\n"})}
   return t}
 function copy(t){
   if(navigator.clipboard&&navigator.clipboard.writeText)return navigator.clipboard.writeText(t);
@@ -798,27 +1241,48 @@ function copy(t){
     var ok=false;try{ok=document.execCommand("copy")}catch(e){}
     ta.remove();ok?res():rej(new Error("copy"))})}
 
-/* ---------- Nút sửa lỗi (đều hỏi xác nhận, không đụng dữ liệu trên Sheet/Drive) ---------- */
-function guard(){
+/* ---------- Bảo vệ dữ liệu dựa trên trạng thái thật của index.html & ck.js ---------- */
+function guard(forAutoFix){
   var K=window.NK;
-  if(K&&(K.ckDirty||(K.ckUpQ&&K.ckUpQ.length)||(K.ckTrashQ&&K.ckTrashQ.length)))return "Đang có thay đổi chưa lưu hoặc ảnh đang tải lên. Hãy đợi xong rồi thử lại.";
+  if(K&&(K.ckDirty||(K.ckSaveN||0)>0||(K.ckUpN||0)>0||(K.ckUpQ&&K.ckUpQ.length)||(K.ckTrashQ&&K.ckTrashQ.length)||K.ckErr)){
+    return "Đang có thay đổi checklist chưa lưu hoặc ảnh đang tải lên. Hãy đợi xong rồi thử lại."}
+  if(forAutoFix&&K&&K.tab==="ck")return "Đang mở trang Checklist, tạm hoãn để tránh gián đoạn thao tác.";
+  if(forAutoFix){
+    var openDlgs=document.querySelectorAll("dialog[open]");
+    for(var i=0;i<openDlgs.length;i++){
+      if(openDlgs[i].id!=="dbgd")return "Đang mở hộp thoại khác ("+openDlgs[i].id+"), tạm hoãn tự động sửa."}}
   return ""}
 function reload(){setTimeout(function(){location.reload()},400)}
-/* Xóa khóa trong IndexedDB và chờ ghi xong rồi mới tải lại (idbSave của app có độ trễ 0,7 giây, tải lại ngay sẽ làm lệnh xóa bị mất) */
 function wipeKeys(ks){
   var T=window.NT||{},M=window.NB&&window.NB.IDBM;
   return Promise.all(ks.map(function(k){
-    try{if(T.ls)T.ls(k,"")}catch(x){}
+    try{if(T.ls)T.ls(k,"");else localStorage.removeItem(k)}catch(x){}
     if(M&&M.set)return M.set(k,"").catch(function(){});
     try{if(T.idbSave)T.idbSave(k,"")}catch(x){}
     return new Promise(function(r){setTimeout(r,1200)})}))}
 function onClick(e){
   var b=e.target.closest("[data-act]");if(!b||b.disabled)return;
-  var a=b.dataset.act,gd,bs=busy||running||srvBusy;
+  var a=b.dataset.act,gd,bs=busy||running||srvBusy||afBusy;
   if(a==="flt"){FLT=b.dataset.v;draw();return}
   if(a==="stop"){stopSrv();say("Đang dừng…");return}
   if(a==="copy"){if(R||S)copy(report()).then(function(){say("Đã sao chép báo cáo")},function(){say("Không sao chép được, hãy thử lại")});return}
   if(bs)return;
+  if(a==="autofix"){
+    var pl=buildFixPlan();
+    if(!pl.steps.length){say("Hệ thống đang ổn, không có mục cần sửa tự động");return}
+    var hasRel=pl.steps.some(function(s){return !s.blockedBy&&s.needsReload});
+    if(hasRel&&!confirm("Thuật toán sẽ sửa "+pl.steps.filter(function(s){return !s.blockedBy}).length+" mục (hồ sơ: "+pl.profile.label+") và tải lại trang để áp dụng. Dữ liệu trên Sheet/Drive, ảnh (img-v1) và model DINOv3 (lib-v1) được giữ nguyên. Tiếp tục?"))return;
+    say("Đang chạy thuật toán tự động sửa…");draw();
+    autoFix({silent:false,allowReload:true}).then(function(res){
+      var fN=(res.results||[]).filter(function(r){return r.status==="fixed"}).length;
+      var dN=(res.results||[]).filter(function(r){return r.status==="blocked"||r.status==="deferred"}).length;
+      if(!res.reloading)say(fN?"Đã tự sửa "+fN+" mục"+(dN?" · "+dN+" mục tạm hoãn":""):"Không có mục nào sửa được ("+dN+" mục tạm hoãn)");
+      var w=G("dbgafwrap");if(w)w.open=true;
+      draw()});
+    return}
+  if(a==="toggleaf"){
+    var off=false;try{off=localStorage.getItem("dbg-af-off")==="1";localStorage.setItem("dbg-af-off",off?"0":"1")}catch(x){}
+    say(off?"Đã bật tự động sửa lỗi an toàn ngầm":"Đã tắt tự động sửa lỗi ngầm");draw();return}
   if(a==="all"){allRun();return}
   if(a==="run"){rerun();return}
   if(a==="hide"){try{sessionStorage.setItem("dbg-hide","1")}catch(x){}badge();say("Đã ẩn nút ⚠ cho đến khi mở lại app");return}
@@ -834,11 +1298,11 @@ function onClick(e){
       if(!S)S={at:Date.now(),L:[]};
       S.L=S.L.filter(function(x){return x.g!==L[0].g}).concat(L);S.at=Date.now()
     }).then(function(){srvBusy=false;say("");draw()});return}
-  gd=guard();if(gd){say(gd);return}
+  gd=guard(false);if(gd){say(gd);return}
   if(a==="reset"){
-    if(!confirm("Xóa vỏ app đã lưu (không xóa ảnh, dữ liệu Sheet hay cài đặt) và tải lại bản mới nhất?"))return;
+    if(!confirm("Xóa vỏ app đã lưu (giữ nguyên ảnh img-v1, model DINOv3 lib-v1, dữ liệu Sheet hay cài đặt) và tải lại bản mới nhất?"))return;
     say("Đang làm mới…");
-    (window.caches?caches.keys():Promise.resolve([])).then(function(ks){return Promise.all(ks.filter(function(k){return k!=="img-v1"}).map(function(k){return caches.delete(k)}))})
+    (window.caches?caches.keys():Promise.resolve([])).then(function(ks){return Promise.all(ks.filter(function(k){return k!=="img-v1"&&k!=="lib-v1"}).map(function(k){return caches.delete(k)}))})
       .then(function(){return navigator.serviceWorker?navigator.serviceWorker.getRegistrations():[]})
       .then(function(rs){return Promise.all(rs.map(function(r){return r.unregister()}))})
       .then(reload,reload);return}
@@ -848,8 +1312,8 @@ function onClick(e){
   if(a==="ck"){
     if(!confirm("Xóa chi tiết checklist đã nhớ trên máy? Dữ liệu trên Sheet không bị ảnh hưởng, app sẽ tải lại khi cần."))return;
     say("Đang xóa…");
-    try{window.NK.ckC={};window.NK.ckcSave()}catch(x){}
-    Promise.resolve(window.NT&&window.NT.idbSave?window.NT.idbSave("ckc1",""):0).catch(function(){}).then(function(){setTimeout(reload,1800)});return}
+    try{window.NK.ckC={}}catch(x){}
+    wipeKeys(["ckc1"]).then(reload,reload);return}
   if(a==="dpm"){
     if(!confirm("Xóa kết quả so khớp ảnh trùng trên máy này? Hash ảnh được giữ nên quét lại rất nhanh. Danh sách \"Không phải trùng\" và dữ liệu trên Sheet không bị ảnh hưởng."))return;
     say("Đang xóa…");wipeKeys([KP()]).then(reload,reload);return}
@@ -869,10 +1333,28 @@ function autoPersist(){
     sessionStorage.setItem("dbg-persist","1");
     navigator.storage.persisted().then(function(v){if(!v)return navigator.storage.persist()}).catch(function(){})
   }catch(e){}}
+function autoHealSilent(){
+  try{
+    if(window.DBG_NO_AUTOFIX||localStorage.getItem("dbg-af-off")==="1")return Promise.resolve();
+  }catch(e){}
+  var pl=buildFixPlan();
+  var safe=pl.steps.filter(function(s){return !s.blockedBy&&s.safeSilent});
+  if(!safe.length)return Promise.resolve();
+  return autoFix({silent:true,allowReload:false})}
 function start(){
   autoPersist();
-  var go=function(){run().then(function(){if(/[?&]debug=1/.test(location.search))show()})};
+  var go=function(){
+    run().then(function(){return autoHealSilent()}).then(function(){
+      if(/[?&]debug=1/.test(location.search))show()})};
   setTimeout(function(){if(window.requestIdleCallback)requestIdleCallback(go,{timeout:4000});else go()},3000)}
 if(document.readyState==="complete")start();else window.addEventListener("load",start);
-window.Dbg={run:function(){return run(true)},show:show,all:allRun,report:function(){return R||S?report():""}};
+window.Dbg={
+  run:function(){return run(true)},
+  show:show,
+  all:allRun,
+  report:function(){return R||S?report():""},
+  autoFix:autoFix,
+  plan:function(){return buildFixPlan()},
+  profile:function(){return detectProfile(R&&R.M)}
+};
 })();
