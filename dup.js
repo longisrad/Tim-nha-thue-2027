@@ -217,43 +217,19 @@ var CSS2=[
 ".dpsim.hi{color:var(--danger,#c0392b)}",
 ".dpsim.mid{color:#b9770e}",
 ".dpsim.lo{color:var(--mute)}",
-".dpclcard{border:1px solid var(--line);border-left:4px solid var(--mute);border-radius:14px;margin-top:12px;background:var(--surface);overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04)}",
+".dpclcard{border:1px solid var(--line);border-left:4px solid var(--mute);border-radius:12px;padding:0 8px 8px;margin-top:10px;background:var(--surface)}",
 ".dpclcard.hi{border-left-color:var(--danger,#c0392b)}",
 ".dpclcard.mid{border-left-color:#b9770e}",
-".dpclhead{display:flex;align-items:center;gap:10px;cursor:pointer;list-style:none;padding:10px 12px;background:var(--bg);-webkit-tap-highlight-color:transparent}",
+".dpclhead{display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none;padding:10px 4px 8px;-webkit-tap-highlight-color:transparent}",
 ".dpclhead::-webkit-details-marker{display:none}",
-".dpclhead::before{content:\"\\u25B8\";flex:none;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:var(--surface);border:1px solid var(--line);color:var(--mute);font-size:10px;transition:transform .15s ease}",
+".dpclhead::before{content:\"\\u25B8\";color:var(--mute);font-size:11px;transition:transform .15s ease}",
 ".dpclcard[open]>.dpclhead::before{transform:rotate(90deg)}",
-".dpclcard[open]>.dpclhead{border-bottom:1px solid var(--line)}",
-".dpclt{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}",
-".dpclt b{font-size:var(--fs-b);font-weight:800;color:var(--ink)}",
+".dpclt{flex:1;min-width:0;display:flex;flex-direction:column}",
+".dpclt b{font-size:var(--fs-b);color:var(--ink)}",
 ".dpclt small{font-size:11.5px;color:var(--mute);font-weight:600}",
 ".dpclm{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--mute);font-weight:600;flex:none}",
-".dpclm>span:first-child{padding:1px 8px;border-radius:999px;background:var(--surface);border:1px solid var(--line)}",
-".dpclchain{position:relative;counter-reset:dpn;margin:10px 10px 10px 12px;padding-left:30px}",
-".dpclchain::before{content:\"\";position:absolute;left:11px;top:16px;bottom:16px;width:2px;border-radius:2px;background:repeating-linear-gradient(to bottom,var(--line) 0 6px,transparent 6px 10px)}",
-".dpclchain>.dprow{position:relative;counter-increment:dpn;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:0 8px 0 10px}",
-".dpclchain>.dprow::before{content:counter(dpn);position:absolute;left:-30px;top:50%;width:24px;height:24px;margin-top:-12px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--surface);border:2px solid var(--mute);color:var(--ink);font-size:11px;font-weight:800;box-sizing:border-box;z-index:1}",
-".dpclcard.hi .dpclchain>.dprow::before{border-color:var(--danger,#c0392b)}",
-".dpclcard.mid .dpclchain>.dprow::before{border-color:#b9770e}",
-".dpadj{position:relative;display:grid;gap:8px;padding:8px 10px;margin:8px 0 8px 6px;border-radius:10px;background:var(--surface);border:1px dashed var(--line)}",
-".dpadj::before{content:\"\";position:absolute;left:-25px;top:50%;width:10px;height:10px;margin-top:-5px;border-radius:50%;background:var(--line);box-sizing:border-box;border:2px solid var(--surface);z-index:1}",
-".dpadj-top{display:flex;align-items:center;justify-content:space-between;gap:8px}",
-".dpadj-l{font-size:11.5px;font-weight:700;color:var(--mute);text-transform:none}",
-".dpadj-bot{display:grid;gap:8px}",
-".dpadj-thumbs{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}",
-".dpadj-pair{display:inline-grid;grid-template-columns:1fr 1fr;gap:2px;cursor:zoom-in;padding:2px;border-radius:8px;background:var(--bg);border:1px solid var(--line)}",
-".dpadj-thumbs img{width:48px;height:38px;object-fit:cover;border-radius:5px;background:var(--line);display:block}",
-".dpadj-more{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:30px;padding:0 6px;border-radius:999px;background:var(--bg);border:1px solid var(--line);font-size:11px;color:var(--mute);font-weight:700}",
-".dpadj-act{display:flex;align-items:center;gap:6px;flex-wrap:wrap}",
-".dpadj-act .dpimgbtn,.dpadj-act .dpno{flex:1 1 0;justify-content:center;min-width:96px}",
-".dpclchords{margin:0 10px 12px;padding:8px 10px;border-radius:10px;background:var(--bg);border:1px solid var(--line);display:grid;gap:8px}",
-".dpclchords h5{margin:0;font-size:11.5px;color:var(--mute);font-weight:700}",
-".dpclchord{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11.5px;color:var(--mute);padding-top:8px;border-top:1px dashed var(--line)}",
-".dpclchords h5+.dpclchord{padding-top:0;border-top:0}",
-".dpclchord-n{flex:1 1 100%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
-".dpclchord-n+.dpsim{margin-right:auto}",
-".dpclchord b{color:var(--ink);font-weight:600}",
+".dpclbody{display:grid;gap:0;min-width:0}",
+".dpclbody>.dpc:first-child{margin-top:0}",
 ".dpanact{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0}",
 ".dpanact[hidden]{display:none}",
 ".dpanact .btn{min-height:32px;padding:4px 12px;font-size:var(--fs-s);white-space:nowrap}",
@@ -932,49 +908,13 @@ function simTone(n){return n>=88?"hi":n>=80?"mid":"lo"}
 function simBadge(n){return '<span class="dpsim '+simTone(n)+'">'+n+'%</span>'}
 /* Thẻ cụm: tiêu đề thu gọn được · chuỗi các căn liền kề nối nhau bằng thanh dọc · cặp trùng chéo (không liền kề) tách thành mục riêng */
 function clusterCardsH(graph){
-  var cls=((graph&&graph.clusters)||[]).filter(function(cl){return cl.nodes&&cl.nodes.length>=3}),allowDel=canWrite();
+  var cls=((graph&&graph.clusters)||[]).filter(function(cl){return cl.nodes&&cl.nodes.length>=3});
   if(!cls.length)return '<p class="dpmess">Chưa có cụm nào từ 3 căn trở lên trùng chéo ảnh. Hãy bấm «Quét ảnh trùng» hoặc chuyển sang «Theo cặp».</p>';
   var h="";
   cls.forEach(function(cl){
-    var idxByPairKey={};
-    cl.pairs.forEach(function(p){
-      var idx=viewList.push(p)-1;
-      idxByPairKey[p.a.id+"|"+p.b.id]=idx;
-    });
-    function refForNode(id){
-      for(var i=0;i<cl.pairs.length;i++){
-        var p=cl.pairs[i],idx=idxByPairKey[p.a.id+"|"+p.b.id];
-        if(p.a.id===id)return{idx:idx,side:"a"};
-        if(p.b.id===id)return{idx:idx,side:"b"};
-      }
-      return{idx:0,side:"a"};
-    }
-    var usedEdge={},i;
-    h+='<details class="dpclcard '+simTone(cl.maxSim)+'" open><summary class="dpclhead"><span class="dpclt"><b>Cụm #'+cl.id+'</b><small>'+cl.nodes.length+' căn liền kề</small></span><span class="dpclm"><span>'+cl.pairs.length+' cặp</span>'+simBadge(cl.maxSim)+'</span></summary><div class="dpclchain">';
-    for(i=0;i<cl.nodes.length;i++){
-      var it=cl.nodes[i],rf=refForNode(it.id);
-      h+=rowH(it,rf.idx,rf.side,allowDel);
-      if(i<cl.nodes.length-1){
-        var nxt=cl.nodes[i+1],pk=it.id<nxt.id?it.id+"|"+nxt.id:nxt.id+"|"+it.id,ep=graph.pairMap[pk];
-        if(ep&&idxByPairKey[pk]!==undefined){
-          usedEdge[pk]=1;
-          var eIdx=idxByPairKey[pk],em=graph.pairMeta[pk]||{maxSim:0,nImg:ep.img.length};
-          var thumbs=ep.img.slice(0,3).map(function(m,mi){return '<span class="dpadj-pair" data-zoom="'+eIdx+':'+mi+'" title="Bấm để phóng to"><img alt="Ảnh căn 1" loading="lazy" src="'+esc(imgSrc(m.x,200))+'"><img alt="Ảnh căn 2" loading="lazy" src="'+esc(imgSrc(m.y,200))+'"></span>'}).join(""),more=ep.img.length>3?'<span class="dpadj-more">+'+(ep.img.length-3)+'</span>':"";
-          h+='<div class="dpadj"><div class="dpadj-top"><span class="dpadj-l">Trùng '+ep.img.length+' ảnh</span>'+simBadge(em.maxSim)+'</div><div class="dpadj-bot"><span class="dpadj-thumbs">'+thumbs+more+'</span><span class="dpadj-act"><button type="button" class="dpimgbtn" data-cmpfull="'+eIdx+'">So sánh</button><button type="button" class="dpno" data-ign="'+eIdx+'">Không trùng</button></span></div></div>';
-        }
-      }
-    }
-    h+='</div>';
-    var chords=cl.pairs.filter(function(p){return !usedEdge[p.a.id+"|"+p.b.id]});
-    if(chords.length){
-      h+='<div class="dpclchords"><h5>Trùng chéo, không liền kề · '+chords.length+' cặp</h5>';
-      chords.forEach(function(cp){
-        var cIdx=idxByPairKey[cp.a.id+"|"+cp.b.id],cm=graph.pairMeta[cp.a.id+"|"+cp.b.id]||{maxSim:0};
-        h+='<div class="dpclchord"><span class="dpclchord-n"><b>'+esc(cp.a.n)+'</b> ↔ <b>'+esc(cp.b.n)+'</b> · '+cp.img.length+' ảnh</span>'+simBadge(cm.maxSim)+'<button type="button" class="dpimgbtn" data-cmpfull="'+cIdx+'">So sánh</button><button type="button" class="dpno" data-ign="'+cIdx+'">Không trùng</button></div>';
-      });
-      h+='</div>';
-    }
-    h+='</details>';
+    h+='<details class="dpclcard '+simTone(cl.maxSim)+'" open><summary class="dpclhead"><span class="dpclt"><b>Cụm #'+cl.id+'</b><small>'+cl.nodes.length+' căn liền kề</small></span><span class="dpclm"><span>'+cl.pairs.length+' cặp</span>'+simBadge(cl.maxSim)+'</span></summary><div class="dpclbody">';
+    cl.pairs.forEach(function(p){var idx=viewList.push(p)-1;h+=pairH(p,idx,false)});
+    h+='</div></details>';
   });
   return h;
 }
