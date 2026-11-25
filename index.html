@@ -990,7 +990,7 @@ function render(){
   if(tab==="sum")renderSum();
   if(tabCntRev!==dataRev){
     var nfv=0,nre=0;
-    for(var bi=0;bi<items.length;bi++){var it0=items[bi];if(it0.fv)nfv++;if(it0.st==="seen")nre++}
+    for(var bi=0;bi<items.length;bi++){var it0=items[bi];if(it0.fv&&it0.st!=="out")nfv++;if(it0.st==="seen")nre++}
     tabCntF=nfv;tabCntR=nre;tabCntRev=dataRev;
   }
   var tFav="Yêu thích"+(tabCntF?" ("+tabCntF+")":""),tReal="Thực tế"+(tabCntR?" ("+tabCntR+")":"");
@@ -1034,7 +1034,7 @@ function render(){
   var fs=real?"":fst,rsV=real?$("rsel").value:"",drV=$("drg").value;
   var preKey=dataRev+"|"+listUiRev+"|"+(canW?1:0)+"|"+listLim+"|"+tab+"|"+q+"|"+$("fdist").value+"|"+$("fward").value+"|"+drV+"|"+$("dty").value+"|"+$("df").value+"|"+$("dt").value+"|"+fs+"|"+$("fsort").value+"|"+rsV+(drV?"|"+ymd(new Date()):"");
   if(listRenderedKey===preKey){hlRe();moreSoon();return}
-  var src=tab==="fav"?items.filter(function(i){return i.fv}):real?items.filter(function(i){return i.st==="seen"}):items;
+  var src=tab==="fav"?items.filter(function(i){return i.fv&&i.st!=="out"}):real?items.filter(function(i){return i.st==="seen"}):items;
   if(real)buildReal(src);
   var v=dget("drg","dty","df","dt");v.fd=$("fdist").value;v.so=$("fsort").value;
   buildDist($("fdist"),src);buildWardF($("fward"),src,v.fd);v.fw=$("fward").value;var base=src.filter(function(it){return passG(it,q,v)});if(!real)buildSt(base);ftBadge("fft",(v.fd?1:0)+(v.fw?1:0)+(v.r?1:0)+(v.so?1:0));$("clr").hidden=!(v.fd||v.fw||v.r||v.so||fs);
