@@ -15,7 +15,7 @@ function stName(k){return N().stName(k)}
 function fmt(x){return N().fmt(x)}
 function ls(k,v){return N().ls(k,v)}
 var items=[];
-var CSS=".dphdr{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:3px 0 12px}\n.dphdr h1{margin:0;min-width:0;font-size:clamp(19px,5.5vw,26px)}\n.dphdr+.sub{color:var(--mute);font-size:var(--fs-s);margin:-6px 0 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n@media (max-height:820px){.dphdr+.sub{display:none}}\n.dpbtn{flex:none;display:inline-flex;align-items:center;min-height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:var(--fs-s);font-weight:700;cursor:pointer;white-space:nowrap;transition:transform .1s ease,background-color .15s ease,border-color .15s ease,color .15s ease,box-shadow .15s ease}\n.dpbtn:active{transform:scale(.96)}\n#dupl,#dupignl,.dpc,.dprow{min-width:0}\n#dupmain[hidden],#dupignview[hidden],.dpbar2[hidden],.dpignbar[hidden],.dpviewbar[hidden],.dpseg[hidden],.dpsegbtn[hidden],.dpapply[hidden],.dpdet[hidden],.dpimgs[hidden],.dpz[hidden],.dpzctrl[hidden],.dpzstage img[hidden],.dpzempty[hidden]{display:none}\n.dpc{border:1px solid var(--line);border-left:4px solid var(--mute);border-radius:12px;padding:6px 12px 10px;margin-top:8px;background:var(--surface)}\n.dpc.im{border-left-color:var(--danger)}\n.dpc.pu{border-left-color:#7c3aed}\n.dpc.gr{border-left-color:#9ca3af}\n.dprow{display:flex;align-items:center;gap:6px}\n.dprow+.dprow{border-top:1px dashed var(--line)}\n.dpr{display:flex;gap:8px;align-items:center;justify-content:space-between;flex:1;min-width:0;padding:8px 0}\n.dpt{min-width:0;flex:1;overflow:hidden}.dpt b{display:block;font-size:var(--fs-b);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}\n.dpt small{display:block;color:var(--mute);font-size:var(--fs-s);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}\n.dpedit,.dpdel{flex:none;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:4px 9px;min-height:30px;font-size:var(--fs-s);font-weight:600;cursor:pointer;white-space:nowrap}\n.dpedit{color:var(--accent)}\n.dpdel{color:var(--danger)}\n.dpdel:disabled{opacity:.5;cursor:default}\n.dpw{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}\n.dpw span{font-size:var(--fs-s);font-weight:600;padding:2px 9px;border-radius:999px;background:var(--bg);border:1px solid var(--line);color:var(--ink)}\n.dpw span.im{background:var(--danger);border-color:var(--danger);color:#fff}\n.dpn[data-tog],.dpw[data-tog]{cursor:pointer}\n.dpm{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin-top:8px}\n.dpm div{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:2px;cursor:zoom-in;min-width:0}\n.dpm img{width:100%;height:64px;object-fit:cover;border-radius:6px;background:var(--line);display:block}\n.dpbar2{display:flex;flex-wrap:wrap;align-items:center;gap:8px}\n.dpignbtn{border:1px solid var(--s-contact);background:var(--b-contact);color:var(--s-contact);border-radius:999px;padding:4px 12px;min-height:32px;font-size:var(--fs-s);font-weight:700;cursor:pointer}\n.dphead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}\n.dphead h2{margin:0}\n.dphead .btn{min-height:34px;padding:5px 10px}\n.dpsens{display:flex;align-items:center;gap:8px;flex-wrap:wrap}\n.dpsens label{margin:0;white-space:nowrap}\n.dpsens select{width:auto;flex:1;min-width:180px;min-height:36px;padding:4px 8px;font-size:var(--fs-s)}\n.dpopt{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-s);font-weight:600;color:var(--ink);cursor:pointer;margin:0}\n.dpopt input{width:auto;min-height:0;accent-color:var(--accent)}\n.dpb{height:6px;border-radius:3px;background:var(--line);overflow:hidden}\n.dpb i{display:block;height:100%;width:0;background:var(--accent);transition:width .35s cubic-bezier(.16,1,.3,1)}\n.dpc.im .dpn{color:var(--danger)}\n.dpc.pu .dpn{color:#7c3aed}\n.dpn{font-size:var(--fs-s);font-weight:700;color:var(--ink);margin:6px 0 0}\n.dpa{margin-top:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}\n.dpno{border:1px solid var(--s-contact);background:var(--b-contact);color:var(--s-contact);border-radius:999px;padding:4px 11px;min-height:30px;font-size:var(--fs-s);font-weight:700;cursor:pointer}\n.dpno.undo{color:var(--ink);border-color:var(--line);background:var(--bg)}\n.dpchk{border:1px solid var(--s-seen);background:var(--b-seen);color:var(--s-seen);border-radius:999px;padding:4px 11px;min-height:30px;font-size:var(--fs-s);font-weight:700;cursor:pointer}\n.dpchk:disabled{opacity:.6;cursor:default}\n.dpimgbtn{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:4px 11px;min-height:30px;font-size:var(--fs-s);font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px}\n.dpimgbtn[aria-expanded=\"true\"]{background:var(--s-new);border-color:var(--s-new);color:var(--surface)}\n.dpimgbtn:disabled{opacity:.55;cursor:default}\n.dpv{font-size:var(--fs-s);font-weight:600;margin-left:auto}\n.dpst{margin:6px 0 0;font-size:var(--fs-s);color:var(--mute)}\n.dpst.ok{color:var(--s-won);font-weight:700}\n.dpst.bad{color:var(--danger);font-weight:700}\n.dpdet,.dpimgs{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}\n.dpimgbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px}\n.dpimgbar b{font-size:var(--fs-s);color:var(--ink)}\n.dpimgbar select{width:auto;min-width:165px;min-height:32px;padding:3px 8px;font-size:var(--fs-s);border-radius:8px}\n.dpcmps{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:stretch}\n.dpcmps.stack,.dpcmps.single{grid-template-columns:minmax(0,1fr)}\n.dpcmp{border:1px solid var(--line);border-radius:10px;padding:7px;background:var(--bg);min-width:0;display:flex;flex-direction:column}\n.dpcmph{display:flex;align-items:baseline;justify-content:space-between;gap:6px;margin-bottom:4px;min-width:0}\n.dpcmph b{font-size:var(--fs-s);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}\n.dpcmph span{flex:none;font-size:11px;font-weight:700;color:var(--mute)}\n.dpcmpm{font-size:11px;color:var(--mute);margin:0 0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-height:15px}\n.dpthumbs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}\n.dpcmps.stack .dpthumbs,.dpcmps.single .dpthumbs{grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:6px}\n@media (min-width:600px){.dpcmps.both .dpthumbs{grid-template-columns:repeat(3,minmax(0,1fr))}}\n.dpth{position:relative;display:block;width:100%;min-width:0;min-height:0;border:1px solid var(--line);border-radius:7px;overflow:hidden;padding:0;background:var(--surface);cursor:zoom-in;aspect-ratio:4/3}\n.dpth.hit{border:2px solid var(--danger)}\n.dpth img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;background:var(--line)}\n.dpth i{position:absolute;left:3px;top:3px;font-style:normal;font-size:10px;font-weight:700;padding:1px 5px;border-radius:999px;background:var(--danger);color:#fff;line-height:1.3;pointer-events:none;z-index:1}\n.dpth u{position:absolute;right:3px;bottom:3px;text-decoration:none;font-size:10px;font-weight:700;padding:1px 5px;border-radius:6px;background:rgba(0,0,0,.62);color:#fff;line-height:1.3;pointer-events:none;z-index:1}\n.dpmess{font-size:var(--fs-s);color:var(--mute);font-style:italic;margin:8px 0 4px;text-align:center}\n.dpfs{display:grid;gap:6px}\n.dpf{border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--bg)}\n.dpf.hit{border-color:var(--mute);background:var(--surface)}\n.dpfl{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:4px}\n.dpfl b{font-size:var(--fs-s)}\n.dptag{font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--s-new);color:var(--surface)}\n.dpfc{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:var(--fs-s)}\n.dpfc small{display:block;color:var(--mute);font-size:11px}\n.dpfc span{display:block;overflow-wrap:anywhere;word-break:break-word}\n.dpfc a{color:var(--s-seen);text-decoration:underline;overflow-wrap:anywhere;word-break:break-all}\n.dpe{color:var(--mute);font-style:italic}\n.dpi{margin-top:8px}\n.dpil{margin:0 0 6px;font-size:var(--fs-s);font-weight:700;color:var(--danger)}\n.dpig{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}\n.dpip{border:1px solid var(--line);border-radius:8px;padding:4px;background:var(--bg);cursor:zoom-in;text-align:center;font:inherit;color:inherit}\n.dpip span{display:grid;grid-template-columns:1fr 1fr;gap:2px}\n.dpip img{width:100%;height:72px;object-fit:cover;border-radius:5px;background:var(--line);display:block}\n.dpip small{display:block;margin-top:3px;font-size:11px;color:var(--mute)}\n.dpz{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;padding:calc(12px + env(safe-area-inset-top,0px)) 12px calc(12px + env(safe-area-inset-bottom,0px));overscroll-behavior:contain}\n.dpzb{background:var(--surface);color:var(--ink);border-radius:12px;padding:12px;width:min(760px,100%);max-height:calc(100dvh - 24px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}\n.dpzhdr{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}\n.dpzt{margin:0;font-weight:700;font-size:var(--fs-b);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}\n.dpzlay,.dpzcls{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:4px 10px;min-height:32px;font-size:var(--fs-s);font-weight:600;cursor:pointer;white-space:nowrap;flex:none}\n.dpzcls{min-width:32px;padding:4px 8px;font-size:16px;line-height:1}\n.dpzg{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:stretch}\n.dpzg.stack{grid-template-columns:minmax(0,1fr)}\n.dpzcol{min-width:0;display:flex;flex-direction:column;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px}\n.dpzstage{position:relative;width:100%;height:clamp(210px,44dvh,420px);border-radius:8px;background:var(--surface);border:1px solid var(--line);overflow:hidden;display:flex;align-items:center;justify-content:center}\n.dpzg.stack .dpzstage{height:clamp(180px,33dvh,320px)}\n.dpzstage img{position:absolute;inset:0;width:100%;height:100%;padding:4px;object-fit:contain;display:block;cursor:pointer}\n.dpzempty{font-size:var(--fs-s);color:var(--mute);font-style:italic;padding:8px;text-align:center}\n.dpzmeta{margin-top:6px;text-align:center;min-width:0}\n.dpzmeta b{display:block;font-size:var(--fs-s);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.35}\n.dpzmeta small{display:block;margin-top:1px;font-size:11px;color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.35;min-height:15px}\n.dpzctrl{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:6px;min-height:32px}\n.dpzctrl.ghost{visibility:hidden;pointer-events:none}\n.dpzctrl button{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;min-width:38px;min-height:32px;padding:2px 10px;font-size:16px;font-weight:700;cursor:pointer}\n.dpzctrl button:disabled{opacity:.4;cursor:default}\n.dpzctrl span{font-size:var(--fs-s);font-weight:700;color:var(--ink);min-width:46px;text-align:center}\n.dpundo{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:30;display:flex;align-items:center;gap:8px;max-width:calc(100vw - 24px);background:var(--ink);color:var(--surface);border-radius:12px;padding:8px 8px 8px 14px;box-shadow:0 6px 20px rgba(0,0,0,.3);font-size:var(--fs-s)}\n.dpundo[hidden]{display:none}\n.dpundo span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}\n.dpundo button{border:0;border-radius:8px;min-height:32px;padding:4px 12px;font-size:var(--fs-s);font-weight:700;cursor:pointer;background:var(--surface);color:var(--ink);white-space:nowrap}\n.dpundo button.x{background:transparent;color:inherit;padding:4px 8px}\n";
+var CSS=".dphdr{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:3px 0 12px}\n.dphdr h1{margin:0;min-width:0;font-size:clamp(19px,5.5vw,26px)}\n.dphdr+.sub{color:var(--mute);font-size:var(--fs-s);margin:-6px 0 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n@media (max-height:820px){.dphdr+.sub{display:none}}\n.dpbtn{flex:none;display:inline-flex;align-items:center;min-height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:var(--fs-s);font-weight:700;cursor:pointer;white-space:nowrap;transition:transform .1s ease,background-color .15s ease,border-color .15s ease,color .15s ease,box-shadow .15s ease}\n.dpbtn:active{transform:scale(.96)}\n#dupl,#dupignl,.dpc,.dprow{min-width:0}\n#dupmain[hidden],#dupignview[hidden],.dpbar2[hidden],.dpignbar[hidden],.dpviewbar[hidden],.dpseg[hidden],.dpsegbtn[hidden],.dpapply[hidden],.dpdet[hidden],.dpimgs[hidden],.dpz[hidden],.dpzctrl[hidden],.dpzstage img[hidden],.dpzempty[hidden]{display:none}\n.dpc{border:1px solid var(--line);border-left:4px solid var(--mute);border-radius:12px;padding:2px 10px 8px;margin-top:6px;background:var(--surface)}\n.dpc.im{border-left-color:var(--danger)}\n.dpc.pu{border-left-color:#7c3aed}\n.dpc.gr{border-left-color:#9ca3af}\n.dprow{display:flex;align-items:center;gap:6px}\n.dprow+.dprow{border-top:1px dashed var(--line)}\n.dpr{display:flex;gap:8px;align-items:center;justify-content:space-between;flex:1;min-width:0;padding:6px 0}\n.dpt{min-width:0;flex:1;overflow:hidden}.dpt b{display:block;font-size:var(--fs-b);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}\n.dpt small{display:block;color:var(--mute);font-size:var(--fs-s);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}\n.dpedit,.dpdel{flex:none;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:3px 8px;min-height:28px;font-size:var(--fs-s);font-weight:600;cursor:pointer;white-space:nowrap}\n.dpedit{color:var(--accent)}\n.dpdel{color:var(--danger)}\n.dpdel:disabled{opacity:.5;cursor:default}\n.dpw{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}\n.dpw span{font-size:var(--fs-s);font-weight:600;padding:2px 9px;border-radius:999px;background:var(--bg);border:1px solid var(--line);color:var(--ink)}\n.dpw span.im{background:var(--danger);border-color:var(--danger);color:#fff}\n.dpn[data-tog],.dpw[data-tog]{cursor:pointer}\n.dpm{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin-top:6px}\n.dpm div{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:2px;cursor:zoom-in;min-width:0}\n.dpm img{width:100%;height:56px;object-fit:cover;border-radius:6px;background:var(--line);display:block}\n.dpbar2{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0}\n.dpignbtn{border:1px solid var(--s-contact);background:var(--b-contact);color:var(--s-contact);border-radius:999px;padding:4px 12px;min-height:32px;font-size:var(--fs-s);font-weight:700;cursor:pointer}\n.dphead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}\n.dphead h2{margin:0}\n.dphead .btn{min-height:34px;padding:5px 10px}\n.dpopt{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-s);font-weight:600;color:var(--ink);cursor:pointer;margin:0}\n.dpopt input{width:auto;min-height:0;accent-color:var(--accent)}\n.dpb{height:6px;border-radius:3px;background:var(--line);overflow:hidden}\n.dpb i{display:block;height:100%;width:0;background:var(--accent);transition:width .35s cubic-bezier(.16,1,.3,1)}\n.dpc.im .dpn{color:var(--danger)}\n.dpc.pu .dpn{color:#7c3aed}\n.dpn{font-size:var(--fs-s);font-weight:700;color:var(--ink);margin:5px 0 3px}\n.dpa{margin-top:6px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}\n.dpno{border:1px solid var(--s-contact);background:var(--b-contact);color:var(--s-contact);border-radius:999px;padding:4px 11px;min-height:30px;font-size:var(--fs-s);font-weight:700;cursor:pointer}\n.dpno.undo{color:var(--ink);border-color:var(--line);background:var(--bg)}\n.dpchk{border:1px solid var(--s-seen);background:var(--b-seen);color:var(--s-seen);border-radius:999px;padding:4px 11px;min-height:30px;font-size:var(--fs-s);font-weight:700;cursor:pointer}\n.dpchk:disabled{opacity:.6;cursor:default}\n.dpimgbtn{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:4px 11px;min-height:30px;font-size:var(--fs-s);font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px}\n.dpimgbtn[aria-expanded=\"true\"]{background:var(--s-new);border-color:var(--s-new);color:var(--surface)}\n.dpimgbtn:disabled{opacity:.55;cursor:default}\n.dpv{font-size:var(--fs-s);font-weight:600;margin-left:auto}\n.dpst{margin:4px 0 0;font-size:var(--fs-s);color:var(--mute)}\n.dpst.ok{color:var(--s-won);font-weight:700}\n.dpst.bad{color:var(--danger);font-weight:700}\n.dpdet,.dpimgs{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}\n.dpimgbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px}\n.dpimgbar b{font-size:var(--fs-s);color:var(--ink)}\n.dpimgbar select{width:auto;min-width:165px;min-height:32px;padding:3px 8px;font-size:var(--fs-s);border-radius:8px}\n.dpcmps{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:stretch}\n.dpcmps.stack,.dpcmps.single{grid-template-columns:minmax(0,1fr)}\n.dpcmp{border:1px solid var(--line);border-radius:10px;padding:7px;background:var(--bg);min-width:0;display:flex;flex-direction:column}\n.dpcmph{display:flex;align-items:baseline;justify-content:space-between;gap:6px;margin-bottom:4px;min-width:0}\n.dpcmph b{font-size:var(--fs-s);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}\n.dpcmph span{flex:none;font-size:11px;font-weight:700;color:var(--mute)}\n.dpcmpm{font-size:11px;color:var(--mute);margin:0 0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-height:15px}\n.dpthumbs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}\n.dpcmps.stack .dpthumbs,.dpcmps.single .dpthumbs{grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:6px}\n@media (min-width:600px){.dpcmps.both .dpthumbs{grid-template-columns:repeat(3,minmax(0,1fr))}}\n.dpth{position:relative;display:block;width:100%;min-width:0;min-height:0;border:1px solid var(--line);border-radius:7px;overflow:hidden;padding:0;background:var(--surface);cursor:zoom-in;aspect-ratio:4/3}\n.dpth.hit{border:2px solid var(--danger)}\n.dpth img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;background:var(--line)}\n.dpth i{position:absolute;left:3px;top:3px;font-style:normal;font-size:10px;font-weight:700;padding:1px 5px;border-radius:999px;background:var(--danger);color:#fff;line-height:1.3;pointer-events:none;z-index:1}\n.dpth u{position:absolute;right:3px;bottom:3px;text-decoration:none;font-size:10px;font-weight:700;padding:1px 5px;border-radius:6px;background:rgba(0,0,0,.62);color:#fff;line-height:1.3;pointer-events:none;z-index:1}\n.dpmess{font-size:var(--fs-s);color:var(--mute);font-style:italic;margin:8px 0 4px;text-align:center}\n.dpfs{display:grid;gap:6px}\n.dpf{border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--bg)}\n.dpf.hit{border-color:var(--mute);background:var(--surface)}\n.dpfl{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:4px}\n.dpfl b{font-size:var(--fs-s)}\n.dptag{font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--s-new);color:var(--surface)}\n.dpfc{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:var(--fs-s)}\n.dpfc small{display:block;color:var(--mute);font-size:11px}\n.dpfc span{display:block;overflow-wrap:anywhere;word-break:break-word}\n.dpfc a{color:var(--s-seen);text-decoration:underline;overflow-wrap:anywhere;word-break:break-all}\n.dpe{color:var(--mute);font-style:italic}\n.dpi{margin-top:8px}\n.dpil{margin:0 0 6px;font-size:var(--fs-s);font-weight:700;color:var(--danger)}\n.dpig{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}\n.dpip{border:1px solid var(--line);border-radius:8px;padding:4px;background:var(--bg);cursor:zoom-in;text-align:center;font:inherit;color:inherit}\n.dpip span{display:grid;grid-template-columns:1fr 1fr;gap:2px}\n.dpip img{width:100%;height:72px;object-fit:cover;border-radius:5px;background:var(--line);display:block}\n.dpip small{display:block;margin-top:3px;font-size:11px;color:var(--mute)}\n.dpz{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;padding:calc(12px + env(safe-area-inset-top,0px)) 12px calc(12px + env(safe-area-inset-bottom,0px));overscroll-behavior:contain}\n.dpzb{background:var(--surface);color:var(--ink);border-radius:12px;padding:12px;width:min(760px,100%);max-height:calc(100dvh - 24px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}\n.dpzhdr{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}\n.dpzt{margin:0;font-weight:700;font-size:var(--fs-b);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}\n.dpzlay,.dpzcls{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:4px 10px;min-height:32px;font-size:var(--fs-s);font-weight:600;cursor:pointer;white-space:nowrap;flex:none}\n.dpzcls{min-width:32px;padding:4px 8px;font-size:16px;line-height:1}\n.dpzg{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:stretch}\n.dpzg.stack{grid-template-columns:minmax(0,1fr)}\n.dpzcol{min-width:0;display:flex;flex-direction:column;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px}\n.dpzstage{position:relative;width:100%;height:clamp(210px,44dvh,420px);border-radius:8px;background:var(--surface);border:1px solid var(--line);overflow:hidden;display:flex;align-items:center;justify-content:center}\n.dpzg.stack .dpzstage{height:clamp(180px,33dvh,320px)}\n.dpzstage img{position:absolute;inset:0;width:100%;height:100%;padding:4px;object-fit:contain;display:block;cursor:pointer}\n.dpzempty{font-size:var(--fs-s);color:var(--mute);font-style:italic;padding:8px;text-align:center}\n.dpzmeta{margin-top:6px;text-align:center;min-width:0}\n.dpzmeta b{display:block;font-size:var(--fs-s);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.35}\n.dpzmeta small{display:block;margin-top:1px;font-size:11px;color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.35;min-height:15px}\n.dpzctrl{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:6px;min-height:32px}\n.dpzctrl.ghost{visibility:hidden;pointer-events:none}\n.dpzctrl button{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;min-width:38px;min-height:32px;padding:2px 10px;font-size:16px;font-weight:700;cursor:pointer}\n.dpzctrl button:disabled{opacity:.4;cursor:default}\n.dpzctrl span{font-size:var(--fs-s);font-weight:700;color:var(--ink);min-width:46px;text-align:center}\n.dpundo{position:fixed;left:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:30;display:flex;align-items:center;gap:5px;max-width:min(245px,calc(100vw - 104px));background:var(--ink);color:var(--surface);border-radius:9px;padding:4px 5px 4px 9px;box-shadow:0 4px 14px rgba(0,0,0,.26);font-size:11.5px;line-height:1.25}\n.dpundo[hidden]{display:none}\n.dpundo span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}\n.dpundo button{border:0;border-radius:6px;min-height:24px;padding:2px 8px;font-size:11.5px;font-weight:700;cursor:pointer;background:var(--surface);color:var(--ink);white-space:nowrap}\n.dpundo button.x{background:transparent;color:inherit;padding:2px 6px;min-width:22px}\n";
 var CSS2=[
 "@keyframes dpin{from{opacity:0}to{opacity:1}}",
 "@keyframes dpfade{from{opacity:0}to{opacity:1}}",
@@ -49,14 +49,15 @@ var CSS2=[
 ".dpw[data-tog] span{transition:border-color .15s ease,background-color .15s ease,transform .1s ease}",
 ".dpmore{grid-column:1/-1;border:1px dashed var(--line);background:var(--surface);color:var(--mute);border-radius:8px;min-height:34px;font-size:var(--fs-s);font-weight:700;cursor:pointer;transition:transform .1s ease,color .15s ease,border-color .15s ease,background-color .15s ease;touch-action:manipulation}",
 ".dpmore:active{transform:scale(.97)}",
-"@media (hover:hover){.dpbtn:hover{border-color:var(--accent);color:var(--accent)}.dpc:hover{box-shadow:0 2px 10px rgba(0,0,0,.08)}.dpedit:hover{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);box-shadow:0 2px 8px rgba(0,0,0,.14);box-shadow:0 2px 8px color-mix(in srgb,var(--accent) 26%,transparent)}.dpdel:hover:not(:disabled){background:var(--danger);border-color:var(--danger);color:#fff;box-shadow:0 2px 8px rgba(220,38,38,.25)}.dpignbtn:hover,.dpno:hover,.dpchk:hover:not(:disabled),.dpimgbtn:hover:not(:disabled){filter:brightness(.95);box-shadow:0 2px 8px rgba(0,0,0,.12)}.dptogbtn:hover{border-color:var(--accent);color:var(--ink)}.dpmore:hover{color:var(--ink);border-color:var(--accent);background:var(--bg)}.dpth:hover{border-color:var(--accent);box-shadow:0 2px 10px rgba(0,0,0,.14)}.dpm div:hover{box-shadow:0 2px 10px rgba(0,0,0,.16)}.dpip:hover{border-color:var(--accent);box-shadow:0 2px 10px rgba(0,0,0,.14)}.dpw[data-tog]:hover span:not(.im){border-color:var(--accent)}#dupd .btn:not(:disabled):hover{filter:brightness(1.06)}#dupd .btn.p:not(:disabled):hover{box-shadow:0 3px 10px rgba(0,0,0,.18);box-shadow:0 3px 10px color-mix(in srgb,var(--accent) 32%,transparent)}#dupd .link:hover{opacity:.85;text-decoration:underline}.dpcfg>summary:hover{border-color:var(--accent);background:var(--b-new);background:color-mix(in srgb,var(--accent) 18%,var(--bg));box-shadow:0 3px 10px rgba(0,0,0,.14);box-shadow:0 3px 10px color-mix(in srgb,var(--accent) 20%,transparent)}.dpzlay:hover,.dpzcls:hover,.dpzctrl button:not(:disabled):hover,.dpzj:hover,.dpundo button:hover{filter:brightness(.94)}}",
+"@media (hover:hover){.dpbtn:hover{border-color:var(--accent);color:var(--accent)}.dpc:hover{box-shadow:0 2px 10px rgba(0,0,0,.08)}.dpedit:hover{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);box-shadow:0 2px 8px color-mix(in srgb,var(--accent) 26%,transparent)}.dpdel:hover:not(:disabled){background:var(--danger);border-color:var(--danger);color:#fff;box-shadow:0 2px 8px rgba(220,38,38,.25)}.dpignbtn:hover,.dpno:hover,.dpchk:hover:not(:disabled),.dpimgbtn:hover:not(:disabled){filter:brightness(.95);box-shadow:0 2px 8px rgba(0,0,0,.12)}.dptogbtn:hover{border-color:var(--accent);color:var(--ink)}.dpmore:hover{color:var(--ink);border-color:var(--accent);background:var(--bg)}.dpth:hover{border-color:var(--accent);box-shadow:0 2px 10px rgba(0,0,0,.14)}.dpm div:hover{box-shadow:0 2px 10px rgba(0,0,0,.16)}.dpip:hover{border-color:var(--accent);box-shadow:0 2px 10px rgba(0,0,0,.14)}.dpw[data-tog]:hover span:not(.im){border-color:var(--accent)}#dupd .btn:not(:disabled):hover{filter:brightness(1.06)}#dupd .btn.p:not(:disabled):hover{box-shadow:0 3px 10px color-mix(in srgb,var(--accent) 32%,transparent)}#dupd .link:hover{opacity:.85;text-decoration:underline}.dpcfg>summary:hover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 18%,var(--bg));box-shadow:0 3px 10px color-mix(in srgb,var(--accent) 20%,transparent)}.dpzlay:hover,.dpzcls:hover,.dpzctrl button:not(:disabled):hover,.dpzj:hover,.dpundo button:hover{filter:brightness(.94)}}",
 "#dupd .btn,#dupd .link,.dpignbtn,.dptogbtn,.dpno,.dpchk,.dpimgbtn,.dpedit,.dpdel,.dpzlay,.dpzcls,.dpzctrl button,.dpundo button,.dpopt{transition:transform .1s ease,filter .15s ease,background-color .15s ease,border-color .15s ease,color .15s ease,box-shadow .15s ease,opacity .15s ease;touch-action:manipulation}",
-"#dupd .btn.p{box-shadow:0 2px 8px rgba(0,0,0,.14);box-shadow:0 2px 8px color-mix(in srgb,var(--accent) 24%,transparent)}",
+"#dupd .btn:disabled{opacity:.55;cursor:default}",
+"#dupd .btn.p{box-shadow:0 2px 8px color-mix(in srgb,var(--accent) 24%,transparent)}",
 "#dupd .btn:not(:disabled):active,.dpignbtn:active,.dptogbtn:active,.dpno:active,.dpchk:not(:disabled):active,.dpimgbtn:not(:disabled):active,.dpedit:active,.dpdel:not(:disabled):active,.dpzlay:active,.dpzcls:active,.dpzctrl button:not(:disabled):active,.dpundo button:active{transform:scale(.96)}",
 "#dupd .link:active,.dpopt:active{transform:scale(.97);opacity:.78}",
 "#dupd button:focus-visible,#dupd summary:focus-visible,#dupd select:focus-visible,#dupd input:focus-visible,.dpbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}",
 ".dpset select,.dpset input[type=\"number\"]{transition:border-color .15s ease,box-shadow .15s ease,background-color .15s ease}",
-".dpset select:focus,.dpset input[type=\"number\"]:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,0,0,.12);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 22%,transparent)}",
+".dpset select:focus,.dpset input[type=\"number\"]:focus{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 22%,transparent)}",
 ".dpimgact{display:flex;align-items:center;gap:6px;flex-wrap:wrap}",
 ".dpimgs.dpopen{animation:dpslide .2s cubic-bezier(.16,1,.3,1)}",
 ".dpz:not([hidden]){animation:dpfade .18s ease}",
@@ -78,7 +79,7 @@ var CSS2=[
 ".dpzstage img.a-next{animation:dpnext .22s cubic-bezier(.16,1,.3,1)}",
 ".dpzstage img.a-prev{animation:dpprev .22s cubic-bezier(.16,1,.3,1)}",
 ".dpz.stk{padding:0;background:#000}",
-".dpz.stk .dpzb{width:100%;max-height:none;height:100vh;height:100dvh;border-radius:0;padding:calc(6px + env(safe-area-inset-top,0px)) 0 env(safe-area-inset-bottom,0px);background:#000;color:#fff;display:flex;flex-direction:column;overflow:hidden}",
+".dpz.stk .dpzb{width:100%;max-height:none;height:100dvh;border-radius:0;padding:calc(6px + env(safe-area-inset-top,0px)) 0 env(safe-area-inset-bottom,0px);background:#000;color:#fff;display:flex;flex-direction:column;overflow:hidden}",
 ".dpz.stk .dpzhdr{flex:none;margin:0;padding:0 8px 4px}",
 ".dpz.stk .dpzt{color:#fff}",
 ".dpz.stk .dpzlay,.dpz.stk .dpzcls{background:rgba(255,255,255,.14);border:0;color:#fff}",
@@ -112,26 +113,27 @@ var CSS2=[
 "#dupsum:empty,#dupm:empty,#dupignsum:empty{display:none}",
 ".dpctl{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 11px;display:grid;gap:7px}",
 ".dpact{display:flex;align-items:center;gap:8px;margin:0}",
-".dpact .foot2{display:flex;gap:8px;flex:1;min-width:0;margin:0;padding:0;border:0;background:none}",
-"#dupimg{flex:1;justify-content:center;min-height:38px}",
+".dpact .foot2{display:flex;flex-wrap:wrap;gap:8px;flex:1;min-width:0;margin:0;padding:0;border:0;background:none}",
+"#dupimg,#dupsmartbtn{flex:1 1 132px;justify-content:center;min-height:38px;white-space:nowrap}",
+".dpsmbtn{border:1px solid var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--surface));color:var(--accent);font-weight:700}",
 "#dupstop{flex:none;justify-content:center;min-height:38px;padding:0 14px}",
 "#dupm{margin:0;font-size:var(--fs-s);line-height:1.35}",
 ".dpcfg{margin:0}",
-".dpcfg>summary{cursor:pointer;list-style:none;-webkit-user-select:none;user-select:none;color:var(--ink);font-size:var(--fs-s);font-weight:700;min-height:40px;padding:7px 12px;border-radius:11px;border:1.5px solid var(--accent);border-color:color-mix(in srgb,var(--accent) 46%,var(--line));background:var(--surface);background:color-mix(in srgb,var(--accent) 12%,var(--bg));display:flex;align-items:center;justify-content:space-between;gap:8px;box-shadow:0 2px 6px rgba(0,0,0,.08);transition:transform .1s ease,background-color .15s ease,border-color .15s ease,box-shadow .15s ease;touch-action:manipulation}",
+".dpcfg>summary{cursor:pointer;list-style:none;-webkit-user-select:none;user-select:none;color:var(--ink);font-size:var(--fs-s);font-weight:700;min-height:40px;padding:7px 12px;border-radius:11px;border:1.5px solid color-mix(in srgb,var(--accent) 46%,var(--line));background:color-mix(in srgb,var(--accent) 12%,var(--bg));display:flex;align-items:center;justify-content:space-between;gap:8px;box-shadow:0 2px 6px rgba(0,0,0,.08);transition:transform .1s ease,background-color .15s ease,border-color .15s ease,box-shadow .15s ease;touch-action:manipulation}",
 ".dpcfg>summary::-webkit-details-marker,.dpcfg>summary::marker{display:none;content:\"\"}",
 ".dpcfg>summary:active{transform:scale(.97)}",
 ".dpcfg-l{display:inline-flex;align-items:center;gap:7px;min-width:0}",
 ".dpcfg-ic{flex:none;color:var(--accent);transition:transform .22s cubic-bezier(.16,1,.3,1)}",
 ".dpcfg-r{display:inline-flex;align-items:center;gap:6px;flex:none}",
-".dpcfg-tag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--bg);background:color-mix(in srgb,var(--accent) 16%,var(--surface));border:1px solid var(--line);border-color:color-mix(in srgb,var(--accent) 32%,var(--line));color:var(--ink);white-space:nowrap}",
+".dpcfg-tag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:color-mix(in srgb,var(--accent) 16%,var(--surface));border:1px solid color-mix(in srgb,var(--accent) 32%,var(--line));color:var(--ink);white-space:nowrap}",
 ".dpcfg-tag:empty{display:none}",
-".dpcfg-ar{width:24px;height:24px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:var(--bg);background:color-mix(in srgb,var(--accent) 18%,var(--surface));color:var(--accent);font-size:12px;line-height:1;transition:transform .15s ease,background-color .15s ease,color .15s ease}",
-".dpcfg[open]>summary{margin-bottom:6px;border-color:var(--accent);background:var(--b-new);background:color-mix(in srgb,var(--accent) 18%,var(--bg));box-shadow:0 3px 10px rgba(0,0,0,.12);box-shadow:0 3px 10px color-mix(in srgb,var(--accent) 20%,transparent)}",
+".dpcfg-ar{width:24px;height:24px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--accent) 18%,var(--surface));color:var(--accent);font-size:12px;line-height:1;transition:transform .15s ease,background-color .15s ease,color .15s ease}",
+".dpcfg[open]>summary{margin-bottom:6px;border-color:var(--accent);background:color-mix(in srgb,var(--accent) 18%,var(--bg));box-shadow:0 3px 10px color-mix(in srgb,var(--accent) 20%,transparent)}",
 ".dpcfg[open]>summary .dpcfg-ic{transform:rotate(45deg)}",
 ".dpcfg[open]>summary .dpcfg-ar{transform:rotate(180deg);background:var(--accent);color:var(--accent-ink)}",
-".dpcfg>summary.dirty{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 30%,transparent)}",
+".dpcfg>summary.dirty{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 30%,transparent)}",
 ".dpcfg[open]>.dpset{animation:dpslide .2s cubic-bezier(.16,1,.3,1)}",
-".dpset{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px;margin:0;padding:10px 11px;border-radius:11px;border:1px solid var(--line);background:var(--surface);background:color-mix(in srgb,var(--bg) 55%,var(--surface))}",
+".dpset{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px;margin:0;padding:10px 11px;border-radius:11px;border:1px solid var(--line);background:color-mix(in srgb,var(--bg) 55%,var(--surface))}",
 ".dpset .dpsens{display:flex;flex-direction:column;align-items:stretch;gap:3px;min-width:0}",
 ".dpset .dpsens label{margin:0;font-size:11.5px;color:var(--mute);font-weight:600;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
 ".dpset .dpsens select,.dpset .dpsens input[type=\"number\"]{width:100%;min-width:0;min-height:36px;padding:4px 8px;font-size:var(--fs-s);border-radius:8px;text-overflow:ellipsis}",
@@ -144,22 +146,13 @@ var CSS2=[
 ".dpcfgbtns .btn{justify-content:center;min-height:36px;padding:6px 10px;font-size:var(--fs-s);white-space:nowrap}",
 "#dupsave{grid-column:1/-1;min-height:38px;font-size:var(--fs-m)}",
 "#dupsave.dirty{animation:dppulse 1.6s ease-in-out infinite}",
-".dpbar2{margin:0;gap:6px}",
 ".dptogbtn{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:6px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--mute);font-size:var(--fs-s);font-weight:700;cursor:pointer}",
 ".dptogbtn[aria-pressed=\"true\"]{border-color:var(--accent);background:var(--b-new);color:var(--ink)}",
-".dpignbar{margin:0;padding:7px 10px;border-radius:10px;border:1px dashed var(--s-contact);border-color:color-mix(in srgb,var(--s-contact) 38%,var(--line));background:var(--b-contact);background:color-mix(in srgb,var(--b-contact) 55%,transparent);display:flex;align-items:center;justify-content:space-between;gap:8px}",
+".dpignbar{margin:0;padding:7px 10px;border-radius:10px;border:1px dashed color-mix(in srgb,var(--s-contact) 38%,var(--line));background:color-mix(in srgb,var(--b-contact) 55%,transparent);display:flex;align-items:center;justify-content:space-between;gap:8px}",
 ".dpign-t{font-size:var(--fs-s);font-weight:700;color:var(--s-contact);min-width:0}",
 ".dpignbar .dpignbtn{min-height:30px;padding:3px 11px}",
-".dpc{padding:2px 10px 8px;margin-top:6px}",
-".dpr{padding:6px 0}",
-".dpn{margin:5px 0 3px}",
-".dpa{margin-top:6px;gap:5px}",
 ".dpa-ign{margin-top:8px;padding-top:7px;border-top:1px dashed var(--line);display:flex;align-items:center;justify-content:flex-start}",
 ".dpa-ign .dpno,.dpa .dpchk,.dpa .dpimgbtn{min-height:28px;padding:3px 10px}",
-".dpedit,.dpdel{min-height:28px;padding:3px 8px}",
-".dpm{margin-top:6px}",
-".dpm img{height:56px}",
-".dpst{margin:4px 0 0}",
 ".dpan{font-size:var(--fs-s);margin-top:6px}",
 ".dpan-h{display:flex;align-items:center;justify-content:space-between;gap:8px;position:sticky;top:0;z-index:1;background:var(--bg);padding:4px 0;border-bottom:1px solid var(--line)}",
 ".dpan-c{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:10px;background:var(--surface)}",
@@ -197,10 +190,6 @@ var CSS2=[
 ".dpan-i a{display:flex;gap:2px}",
 ".dpan-i img{width:64px;height:48px;object-fit:cover;border-radius:4px;background:var(--line);display:block}",
 ".dpan-f{display:flex;justify-content:flex-end;margin-top:10px}",
-".dpundo{left:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));transform:none;gap:5px;max-width:min(245px,calc(100vw - 104px));border-radius:9px;padding:4px 5px 4px 9px;box-shadow:0 4px 14px rgba(0,0,0,.26);font-size:11.5px;line-height:1.25}",
-".dpundo:not([hidden]){animation:dpup .18s cubic-bezier(.16,1,.3,1)}",
-".dpundo button{border-radius:6px;min-height:24px;padding:2px 8px;font-size:11.5px}",
-".dpundo button.x{padding:2px 6px;min-width:22px}",
 "@media (max-width:420px){.dpa .dpv{margin-left:0;flex-basis:100%;text-align:left}}",
 ".dpviewbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:2px 0 0}",
 ".dpseg{display:inline-flex;align-items:center;gap:3px;padding:3px;border-radius:10px;border:1px solid var(--line);background:var(--bg)}",
@@ -263,11 +252,25 @@ var CSS2=[
 ".dpsc-a .dpsc-no.on{background:var(--danger);border-color:var(--danger);color:#fff}",
 "@media (prefers-reduced-motion:reduce){.dpbtn,#dupd,#dupd *,.dpz,.dpz *{animation:none!important;transition:none!important}}"
 ].join("\n");
-var DLG="<dialog id=\"dupd\"><div class=\"form\" id=\"dupmain\">\n  <div class=\"dpmhdr\"><div class=\"dpmhdr-t\"><h2>Kiểm tra trùng</h2><p class=\"pm\" id=\"dupsum\"></p></div><button type=\"button\" class=\"dpzcls\" id=\"dupx3\" aria-label=\"Đóng\">×</button></div>\n  <div class=\"dpctl\"><div class=\"dpact\"><div class=\"foot2\"><button class=\"btn p\" type=\"button\" id=\"dupimg\">Quét ảnh trùng</button><button class=\"btn\" type=\"button\" id=\"dupstop\" hidden>Dừng</button></div></div><div class=\"dpb\" id=\"dupbar\" hidden><i></i></div><p class=\"pm\" id=\"dupm\" role=\"status\"></p></div>\n  <details class=\"dpcfg\"><summary id=\"dupcfgbtn\"><span class=\"dpcfg-l\"><svg class=\"dpcfg-ic\" viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.6.86 1 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"/></svg><span>Cài đặt</span></span><span class=\"dpcfg-r\"><span class=\"dpcfg-tag\" id=\"dupcfgtag\"></span><span class=\"dpcfg-ar\" aria-hidden=\"true\">▾</span></span></summary><div class=\"dpset\"><div class=\"dpsens dpfull\"><label for=\"dupsens\">Độ nhạy ảnh</label><div class=\"dpsens-row\"><select id=\"dupsens\"><option value=\"87\">Ít nhầm · 87%</option><option value=\"80\" selected>Vừa · 80%</option><option value=\"77\">Nhạy · 77%</option><option value=\"73\">Rất nhạy · 73%</option><option value=\"custom\">Tùy chỉnh</option></select><input id=\"dupth\" type=\"number\" inputmode=\"numeric\" min=\"60\" max=\"99\" step=\"1\" aria-label=\"Ngưỡng giống (%)\"></div></div>\n  <div class=\"dpsens dpfull\"><label for=\"dupmm\">Xác minh vùng xám</label><select id=\"dupmm\"><option value=\"3\" selected>Patch Token + MaxSim + Spatial + CSLS (mặc định)</option><option value=\"4\">Kỹ nhất (Patch + Spatial + Trung tâm + CSLS)</option><option value=\"2\">Trung tâm 75% + CSLS (Multi-crop)</option><option value=\"0\">Tắt (Chỉ DINOv3)</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupimgv\">Xem ảnh</label><select id=\"dupimgv\"><option value=\"manual\" selected>Bấm để mở</option><option value=\"both\">Mở sẵn · 2 cột</option><option value=\"stack\">Mở sẵn · xếp dọc</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupres\">Độ phân giải</label><select id=\"dupres\"><option value=\"192\">192 · nhanh</option><option value=\"224\" selected>224 · mặc định</option><option value=\"256\">256</option><option value=\"288\">288</option><option value=\"320\">320 · chi tiết</option></select></div>\n  <div class=\"dpsens\"><label for=\"duppre\">Độ chính xác</label><select id=\"duppre\"><option value=\"16\" selected>fp16 · nhanh</option><option value=\"32\">fp32 · chính xác hơn</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupdev\">Thiết bị</label><select id=\"dupdev\"><option value=\"auto\" selected>Tự động (GPU nếu có)</option><option value=\"cpu\">Chỉ CPU</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupbn\">Batch</label><select id=\"dupbn\"><option value=\"0\">Tự động</option><option value=\"1\">1</option><option value=\"2\">2</option><option value=\"4\" selected>4</option><option value=\"8\">8</option></select></div>\n  <div class=\"dpsens\"><label for=\"duppace\">Nhịp quét</label><select id=\"duppace\"><option value=\"0\">Nhanh nhất</option><option value=\"0.6\" selected>Cân bằng</option><option value=\"1.5\">Mát máy</option></select></div>\n  <p class=\"dpst dpfull\" id=\"dupengnote\" hidden></p>\n  <div class=\"dpanact dpfull\" id=\"dupanact\" hidden><button type=\"button\" class=\"btn p\" id=\"dupapplyrec\">Áp dụng gợi ý</button></div>\n  <p class=\"dpst dpfull\" id=\"dupretnote\" hidden></p>\n  <div class=\"dpan dpfull\" id=\"dupandet\" hidden></div>\n  <div class=\"dpcfgact dpfull\"><label class=\"dpopt\"><input type=\"checkbox\" id=\"dupnoout\" checked><span>Bỏ qua căn Loại</span></label><div class=\"dpcfgbtns\"><button type=\"button\" class=\"btn\" id=\"dupanalyze\">Phân tích đa ngưỡng</button><button type=\"button\" class=\"btn\" id=\"duprst\">Đặt lại</button><button type=\"button\" class=\"btn p\" id=\"dupsave\">Lưu &amp; quét lại ảnh</button></div></div></div></details>\n  <div class=\"dpbar2\" id=\"duplinks\" hidden><button type=\"button\" class=\"dptogbtn\" id=\"duptog\" hidden></button></div>\n  <div class=\"dpignbar\" id=\"dupignbar\" hidden><span class=\"dpign-t\">Không phải trùng</span><button type=\"button\" class=\"dpignbtn\" id=\"dupigntog\" hidden></button></div>\n  <div class=\"dpviewbar\" id=\"dupviewbar\" hidden><div class=\"dpseg\" role=\"tablist\" aria-label=\"Kiểu hiển thị\"><button type=\"button\" class=\"dpsegbtn\" id=\"dupvpair\" aria-pressed=\"true\">Theo cặp</button><button type=\"button\" class=\"dpsegbtn\" id=\"dupvclust\" aria-pressed=\"false\">Cụm liền kề</button></div><button type=\"button\" class=\"dpapply\" id=\"dupapplyord\" hidden>Xếp liền kề ra danh sách</button></div>\n  <div class=\"dpsmart\" id=\"dupsmart\" hidden></div>\n  <div id=\"dupl\"></div>\n  <div class=\"foot\"><button class=\"btn p\" type=\"button\" id=\"dupx\">Đóng</button></div>\n</div><div class=\"form\" id=\"dupignview\" hidden>\n  <div class=\"dphead\"><button type=\"button\" class=\"btn\" id=\"dupback\">← Quay lại</button><h2>Không phải trùng</h2></div>\n  <p class=\"pm\" id=\"dupignsum\"></p>\n  <button type=\"button\" class=\"link\" id=\"dupignclr\" hidden>Khôi phục tất cả về danh sách kiểm tra</button>\n  <div id=\"dupignl\"></div>\n  <div class=\"foot\"><button class=\"btn\" type=\"button\" id=\"dupback2\">← Quay lại</button><button class=\"btn p\" type=\"button\" id=\"dupx2\">Đóng</button></div>\n</div><div class=\"dpz\" id=\"dupz\" hidden><div class=\"dpzb\"><div class=\"dpzhdr\"><p class=\"dpzt\" id=\"dupzt\"></p><button type=\"button\" class=\"dpzlay\" id=\"dupzlay\">Xếp dọc</button><button type=\"button\" class=\"dpzcls\" id=\"dupzx2\" aria-label=\"Đóng\">×</button></div><div class=\"dpzm\" id=\"dupzm\" hidden></div><div class=\"dpzg\" id=\"dupzg\"><div class=\"dpzcol\"><div class=\"dpzstage\"><img id=\"dupz1\" alt=\"Ảnh căn 1\"><span class=\"dpzempty\" id=\"dupze1\" hidden>Chưa có ảnh</span></div><div class=\"dpzmeta\"><b id=\"dupz1n\"></b><small id=\"dupz1m\"></small></div><div class=\"dpzctrl\" id=\"dupzc1\" hidden><button type=\"button\" id=\"dupz1prev\" aria-label=\"Ảnh trước căn 1\">‹</button><span id=\"dupz1c\"></span><button type=\"button\" id=\"dupz1next\" aria-label=\"Ảnh sau căn 1\">›</button></div></div><div class=\"dpzcol\"><div class=\"dpzstage\"><img id=\"dupz2\" alt=\"Ảnh căn 2\"><span class=\"dpzempty\" id=\"dupze2\" hidden>Chưa có ảnh</span></div><div class=\"dpzmeta\"><b id=\"dupz2n\"></b><small id=\"dupz2m\"></small></div><div class=\"dpzctrl\" id=\"dupzc2\" hidden><button type=\"button\" id=\"dupz2prev\" aria-label=\"Ảnh trước căn 2\">‹</button><span id=\"dupz2c\"></span><button type=\"button\" id=\"dupz2next\" aria-label=\"Ảnh sau căn 2\">›</button></div></div></div><div class=\"dpzact\" id=\"dupzact\"><button type=\"button\" class=\"dpchk\" id=\"dupzyes\" hidden>Trùng</button><button type=\"button\" class=\"dpno\" id=\"dupzign\">Không phải trùng</button><button type=\"button\" class=\"dpdel\" id=\"dupzdel1\">Xóa căn 1</button><button type=\"button\" class=\"dpdel\" id=\"dupzdel2\">Xóa căn 2</button></div><div class=\"foot\"><button class=\"btn p\" type=\"button\" id=\"dupzx\">Đóng</button></div></div></div><div class=\"dpundo\" id=\"dupundo\" hidden><span id=\"dupundot\"></span><button type=\"button\" id=\"dupundob\">↶ Hoàn tác</button><button type=\"button\" class=\"x\" id=\"dupundox\" aria-label=\"Ẩn\">✕</button></div></dialog>";
-var TH=80,VL=1,ALGO_VER=9,MIN=2,imgPairs=null,scanning=false,stopFlag=false,cache={},cacheLoaded=false,cacheP=null,inflight={},LIMIT=50,limMain=50,limIgn=50,memo=null,syncT=0,showOne=false,showIgn=false,skipOut=true,skipLoaded=false,imgAutoMode="manual",imgModeLoaded=false,viewList=[],openSet={},openImgSet={},pairImgMode={},ignored={},ignLoaded=false,pairImgMsg={},zoomCmp=null,viewMode="pairs",lastGraph=null,lastRecTh=null;
+var DLG="<dialog id=\"dupd\"><div class=\"form\" id=\"dupmain\">\n  <div class=\"dpmhdr\"><div class=\"dpmhdr-t\"><h2>Kiểm tra trùng</h2><p class=\"pm\" id=\"dupsum\"></p></div><button type=\"button\" class=\"dpzcls\" id=\"dupx3\" aria-label=\"Đóng\">×</button></div>\n  <div class=\"dpctl\"><div class=\"dpact\"><div class=\"foot2\"><button class=\"btn p\" type=\"button\" id=\"dupimg\">Quét ảnh trùng</button><button class=\"btn dpsmbtn\" type=\"button\" id=\"dupsmartbtn\">Quét thông minh</button><button class=\"btn\" type=\"button\" id=\"dupstop\" hidden>Dừng</button></div></div><div class=\"dpb\" id=\"dupbar\" hidden><i></i></div><p class=\"pm\" id=\"dupm\" role=\"status\"></p></div>\n  <details class=\"dpcfg\"><summary id=\"dupcfgbtn\"><span class=\"dpcfg-l\"><svg class=\"dpcfg-ic\" viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.6.86 1 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"/></svg><span>Cài đặt</span></span><span class=\"dpcfg-r\"><span class=\"dpcfg-tag\" id=\"dupcfgtag\"></span><span class=\"dpcfg-ar\" aria-hidden=\"true\">▾</span></span></summary><div class=\"dpset\"><div class=\"dpsens dpfull\"><label for=\"dupsens\">Độ nhạy ảnh</label><div class=\"dpsens-row\"><select id=\"dupsens\"><option value=\"87\">Ít nhầm · 87%</option><option value=\"80\" selected>Vừa · 80%</option><option value=\"77\">Nhạy · 77%</option><option value=\"73\">Rất nhạy · 73%</option><option value=\"custom\">Tùy chỉnh</option></select><input id=\"dupth\" type=\"number\" inputmode=\"numeric\" min=\"60\" max=\"99\" step=\"1\" aria-label=\"Ngưỡng giống (%)\"></div></div>\n  <div class=\"dpsens dpfull\"><label for=\"dupmm\">Xác minh vùng xám</label><select id=\"dupmm\"><option value=\"3\" selected>Patch Token + MaxSim + Spatial + CSLS (mặc định)</option><option value=\"4\">Kỹ nhất (Patch + Spatial + Trung tâm + CSLS)</option><option value=\"2\">Trung tâm 75% + CSLS (Multi-crop)</option><option value=\"0\">Tắt (Chỉ DINOv3)</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupimgv\">Xem ảnh</label><select id=\"dupimgv\"><option value=\"manual\" selected>Bấm để mở</option><option value=\"both\">Mở sẵn · 2 cột</option><option value=\"stack\">Mở sẵn · xếp dọc</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupres\">Độ phân giải</label><select id=\"dupres\"><option value=\"192\">192 · nhanh</option><option value=\"224\" selected>224 · mặc định</option><option value=\"256\">256</option><option value=\"288\">288</option><option value=\"320\">320 · chi tiết</option></select></div>\n  <div class=\"dpsens\"><label for=\"duppre\">Độ chính xác</label><select id=\"duppre\"><option value=\"16\" selected>fp16 · nhanh</option><option value=\"32\">fp32 · chính xác hơn</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupdev\">Thiết bị</label><select id=\"dupdev\"><option value=\"auto\" selected>Tự động (GPU nếu có)</option><option value=\"cpu\">Chỉ CPU</option></select></div>\n  <div class=\"dpsens\"><label for=\"dupbn\">Batch</label><select id=\"dupbn\"><option value=\"0\">Tự động</option><option value=\"1\">1</option><option value=\"2\">2</option><option value=\"4\" selected>4</option><option value=\"8\">8</option></select></div>\n  <div class=\"dpsens\"><label for=\"duppace\">Nhịp quét</label><select id=\"duppace\"><option value=\"0\">Nhanh nhất</option><option value=\"0.6\" selected>Cân bằng</option><option value=\"1.5\">Mát máy</option></select></div>\n  <p class=\"dpst dpfull\" id=\"dupengnote\" hidden></p>\n  <div class=\"dpanact dpfull\" id=\"dupanact\" hidden><button type=\"button\" class=\"btn p\" id=\"dupapplyrec\">Áp dụng gợi ý</button></div>\n  <p class=\"dpst dpfull\" id=\"dupretnote\" hidden></p>\n  <div class=\"dpan dpfull\" id=\"dupandet\" hidden></div>\n  <div class=\"dpcfgact dpfull\"><label class=\"dpopt\"><input type=\"checkbox\" id=\"dupnoout\" checked><span>Bỏ qua căn Loại</span></label><div class=\"dpcfgbtns\"><button type=\"button\" class=\"btn\" id=\"dupanalyze\">Phân tích đa ngưỡng</button><button type=\"button\" class=\"btn\" id=\"duprst\">Đặt lại</button><button type=\"button\" class=\"btn p\" id=\"dupsave\">Lưu &amp; quét lại ảnh</button></div></div></div></details>\n  <div class=\"dpbar2\" id=\"duplinks\" hidden><button type=\"button\" class=\"dptogbtn\" id=\"duptog\" hidden></button></div>\n  <div class=\"dpignbar\" id=\"dupignbar\" hidden><span class=\"dpign-t\">Không phải trùng</span><button type=\"button\" class=\"dpignbtn\" id=\"dupigntog\" hidden></button></div>\n  <div class=\"dpviewbar\" id=\"dupviewbar\" hidden><div class=\"dpseg\" role=\"tablist\" aria-label=\"Kiểu hiển thị\"><button type=\"button\" class=\"dpsegbtn\" id=\"dupvpair\" aria-pressed=\"true\">Theo cặp</button><button type=\"button\" class=\"dpsegbtn\" id=\"dupvclust\" aria-pressed=\"false\">Cụm liền kề</button></div><button type=\"button\" class=\"dpapply\" id=\"dupapplyord\" hidden>Xếp liền kề ra danh sách</button></div>\n  <div class=\"dpsmart\" id=\"dupsmart\" hidden></div>\n  <div id=\"dupl\"></div>\n  <div class=\"foot\"><button class=\"btn p\" type=\"button\" id=\"dupx\">Đóng</button></div>\n</div><div class=\"form\" id=\"dupignview\" hidden>\n  <div class=\"dphead\"><button type=\"button\" class=\"btn\" id=\"dupback\">← Quay lại</button><h2>Không phải trùng</h2></div>\n  <p class=\"pm\" id=\"dupignsum\"></p>\n  <button type=\"button\" class=\"link\" id=\"dupignclr\" hidden>Khôi phục tất cả về danh sách kiểm tra</button>\n  <div id=\"dupignl\"></div>\n  <div class=\"foot\"><button class=\"btn\" type=\"button\" id=\"dupback2\">← Quay lại</button><button class=\"btn p\" type=\"button\" id=\"dupx2\">Đóng</button></div>\n</div><div class=\"dpz\" id=\"dupz\" hidden><div class=\"dpzb\"><div class=\"dpzhdr\"><p class=\"dpzt\" id=\"dupzt\"></p><button type=\"button\" class=\"dpzlay\" id=\"dupzlay\">Xếp dọc</button><button type=\"button\" class=\"dpzcls\" id=\"dupzx2\" aria-label=\"Đóng\">×</button></div><div class=\"dpzm\" id=\"dupzm\" hidden></div><div class=\"dpzg\" id=\"dupzg\"><div class=\"dpzcol\"><div class=\"dpzstage\"><img id=\"dupz1\" alt=\"Ảnh căn 1\"><span class=\"dpzempty\" id=\"dupze1\" hidden>Chưa có ảnh</span></div><div class=\"dpzmeta\"><b id=\"dupz1n\"></b><small id=\"dupz1m\"></small></div><div class=\"dpzctrl\" id=\"dupzc1\" hidden><button type=\"button\" id=\"dupz1prev\" aria-label=\"Ảnh trước căn 1\">‹</button><span id=\"dupz1c\"></span><button type=\"button\" id=\"dupz1next\" aria-label=\"Ảnh sau căn 1\">›</button></div></div><div class=\"dpzcol\"><div class=\"dpzstage\"><img id=\"dupz2\" alt=\"Ảnh căn 2\"><span class=\"dpzempty\" id=\"dupze2\" hidden>Chưa có ảnh</span></div><div class=\"dpzmeta\"><b id=\"dupz2n\"></b><small id=\"dupz2m\"></small></div><div class=\"dpzctrl\" id=\"dupzc2\" hidden><button type=\"button\" id=\"dupz2prev\" aria-label=\"Ảnh trước căn 2\">‹</button><span id=\"dupz2c\"></span><button type=\"button\" id=\"dupz2next\" aria-label=\"Ảnh sau căn 2\">›</button></div></div></div><div class=\"dpzact\" id=\"dupzact\"><button type=\"button\" class=\"dpchk\" id=\"dupzyes\" hidden>Trùng</button><button type=\"button\" class=\"dpno\" id=\"dupzign\">Không phải trùng</button><button type=\"button\" class=\"dpdel\" id=\"dupzdel1\">Xóa căn 1</button><button type=\"button\" class=\"dpdel\" id=\"dupzdel2\">Xóa căn 2</button></div><div class=\"foot\"><button class=\"btn p\" type=\"button\" id=\"dupzx\">Đóng</button></div></div></div><div class=\"dpundo\" id=\"dupundo\" hidden><span id=\"dupundot\"></span><button type=\"button\" id=\"dupundob\">↶ Hoàn tác</button><button type=\"button\" id=\"dupundox\" aria-label=\"Ẩn\">✕</button></div></dialog>";
+var TH=80,VL=1,ALGO_VER=9,MIN=2,imgPairs=null,scanning=false,smRunning=false,stopFlag=false,cache={},cacheLoaded=false,cacheP=null,inflight={},LIMIT=50,limMain=50,limIgn=50,memo=null,syncT=0,showOne=false,showIgn=false,skipOut=true,skipLoaded=false,imgAutoMode="manual",imgModeLoaded=false,viewList=[],openSet={},openImgSet={},pairImgMode={},ignored={},ignLoaded=false,pairImgMsg={},zoomCmp=null,viewMode="pairs",lastGraph=null,lastRecTh=null;
+function hkOf(aId,bId){return aId<bId?(aId+"|"+bId):(bId+"|"+aId)}
+function simOf(m){return m.n!=null?m.n:Math.max(0,100-m.d)}
+function imgItemOf(r,sw){return sw?{x:r.y,y:r.x,d:r.d,k:r.k||"",o:r.o||"",n:r.n}:{x:r.x,y:r.y,d:r.d,k:r.k||"",o:r.o||"",n:r.n}}
+function canonPairKey(aId,bId,x,y){return aId<bId?(aId+"|"+bId+"|"+x+"|"+y):(bId+"|"+aId+"|"+y+"|"+x)}
+function mmResKey(x,y){return x<y?(MM_MODE+"|"+CACHE_KEY+"|"+x+"|"+y):(MM_MODE+"|"+CACHE_KEY+"|"+y+"|"+x)}
+function isAborted(isScan){return stopFlag&&(smRunning||(scanning&&isScan))}
+function syncScanUi(){
+  var busy=scanning||smRunning;
+  var bi=G("dupimg"),bsm=G("dupsmartbtn"),bst=G("dupstop"),br=G("dupbar");
+  if(bi)bi.disabled=busy;
+  if(bsm)bsm.disabled=busy;
+  if(bst){bst.hidden=!busy;bst.disabled=busy&&stopFlag}
+  if(br)br.hidden=!scanning;
+}
 
 /* ---------- Lưu danh sách "không phải trùng" vào localStorage ---------- */
-var undoSt=[],zlay=null,cmpAll={},smartPos={},smartImg={},smView=[],smHook=null;
+var undoSt=[],zlay=null,cmpAll={},smartPos={},smartImg={},smView=[],smHook=null,smCloseHook=null;
 function saveSmartPos(){try{var ks=Object.keys(smartPos).slice(-300),im={};ks.forEach(function(k){if(smartImg[k])im[k]=smartImg[k]});ls("dsp1",JSON.stringify(ks));ls("dsp2",JSON.stringify(im))}catch(e){}}
 function cleanSmartPos(byId){
   var ch=false;
@@ -455,7 +458,7 @@ function pairCtx(a,b,tsText){
   return{support:support,conflict:conflict,sameDist:sameDist,sameWard:sameWard,diffDist:diffDist,pDiff:pDiff,pClose:pClose,aClose:aClose}}
 function oneToOnePairs(list,isNorm){
   var sorted=list.slice().sort(function(p,q){
-    var np=p.n!=null?p.n:Math.max(0,100-p.d),nq=q.n!=null?q.n:Math.max(0,100-q.d);
+    var np=simOf(p),nq=simOf(q);
     return (nq-np)||((q.x===q.y?1:0)-(p.x===p.y?1:0))});
   var usedA={},usedB={},out=[],dropped=0;
   sorted.forEach(function(r){
@@ -465,12 +468,11 @@ function oneToOnePairs(list,isNorm){
   out.dropped=dropped;return out}
 function filterGenericImgs(P,n,thRef){
   var hub={},lim=hubLim(n),tsBase=thRef||TH;
-  function nn(m){return m.n!=null?m.n:Math.max(0,100-m.d)}
   function rec(img,otherId,sim){var h=hub[img]||(hub[img]={});if(h[otherId]===undefined||sim>h[otherId])h[otherId]=sim}
   Object.keys(P).forEach(function(k){
     var o=P[k];if(!o.img.length)return;
     o.img=oneToOnePairs(o.img,true);
-    o.img.forEach(function(m){var s=nn(m);rec(m.x,o.b.id,s);rec(m.y,o.a.id,s)})});
+    o.img.forEach(function(m){var s=simOf(m);rec(m.x,o.b.id,s);rec(m.y,o.a.id,s)})});
   function hn(s){return hub[s]?Object.keys(hub[s]).length:0}
   function secMax(s,skipId){
     var h=hub[s],mx=0;if(!h)return 0;
@@ -484,7 +486,7 @@ function filterGenericImgs(P,n,thRef){
       var multiExempt=nImg>=2&&!ctx.conflict&&(ctx.support>=1||nImg>=3);
       o.img=o.img.filter(function(m){
         if(m.x===m.y)return true;
-        var s=nn(m);
+        var s=simOf(m);
         if(s>=96)return true;
         if(s>=HUB_N&&!ctx.conflict&&(nImg>=2||ctx.support>=1||ts>=1))return true;
         if(multiExempt||(nImg>=2&&!ctx.conflict&&s>=84))return true;
@@ -582,7 +584,7 @@ function louvainSplitComponent(compNodes,adj,nodeWeight,total2m,pairMeta){
             var vId=gb[vIdx],wuv=nu[vId];
             if(wuv>0){
               cutW+=wuv;cutCnt++;
-              var pk=uId<vId?uId+"|"+vId:vId+"|"+uId,pm=pairMeta[pk];
+              var pk=hkOf(uId,vId),pm=pairMeta[pk];
               if(pm){if(pm.nImg>maxCutImgs)maxCutImgs=pm.nImg;if(pm.maxSim>maxCutSim)maxCutSim=pm.maxSim}
             }
           }
@@ -674,7 +676,7 @@ function clusterDupGraph(imgPairList,allItems){
   (allItems||[]).forEach(function(it,idx){byId[it.id]=it;origIdx[it.id]=idx});
   (imgPairList||[]).forEach(function(p){
     var u=p.a.id,v=p.b.id;if(u===v)return;
-    var lo=u<v?u:v,hi=u<v?v:u,pk=lo+"|"+hi;
+    var pk=hkOf(u,v);
     if(!byId[u])byId[u]=p.a;if(!byId[v])byId[v]=p.b;
     if(!seenN[u]){seenN[u]=1;nodes.push(u)}
     if(!seenN[v]){seenN[v]=1;nodes.push(v)}
@@ -722,7 +724,7 @@ function clusterDupGraph(imgPairList,allItems){
     var cPairs=[],maxImg=0,maxSim=0,totW=0,simAcc=0;
     for(i=0;i<ordIds.length;i++){
       for(j=i+1;j<ordIds.length;j++){
-        var u=ordIds[i],v=ordIds[j],pk=u<v?u+"|"+v:v+"|"+u,pr=pairMap[pk];
+        var u=ordIds[i],v=ordIds[j],pk=hkOf(u,v),pr=pairMap[pk];
         if(pr){
           cPairs.push(pr);
           var em=pairMeta[pk];
@@ -811,7 +813,7 @@ function build(){
   src.forEach(function(it){byId[it.id]=it});
   var inf=buildInfCtx(byId);
   textPairs(src).forEach(function(t){var a=byId[t.a],b=byId[t.b];if(a&&b)P[t.a+"|"+t.b]={a:a,b:b,why:t.why.slice(),img:[]}});
-  if(imgPairs)imgPairs.forEach(function(r){var a=byId[r.a.id],b=byId[r.b.id];if(!a||!b)return;var o=addP(P,a,b,"img");if(!o)return;var sw=o.a.id!==r.a.id;o.img.push(sw?{x:r.y,y:r.x,d:r.d,k:r.k||"",o:r.o||"",n:r.n}:{x:r.x,y:r.y,d:r.d,k:r.k||"",o:r.o||"",n:r.n})});
+  if(imgPairs)imgPairs.forEach(function(r){var a=byId[r.a.id],b=byId[r.b.id];if(!a||!b)return;var o=addP(P,a,b,"img");if(!o)return;o.img.push(imgItemOf(r,o.a.id!==r.a.id))});
   filterGenericImgs(P,src.length);
   /* Cặp đã xác nhận «Trùng» (quét thông minh) là danh sách đúng: luôn giữ, không qua smartFilter/xác minh vùng xám. Ảnh phải còn thuộc đúng căn. */
   Object.keys(smartPos).forEach(function(k){
@@ -821,7 +823,7 @@ function build(){
     var ok=ims.filter(function(m){return ha.indexOf(m.x)>=0&&hb.indexOf(m.y)>=0});
     if(!ok.length)return;
     var o=addP(P,a,b,"img");if(!o)return;
-    ok.forEach(function(m){if(!o.img.some(function(q){return q.x===m.x&&q.y===m.y}))o.img.push({x:m.x,y:m.y,d:m.d,k:m.k||"",o:m.o||"",n:m.n})});
+    ok.forEach(function(m){if(!o.img.some(function(q){return q.x===m.x&&q.y===m.y}))o.img.push(imgItemOf(m,false))});
   });
   var all=Object.keys(P).map(function(k){var o=P[k];o.sc=sc(o);return o}).sort(function(a,b){return(ih(b)?1:0)-(ih(a)?1:0)||b.sc-a.sc||b.img.length-a.img.length});
   var active=[],ign=[];
@@ -1933,16 +1935,18 @@ function grabFit(cx,im,sx,sy,sw,sh){
   var dx=Math.floor((DS-dw)/2),dy=Math.floor((DS-dh)/2);
   cx.drawImage(im,sx,sy,sw,sh,dx,dy,dw,dh);
   return{px:cx.getImageData(0,0,DS,DS).data,box:[dx,dy,dx+dw,dy+dh]}}
+function analyzeFrame(im,iw,ih){
+  var ori=iw>=ih?"L":"P",gw=ori==="L"?144:108,gh=ori==="L"?104:144,cv=document.createElement("canvas"),cx=cv.getContext("2d",{willReadFrequently:true}),st,bar=null;
+  cv.width=gw;cv.height=gh;cx.drawImage(im,0,0,gw,gh);
+  try{st=lumaStats(cx.getImageData(0,0,gw,gh).data,gw*gh);bar=detectBars(st.gray,gw,gh,ori,iw,ih)}catch(e){st={v:99};bar=null}
+  return{ori:ori,cv:cv,cx:cx,v:st.v,bar:bar,crop:bar||{sx:0,sy:0,sw:iw,sh:ih}}}
 /* Trả về Promise<chuỗi>: "" nếu ảnh trơn; ném lỗi nếu ảnh hỏng/mô hình lỗi */
 function embedImg(im){
   var iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height;
   if(!iw||!ih)return Promise.reject(new Error("ảnh rỗng"));
-  var ori=iw>=ih?"L":"P",gw=ori==="L"?144:108,gh=ori==="L"?104:144,cv=document.createElement("canvas"),cx;
-  cv.width=gw;cv.height=gh;cx=cv.getContext("2d",{willReadFrequently:true});
-  cx.drawImage(im,0,0,gw,gh);
-  var st=lumaStats(cx.getImageData(0,0,gw,gh).data,gw*gh);
-  if(st.v<12)return Promise.resolve("");   /* ảnh trắng trơn / đen đặc */
-  var bar=detectBars(st.gray,gw,gh,ori,iw,ih),crop=bar||{sx:0,sy:0,sw:iw,sh:ih};
+  var fr=analyzeFrame(im,iw,ih);
+  if(fr.v<12)return Promise.resolve("");   /* ảnh trắng trơn / đen đặc */
+  var cv=fr.cv,cx=fr.cx,crop=fr.crop;
   cv.width=DS;cv.height=DS;
   var pf=grabFit(cx,im,crop.sx,crop.sy,crop.sw,crop.sh).px,pb=null;
   var ratio=Math.max(crop.sw/crop.sh,crop.sh/crop.sw);
@@ -1950,11 +1954,11 @@ function embedImg(im){
     var side=Math.min(crop.sw,crop.sh);
     var csx=crop.sx+Math.round((crop.sw-side)/2),csy=crop.sy+Math.round((crop.sh-side)/2);
     pb=grabFit(cx,im,csx,csy,side,side).px;
-  }else if(bar){
+  }else if(fr.bar){
     pb=grabFit(cx,im,0,0,iw,ih).px;
   }
   if(pb&&lumaStats(pb,DS*DS).v<12)pb=null;
-  return Promise.all([inferPx(pf),pb?inferPx(pb):null]).then(function(r){var out="E"+ori+":"+r[0];return r[1]?out+":"+r[1]:out})}
+  return Promise.all([inferPx(pf),pb?inferPx(pb):null]).then(function(r){var out="E"+fr.ori+":"+r[0];return r[1]?out+":"+r[1]:out})}
 var hashAbort={},mmAbort={},stopWaiters=[],modelFail=null;
 /* Dừng quét: đặt cờ, hủy ngay các ảnh đang chờ tải, đánh thức các bước đang đợi (đồng bộ hash, tải mô hình) */
 function stopScan(){
@@ -1962,7 +1966,7 @@ function stopScan(){
   Object.keys(hashAbort).forEach(function(k){try{hashAbort[k]()}catch(e){}});
   Object.keys(mmAbort).forEach(function(k){try{mmAbort[k]()}catch(e){}});
   var w=stopWaiters;stopWaiters=[];w.forEach(function(f){try{f()}catch(e){}});
-  if(scanning){var b=G("dupstop");if(b)b.disabled=true;msg("Đang dừng…")}}
+  if(scanning||smRunning){syncScanUi();msg("Đang dừng…")}}
 function hashOf(s){
   if(cache[s]!==undefined)return Promise.resolve(cache[s]);
   if(inflight[s])return inflight[s];
@@ -1974,7 +1978,7 @@ function hashOf(s){
     function stopNow(){if(done)return;done=true;delete inflight[s];delete hashAbort[s];res(undefined)}   /* undefined = bị dừng, không phải ảnh lỗi, không lưu cache */
     function next(){
       if(done)return;
-      if(stopFlag&&scanning){stopNow();return}
+      if(isAborted(true)){stopNow();return}
       if(step>=tries.length){fin(null);return}
       var u=tries[step++],im=new Image(),settled=false;
       if(u.indexOf("https://lh3.googleusercontent.com/")===0)im.crossOrigin="anonymous";
@@ -2021,52 +2025,60 @@ function textScoreMap(src){
     var s=0;(t.why||[]).forEach(function(w){s+=WT[w]||1});
     m[t.a+"|"+t.b]=s});
   return m}
+function smartEvalGroup(m1All,na,nb,ctx,tsText,cfg,postVis,out){
+  var ts=cfg.ts,mid=cfg.mid,tl=cfg.tl,strong=cfg.strong;
+  SM.dedupCut+=m1All.dropped||0;
+  var m1=[],i,r;
+  for(i=0;i<m1All.length;i++){r=m1All[i];if(r.x===r.y||r.n>=tl)m1.push(r)}
+  if(!m1.length)return null;
+  var cov=m1.length/Math.max(1,Math.min(na,nb));
+  var cExact=0,cVery=0,cStrong=0,cMid=0,hasVisStrong=false;
+  for(i=0;i<m1.length;i++){
+    r=m1[i];
+    if(r.x===r.y){cExact++;cVery++;cStrong++;cMid++;hasVisStrong=true}
+    else{
+      if(r.n>=strong)cVery++;
+      if(r.n>=ts)cStrong++;
+      if(r.n>=mid)cMid++;
+      if(r.k==="pms"||r.k==="ps"||r.k==="sp"||(r.k==="pm"&&r.n>=88))hasVisStrong=true;
+    }
+  }
+  var keepPair=false;
+  if(cExact>0){
+    keepPair=true;
+  }else if(cStrong>=2){
+    if(!ctx.conflict||cStrong>=3||tsText>=1||cVery>=1||hasVisStrong)keepPair=true;
+    else SM.ctxCut++;
+  }else if(cStrong===1&&m1.length===1){
+    var r0=m1[0],visOk0=r0.k==="pms"||r0.k==="ps"||r0.k==="sp"||(r0.k==="pm"&&r0.n>=88);
+    var preVisTry=!postVis&&!r0.k&&MM_MODE!==0&&r0.n>=Math.min(90,ts+4);
+    if(!ctx.conflict||tsText>=1||visOk0||r0.n>=95||preVisTry)keepPair=true;
+    else SM.ctxCut++;
+  }else if(cStrong===1&&m1.length>=2){
+    if(!ctx.conflict||cMid>=2||m1.length>=3||tsText>=1||hasVisStrong)keepPair=true;
+    else SM.ctxCut++;
+  }else if(cStrong===0){
+    if(m1.length>=3&&!ctx.conflict&&(cMid>=2||ctx.support>=1||cov>=0.45))keepPair=true;
+    else if(m1.length>=2&&cMid>=2&&ctx.support>=1&&!ctx.conflict)keepPair=true;
+  }
+  if(keepPair){
+    if(out){for(i=0;i<m1.length;i++){r=m1[i];out.push(r);if(r.n<ts&&r.x!==r.y)SM.kept++}}
+    return m1;
+  }
+  SM.cut+=m1.length;
+  return null}
 function smartFilter(list,thOv,preSrc,preTMap,postVis){
-  var cfg=smartCalc(thOv),ts=cfg.ts,mid=cfg.mid,tl=cfg.tl,strong=cfg.strong;
+  var cfg=smartCalc(thOv);
   var tMap=preTMap||textScoreMap(preSrc||activeItems()),g={},out=[];
   SM.kept=0;SM.cut=0;SM.dedupCut=0;SM.ctxCut=0;
   list.forEach(function(r){
-    var lo=r.a.id<r.b.id?r.a:r.b,hi=r.a.id<r.b.id?r.b:r.a,k=lo.id+"|"+hi.id;
+    var lo=r.a.id<r.b.id?r.a:r.b,hi=lo===r.a?r.b:r.a,k=lo.id+"|"+hi.id;
     var o=g[k]||(g[k]={lo:lo,hi:hi,r:[]});
     o.r.push(r)});
   Object.keys(g).forEach(function(k){
-    var o=g[k],m1=oneToOnePairs(o.r,false);
-    SM.dedupCut+=m1.dropped;
-    m1=m1.filter(function(r){return r.x===r.y||r.n>=tl});
-    if(!m1.length)return;
-    var tsText=tMap[k]||0,ctx=pairCtx(o.lo,o.hi,tsText);
+    var o=g[k],m1All=oneToOnePairs(o.r,false),tsText=tMap[k]||0,ctx=pairCtx(o.lo,o.hi,tsText);
     var na=(o.lo.im||[]).filter(Boolean).length||1,nb=(o.hi.im||[]).filter(Boolean).length||1;
-    var cov=m1.length/Math.max(1,Math.min(na,nb));
-    var cExact=0,cVery=0,cStrong=0,cMid=0;
-    m1.forEach(function(r){
-      if(r.x===r.y)cExact++;
-      if(r.x===r.y||r.n>=strong)cVery++;
-      if(r.x===r.y||r.n>=ts)cStrong++;
-      if(r.x===r.y||r.n>=mid)cMid++});
-    var hasVisStrong=m1.some(function(r){return r.x===r.y||r.k==="pms"||r.k==="ps"||r.k==="sp"||(r.k==="pm"&&r.n>=88)});
-    var keepPair=false;
-    if(cExact>0){
-      keepPair=true;
-    }else if(cStrong>=2){
-      if(!ctx.conflict||cStrong>=3||tsText>=1||cVery>=1||hasVisStrong)keepPair=true;
-      else SM.ctxCut++;
-    }else if(cStrong===1&&m1.length===1){
-      var r0=m1[0],visOk0=r0.k==="pms"||r0.k==="ps"||r0.k==="sp"||(r0.k==="pm"&&r0.n>=88);
-      var preVisTry=!postVis&&!r0.k&&MM_MODE!==0&&r0.n>=Math.min(90,ts+4);
-      if(!ctx.conflict||tsText>=1||visOk0||r0.n>=95||preVisTry)keepPair=true;
-      else SM.ctxCut++;
-    }else if(cStrong===1&&m1.length>=2){
-      if(!ctx.conflict||cMid>=2||m1.length>=3||tsText>=1||hasVisStrong)keepPair=true;
-      else SM.ctxCut++;
-    }else if(cStrong===0){
-      if(m1.length>=3&&!ctx.conflict&&(cMid>=2||ctx.support>=1||cov>=0.45))keepPair=true;
-      else if(m1.length>=2&&cMid>=2&&ctx.support>=1&&!ctx.conflict)keepPair=true;
-    }
-    if(keepPair){
-      m1.forEach(function(r){out.push(r);if(r.n<ts&&r.x!==r.y)SM.kept++});
-    }else{
-      SM.cut+=m1.length;
-    }
+    smartEvalGroup(m1All,na,nb,ctx,tsText,cfg,postVis,out);
   });
   return out}
 function cmpRaw(a,b){
@@ -2229,14 +2241,17 @@ function spLsq(X,Y,idx){
   var den=n*sxx-sx*sx;if(!(den>1e-6))return null;
   var s=(n*sxy-sx*sy)/den;return{s:s,t:(sy-s*sx)/n}}
 function spaceOk(sx,sy){return sx>=0.5&&sx<=2&&sy>=0.5&&sy<=2&&sx/sy<=1.6&&sy/sx<=1.6}
-function spatialVerify(pa,pb){
+function spatialVerify(pa,pb,preUnpacked){
   if(!pa||!pb||!pa.pos||!pb.pos)return null;
   var na=pa.n,nb=pb.n,D=DIM;
   if(na<8||nb<8)return null;
-  ensurePtBuf(na,nb);
-  var fA=ptBufA,fB=ptBufB,qa=pa.q,qb=pb.q,sa=pa.sc,sb=pb.sc,i,j,d,o,sc;
-  for(i=0;i<na;i++){o=i*D;sc=sa[i];for(d=0;d<D;d+=4){fA[o+d]=qa[o+d]*sc;fA[o+d+1]=qa[o+d+1]*sc;fA[o+d+2]=qa[o+d+2]*sc;fA[o+d+3]=qa[o+d+3]*sc}}
-  for(j=0;j<nb;j++){o=j*D;sc=sb[j];for(d=0;d<D;d+=4){fB[o+d]=qb[o+d]*sc;fB[o+d+1]=qb[o+d+1]*sc;fB[o+d+2]=qb[o+d+2]*sc;fB[o+d+3]=qb[o+d+3]*sc}}
+  if(!preUnpacked)ensurePtBuf(na,nb);
+  var fA=ptBufA,fB=ptBufB,i,j,d;
+  if(!preUnpacked){
+    var qa=pa.q,qb=pb.q,sa=pa.sc,sb=pb.sc,o,sc;
+    for(i=0;i<na;i++){o=i*D;sc=sa[i];for(d=0;d<D;d+=4){fA[o+d]=qa[o+d]*sc;fA[o+d+1]=qa[o+d+1]*sc;fA[o+d+2]=qa[o+d+2]*sc;fA[o+d+3]=qa[o+d+3]*sc}}
+    for(j=0;j<nb;j++){o=j*D;sc=sb[j];for(d=0;d<D;d+=4){fB[o+d]=qb[o+d]*sc;fB[o+d+1]=qb[o+d+1]*sc;fB[o+d+2]=qb[o+d+2]*sc;fB[o+d+3]=qb[o+d+3]*sc}}
+  }
   var bestB=new Float32Array(nb),idxB=new Int32Array(nb),bestA=new Float32Array(na),secA=new Float32Array(na),idxA=new Int32Array(na);
   for(j=0;j<nb;j++)bestB[j]=-2;
   for(i=0;i<na;i++){
@@ -2304,6 +2319,12 @@ function topKMeanPush(top,len,K,sc){
   for(ti=1;ti<K;ti++)if(top[ti]<mv){mv=top[ti];mi=ti}
   if(sc>mv)top[mi]=sc;
   return len}
+function sampleHubPool(pool,cap){
+  if(pool.length<=cap)return pool;
+  var pri=pool.filter(function(x){return x.pri}),rest=pool.filter(function(x){return !x.pri});
+  var need=Math.max(0,cap-pri.length),step=need>0?rest.length/need:rest.length+1,sampled=[],i;
+  for(i=0;i<need&&Math.floor(i*step)<rest.length;i++)sampled.push(rest[Math.floor(i*step)]);
+  return pri.concat(sampled)}
 function buildClsHubMap(urls,ownerMap){
   var uMap={},pool=[],seenS={},src=activeItems(),i,j;
   urls.forEach(function(u){uMap[u]=1});
@@ -2314,12 +2335,7 @@ function buildClsHubMap(urls,ownerMap){
       if(sg){seenS[s]=1;pool.push({s:s,id:it.id,sg:sg,pri:!!uMap[s]})}
     });
   });
-  if(pool.length>360){
-    var pri=pool.filter(function(x){return x.pri}),rest=pool.filter(function(x){return !x.pri});
-    var need=Math.max(0,360-pri.length),step=need>0?rest.length/need:rest.length+1,sampled=[];
-    for(i=0;i<need&&Math.floor(i*step)<rest.length;i++)sampled.push(rest[Math.floor(i*step)]);
-    pool=pri.concat(sampled);
-  }
+  pool=sampleHubPool(pool,360);
   var K=5,top=new Float32Array(K),out={};
   for(i=0;i<urls.length;i++){
     var u=urls[i],sgU=sigOf(u);if(!sgU)continue;
@@ -2337,20 +2353,13 @@ function buildClsHubMap(urls,ownerMap){
   }
   return out}
 function buildVecHubMap(urls,vecMap,ownerMap,K){
-  var pool=[],seen={},i,j,uMap={};
+  var pool=[],i,j,uMap={};
   urls.forEach(function(u){uMap[u]=1});
   Object.keys(vecMap).forEach(function(s){
     var v=vecMap[s],own=ownerMap[s];
-    if(!v||!own)return;
-    seen[s]=1;
-    pool.push({s:s,own:own,v:v,pri:!!uMap[s]});
+    if(v&&own)pool.push({s:s,own:own,v:v,pri:!!uMap[s]});
   });
-  if(pool.length>300){
-    var pri=pool.filter(function(x){return x.pri}),rest=pool.filter(function(x){return !x.pri});
-    var need=Math.max(0,300-pri.length),step=need>0?rest.length/need:rest.length+1,sampled=[];
-    for(i=0;i<need&&Math.floor(i*step)<rest.length;i++)sampled.push(rest[Math.floor(i*step)]);
-    pool=pri.concat(sampled);
-  }
+  pool=sampleHubPool(pool,300);
   var top=new Float32Array(K),out={};
   for(i=0;i<urls.length;i++){
     var u=urls[i],vu=vecMap[u];if(!vu)continue;
@@ -2372,7 +2381,7 @@ function buildVecHubMap(urls,vecMap,ownerMap,K){
 function buildPtHubMap(workPairs,ptResults){
   var byU={},out={};
   workPairs.forEach(function(r){
-    var rk=r.a.id+"|"+r.b.id+"|"+r.x+"|"+r.y,pr=ptResults[rk];
+    var pr=ptResults[canonPairKey(r.a.id,r.b.id,r.x,r.y)];
     if(!pr)return;
     var mx=byU[r.x]||(byU[r.x]={});if(mx[r.b.id]===undefined||pr.sim>mx[r.b.id])mx[r.b.id]=pr.sim;
     var my=byU[r.y]||(byU[r.y]={});if(my[r.a.id]===undefined||pr.sim>my[r.a.id])my[r.a.id]=pr.sim;
@@ -2418,10 +2427,7 @@ function verifyImgOf(s,wantPt,wantMc){
       if(done)return;
       var iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height;
       if(!iw||!ih){fin(null);return}
-      var ori=iw>=ih?"L":"P",gw=ori==="L"?144:108,gh=ori==="L"?104:144,cv=document.createElement("canvas"),cx=cv.getContext("2d",{willReadFrequently:true}),st,bar=null;
-      cv.width=gw;cv.height=gh;cx.drawImage(im,0,0,gw,gh);
-      try{st=lumaStats(cx.getImageData(0,0,gw,gh).data,gw*gh);bar=detectBars(st.gray,gw,gh,ori,iw,ih)}catch(e){bar=null}
-      var crop=bar||{sx:0,sy:0,sw:iw,sh:ih};
+      var crop=analyzeFrame(im,iw,ih).crop;
       var pPt=(!wantPt||ptCache[s]!==undefined)?Promise.resolve(ptCache[s]||null):extractPatchTokens(im,crop).then(function(pt){if(pt)putPtCache(s,pt);return pt});
       var pMc=(!wantMc||mcCache[s]!==undefined)?Promise.resolve(mcCache[s]||null):extractMultiCrop(im,crop).then(function(mc){if(mc)putMcCache(s,mc);return mc});
       Promise.all([pPt,pMc]).then(function(arr){fin({pt:arr[0],mc:arr[1]})},function(){fin(null)});
@@ -2514,20 +2520,21 @@ function verifyGrayZonePairs(list,isScan,thOv,opts){
   var cfg=smartCalc(thOv),ts=cfg.ts,tl=cfg.tl,strong=cfg.strong;
   var tMap=opts.preTMap||textScoreMap(opts.preSrc||activeItems()),pairCnt={},grayPairs=[],visMax=Math.max(strong,96);
   list.forEach(function(r){
-    var loId=r.a.id<r.b.id?r.a.id:r.b.id,hiId=r.a.id<r.b.id?r.b.id:r.a.id,k=loId+"|"+hiId;
+    var k=hkOf(r.a.id,r.b.id);
     pairCnt[k]=(pairCnt[k]||0)+1;
     if(r.x!==r.y&&(r.n<visMax||(r.n<98&&pairCtx(r.a,r.b,tMap[k]||0).conflict)))grayPairs.push(r);
   });
   SM.mmChecked=0;SM.mmCut=0;SM.mmBoost=0;SM.spChecked=0;SM.spCut=0;SM.spSave=0;
   var visInfo=opts.visInfo||null;
+  function bumpVis(hk,checkedInc,hasVis,keptInc,ens,strongInc,dropInc){
+    if(!visInfo)return;
+    var vi=visInfo[hk]||(visInfo[hk]={checked:0,hasVis:false,kept:0,strongOk:0,dropped:0,maxEns:0});
+    vi.checked+=checkedInc;if(hasVis)vi.hasVis=true;
+    vi.kept+=keptInc;vi.strongOk+=strongInc;vi.dropped+=dropInc;
+    if(ens>vi.maxEns)vi.maxEns=ens;
+  }
   if(!grayPairs.length){
-    if(visInfo){
-      list.forEach(function(r){
-        var loId=r.a.id<r.b.id?r.a.id:r.b.id,hiId=r.a.id<r.b.id?r.b.id:r.a.id,hk=loId+"|"+hiId;
-        var vi=visInfo[hk]||(visInfo[hk]={checked:0,hasVis:false,kept:0,strongOk:0,dropped:0,maxEns:0});
-        vi.kept++;if(r.n>vi.maxEns)vi.maxEns=r.n;
-      });
-    }
+    if(visInfo)list.forEach(function(r){bumpVis(hkOf(r.a.id,r.b.id),0,false,1,r.n,0,0)});
     return Promise.resolve(list);
   }
   var workPairs=grayPairs,uniq={},urls=[],wantPt=MM_MODE===3||MM_MODE===4,wantMc=MM_MODE===2||MM_MODE===4;
@@ -2535,7 +2542,7 @@ function verifyGrayZonePairs(list,isScan,thOv,opts){
   workPairs.forEach(function(r){
     if(!uniq[r.x]){uniq[r.x]=1;urls.push(r.x)}
     if(!uniq[r.y]){uniq[r.y]=1;urls.push(r.y)}
-    var mmK=MM_MODE+"|"+CACHE_KEY+"|"+r.x+"|"+r.y,cm=smMmPairRes[mmK];
+    var cm=smMmPairRes[mmResKey(r.x,r.y)];
     var hasPt=!wantPt||(cm&&cm.pt!==undefined);
     var hasMc=!wantMc||(cm&&cm.mc!=null)||(mcCache[r.x]!==undefined&&mcCache[r.y]!==undefined);
     if(!(hasPt&&hasMc))extractPairs.push(r);
@@ -2545,15 +2552,14 @@ function verifyGrayZonePairs(list,isScan,thOv,opts){
   var modelReady=!!(DW.w||DINO.m);
   var prepModel=(extractPairs.length&&!modelReady&&navigator.onLine!==false)?dinoLoad().then(function(){return true},function(){return false}):Promise.resolve(modelReady||!extractPairs.length);
   return prepModel.then(function(canDino){
-    if(stopFlag&&scanning&&isScan)return list;
+    if(isAborted(isScan))return list;
     var mmTxt="Đang xác minh "+(wantPt&&wantMc?"Patch MaxSim + Spatial + Trung tâm + CSLS":wantPt?"Patch Token + MaxSim + Spatial + CSLS":"Trung tâm 75% + CSLS");
     return Promise.resolve().then(function(){
-      if(stopFlag&&scanning&&isScan)return list;
-      var workMap={};
-      workPairs.forEach(function(r){workMap[r.a.id+"|"+r.b.id+"|"+r.x+"|"+r.y]=r});
-      var ptResults={},spResults={},doneN=0;
+      if(isAborted(isScan))return list;
+      var workMap={},ptResults={},spResults={},doneN=0;
       workPairs.forEach(function(r){
-        var rk0=r.a.id+"|"+r.b.id+"|"+r.x+"|"+r.y,cm=smMmPairRes[MM_MODE+"|"+CACHE_KEY+"|"+r.x+"|"+r.y];
+        var rk0=canonPairKey(r.a.id,r.b.id,r.x,r.y),cm=smMmPairRes[mmResKey(r.x,r.y)];
+        workMap[rk0]=r;
         if(cm){if(cm.pt)ptResults[rk0]=cm.pt;if(cm.sv)spResults[rk0]=cm.sv}
       });
       /* Chia mẻ: mỗi mẻ tối đa PT_CAP-40 ảnh khác nhau để ảnh đã trích không bị đẩy khỏi cache trước khi chấm điểm */
@@ -2570,7 +2576,7 @@ function verifyGrayZonePairs(list,isScan,thOv,opts){
       function scoreBatch(bp){
         var wi=0;
         function chunk(){
-          if(stopFlag&&scanning&&isScan)return Promise.resolve(false);
+          if(isAborted(isScan))return Promise.resolve(false);
           var t0=Date.now();
           while(wi<bp.length){
             var r=bp[wi++];doneN++;
@@ -2578,16 +2584,16 @@ function verifyGrayZonePairs(list,isScan,thOv,opts){
               var pr0=null,sv0=null,mc0=null;
               if(wantPt){
                 var pa=ptCache[r.x],pb=ptCache[r.y];
-                if(pa&&pb){var rk0=r.a.id+"|"+r.b.id+"|"+r.x+"|"+r.y;pr0=patchMaxSim(pa,pb);ptResults[rk0]=pr0;if(spNeeded(pr0,ts)){sv0=spatialVerify(pa,pb);if(sv0)spResults[rk0]=sv0}}
+                if(pa&&pb){var rk0=canonPairKey(r.a.id,r.b.id,r.x,r.y);pr0=patchMaxSim(pa,pb);ptResults[rk0]=pr0;if(spNeeded(pr0,ts)){sv0=spatialVerify(pa,pb,true);if(sv0)spResults[rk0]=sv0}}
               }
               if(wantMc){
                 var ma0=mcCache[r.x],mb0=mcCache[r.y];
                 if(ma0&&mb0)mc0=Math.min(100,Math.round(dotV(ma0,mb0)*100));
               }
-              if(pr0||mc0!==null)putSmMmRes(MM_MODE+"|"+CACHE_KEY+"|"+r.x+"|"+r.y,{pt:pr0,sv:sv0,mc:mc0});
+              if(pr0||mc0!==null)putSmMmRes(mmResKey(r.x,r.y),{pt:pr0,sv:sv0,mc:mc0});
             }
             if(canDino&&wantPt&&wi<bp.length&&(Date.now()-t0>=24)){
-              if(isScan&&!stopFlag)msg("Đang so Patch MaxSim + Spatial + CSLS ("+doneN+"/"+extractPairs.length+" cặp)…");
+              if((isScan||smRunning)&&!stopFlag)msg("Đang so Patch MaxSim + Spatial + CSLS ("+doneN+"/"+extractPairs.length+" cặp)…");
               return new Promise(function(ok){setTimeout(ok,0)}).then(chunk);
             }
           }
@@ -2596,14 +2602,14 @@ function verifyGrayZonePairs(list,isScan,thOv,opts){
         return chunk();
       }
       function runBatch(){
-        if(stopFlag&&scanning&&isScan)return Promise.resolve(false);
+        if(isAborted(isScan))return Promise.resolve(false);
         if(bi>=batches.length)return Promise.resolve(true);
         var bp=batches[bi++],bu=[],bs={},ext,idx=0;
         bp.forEach(function(r){if(!bs[r.x]){bs[r.x]=1;bu.push(r.x)}if(!bs[r.y]){bs[r.y]=1;bu.push(r.y)}});
         if(canDino&&bu.length){
-          if(isScan&&!stopFlag)msg(mmTxt+" ("+extractPairs.length+" cặp vùng xám"+(batches.length>1?" · mẻ "+bi+"/"+batches.length:"")+")…");
+          if((isScan||smRunning)&&!stopFlag)msg(mmTxt+" ("+extractPairs.length+" cặp vùng xám"+(batches.length>1?" · mẻ "+bi+"/"+batches.length:"")+")…");
           var w=function(){
-            if((stopFlag&&scanning&&isScan)||idx>=bu.length)return Promise.resolve();
+            if(isAborted(isScan)||idx>=bu.length)return Promise.resolve();
             var u=bu[idx++];
             return verifyImgOf(u,wantPt,wantMc).then(w);
           };
@@ -2611,23 +2617,16 @@ function verifyGrayZonePairs(list,isScan,thOv,opts){
         }else ext=Promise.resolve();
         return ext.then(function(){return scoreBatch(bp)}).then(function(ok){return ok?runBatch():false});
       }
-      if(!canDino&&isScan&&!stopFlag&&extractPairs.length)msg("Đang xác minh CSLS ("+extractPairs.length+" cặp vùng xám)…");
+      if(!canDino&&(isScan||smRunning)&&!stopFlag&&extractPairs.length)msg("Đang xác minh CSLS ("+extractPairs.length+" cặp vùng xám)…");
       return runBatch().then(function(ok){
-        if(!ok||(stopFlag&&scanning&&isScan))return list;
+        if(!ok||isAborted(isScan))return list;
         var rMc=(canDino&&wantMc)?buildVecHubMap(urls,mcCache,ownerMap,5):null;
         var rPt=(canDino&&wantPt)?buildPtHubMap(workPairs,ptResults):null;
         var kept=[];
         list.forEach(function(r){
-          var rk=r.a.id+"|"+r.b.id+"|"+r.x+"|"+r.y;
-          var loId=r.a.id<r.b.id?r.a.id:r.b.id,hiId=r.a.id<r.b.id?r.b.id:r.a.id,hk=loId+"|"+hiId;
-          if(!workMap[rk]){
-            if(visInfo){
-              var vi0=visInfo[hk]||(visInfo[hk]={checked:0,hasVis:false,kept:0,strongOk:0,dropped:0,maxEns:0});
-              vi0.kept++;if(r.n>vi0.maxEns)vi0.maxEns=r.n;
-            }
-            kept.push(r);return;
-          }
-          var mmKey=MM_MODE+"|"+CACHE_KEY+"|"+r.x+"|"+r.y,cm=smMmPairRes[mmKey];
+          var rk=canonPairKey(r.a.id,r.b.id,r.x,r.y),hk=hkOf(r.a.id,r.b.id);
+          if(!workMap[rk]){bumpVis(hk,0,false,1,r.n,0,0);kept.push(r);return}
+          var cm=smMmPairRes[mmResKey(r.x,r.y)];
           var pmRes=wantPt?(ptResults[rk]||(cm&&cm.pt)||null):null,spRes=(pmRes&&(spResults[rk]||(cm&&cm.sv)))||null;
           var ma=wantMc?mcCache[r.x]:null,mb=wantMc?mcCache[r.y]:null;
           var mcSim=(ma&&mb)?Math.min(100,Math.round(dotV(ma,mb)*100)):(wantMc&&cm&&cm.mc!=null?cm.mc:null);
@@ -2636,35 +2635,21 @@ function verifyGrayZonePairs(list,isScan,thOv,opts){
           var mcMargin=mcHub!==null?(mcSim-mcHub):null;
           var ptHub=(pmRes&&rPt&&rPt[r.x]!==undefined&&rPt[r.y]!==undefined)?0.5*(rPt[r.x]+rPt[r.y]):null;
           var ptMargin=ptHub!==null?(pmRes.sim-ptHub):null;
-          if(!pmRes&&mcSim===null&&clsMargin===null){
-            if(visInfo){
-              var vi1=visInfo[hk]||(visInfo[hk]={checked:0,hasVis:false,kept:0,strongOk:0,dropped:0,maxEns:0});
-              vi1.kept++;if(r.n>vi1.maxEns)vi1.maxEns=r.n;
-            }
-            kept.push(r);return;
-          }
+          if(!pmRes&&mcSim===null&&clsMargin===null){bumpVis(hk,0,false,1,r.n,0,0);kept.push(r);return}
           SM.mmChecked++;if(spRes)SM.spChecked++;
           var tsText=tMap[hk]||0,nInPair=pairCnt[hk]||1,ctx=pairCtx(r.a,r.b,tsText);
           var ev=evalMmPair(r,pmRes,spRes,mcSim,clsMargin,mcMargin,ptMargin,ts,tl,ctx,tsText,nInPair);
           if(ev.spSaved)SM.spSave++;
           if(ev.drop){
             SM.mmCut++;if(ev.spBad)SM.spCut++;
-            if(visInfo){
-              var viD=visInfo[hk]||(visInfo[hk]={checked:0,hasVis:false,kept:0,strongOk:0,dropped:0,maxEns:0});
-              viD.checked++;if(ev.hasVis)viD.hasVis=true;viD.dropped++;
-            }
+            bumpVis(hk,1,ev.hasVis,0,0,0,1);
             return;
           }
           if(ev.boosted){
             r={a:r.a,b:r.b,x:r.x,y:r.y,n:ev.ens,d:100-ev.ens,k:ev.tagK,o:r.o};
             SM.mmBoost++;
           }
-          if(visInfo){
-            var viK=visInfo[hk]||(visInfo[hk]={checked:0,hasVis:false,kept:0,strongOk:0,dropped:0,maxEns:0});
-            viK.checked++;if(ev.hasVis)viK.hasVis=true;viK.kept++;
-            if(ev.ens>viK.maxEns)viK.maxEns=ev.ens;
-            if(ev.visStrong)viK.strongOk++;
-          }
+          bumpVis(hk,1,ev.hasVis,1,ev.ens,ev.visStrong?1:0,0);
           kept.push(r);
         });
         var cutN=SM.mmCut;
@@ -2771,12 +2756,12 @@ function scan(auto){
   if(scanning)return;
   var cnt=0;activeItems().forEach(function(it){(it.im||[]).forEach(function(s){if(s)cnt++})});
   if(cnt<2){msg("Chưa đủ ảnh để so.");return}
-  scanning=true;stopFlag=false;G("dupimg").disabled=true;G("dupstop").hidden=false;G("dupbar").hidden=false;
+  scanning=true;stopFlag=false;syncScanUi();
   var bar=G("dupbar").firstChild,stopP=new Promise(function(r){stopWaiters=[r]}),badSet={},offErr=false,t={ok:0,bad:0,flat:0,nL:0,nP:0,newPairs:0,căn:0};
-  SP.n=0;SP.ms=0;SP.t0=0;modelFail=null;dinoErr=null;G("dupstop").disabled=false;bar.style.transition="none";bar.style.width="0";void bar.offsetWidth;bar.style.transition="";
+  SP.n=0;SP.ms=0;SP.t0=0;modelFail=null;dinoErr=null;bar.style.transition="none";bar.style.width="0";void bar.offsetWidth;bar.style.transition="";
   function end(){
     savePm();saveCache();hsPushSoon();
-    scanning=false;stopWaiters=[];G("dupimg").disabled=false;G("dupstop").disabled=false;G("dupstop").hidden=true;G("dupbar").hidden=true;
+    scanning=false;stopWaiters=[];syncScanUi();
     pairsFromPm();
     render();
     var extra=[],np=pendingItems().length,pendTxt=np&&!stopFlag?" · còn "+np+" căn chưa so":"";
@@ -3040,10 +3025,11 @@ function init(nt){
       return (engInfo.wipeP||Promise.resolve()).then(function(){
         if(engInfo.keyChanged)hsPull();
         return Promise.all([loadCache(),loadPm()]).then(function(){
-          if(thChanged||skipChanged||mmChanged||engInfo.keyChanged){
+          if(thChanged||skipChanged||mmChanged||engInfo.keyChanged||(pm&&pmStale())){
             pm=pmEmpty();pmLoaded=true;pmP=null;
             savePm();imgPairs=null;
           }
+          if(smCloseHook)smCloseHook();
           render();
           cfgDirtyUi(false,engInfo.f16Changed?"Đã lưu cài đặt và xóa cache mô hình cũ.":"Đã lưu cài đặt.","ok");
           scan();
@@ -3157,18 +3143,12 @@ function init(nt){
     engUi(1);
     applyAndSaveSettings();
   };
-  /* ===== Quét thông minh: chạy khi danh sách «Không phải trùng» còn trống =====
-     Quét ảnh → tìm ngưỡng phù hợp → hiện các cặp vùng xám (có xem ảnh + so sánh lớn) để xác nhận Trùng / Không phải trùng → quét lại bằng ngưỡng gợi ý mới.
+  /* ===== Chế độ Quét thông minh riêng: hoạt động cả khi danh sách «Không phải trùng» trống hoặc đã có dữ liệu =====
+     Quét ảnh → phân tích đa ngưỡng & hiệu chuẩn theo nhãn đã có → hiện các cặp vùng xám (có xem ảnh + so sánh lớn) để xác nhận Trùng / Không phải trùng → tự tinh chỉnh tới khi sạch vùng xám.
      Trạng thái từng cặp lấy thẳng từ danh sách «Không phải trùng» (ignored) và smartPos nên đồng bộ cả khi đánh dấu từ khung so sánh lớn. */
-  var smAutoTxt="",smRes=null,smGray=[],smRunning=false,smCalc=false,smTok=0,smSig="",smRoundN=0,smThDirty=false;
+  var smRes=null,smGray=[],smCalc=false,smTok=0,smSig="",smRoundN=0,smThDirty=false;
   try{(JSON.parse(ls("dsp1")||"[]")||[]).forEach(function(k){smartPos[k]=1})}catch(e){}
   try{var _si=JSON.parse(ls("dsp2")||"{}")||{};Object.keys(_si).forEach(function(k){if(smartPos[k]&&Array.isArray(_si[k]))smartImg[k]=_si[k]})}catch(e){}
-  function ignActiveCount(){
-    loadIgnored();
-    var byId={},n=0;
-    activeItems().forEach(function(it){byId[it.id]=1});
-    Object.keys(ignored).forEach(function(k){if(!ignored[k])return;var ids=k.split("|");if(byId[ids[0]]&&byId[ids[1]])n++});
-    return n}
   function scanAwait(){return new Promise(function(r){scan();if(scanning)scanDoneWaiters.push(r);else r()})}
   function smPanel(html){var p=G("dupsmart");if(!p)return;p.innerHTML=html||"";p.hidden=!html}
   function smSt(k){return ignored[k]?"n":(smartPos[k]?"y":"")}
@@ -3180,7 +3160,8 @@ function init(nt){
     return '<div class="dpc dpsc'+(st?" "+st:"")+'" data-k="'+esc(g.k)+'" data-i="'+i+'"><div class="dpsc-h">'+simBadge(g.mx)+'<span class="dpsc-t">'+g.nImg+' ảnh khớp · '+(g.side==="below"?"dưới ngưỡng gợi ý":"sát ngưỡng gợi ý")+'</span></div><div class="dpsc-hs">'+nm(g.a)+nm(g.b)+'</div><div class="dpsc-i">'+th+'</div><div class="dpsc-b"><button type="button" class="dpimgbtn" data-cmpfull="'+i+'" title="Mở so sánh toàn màn hình">So sánh lớn</button><button type="button" class="dpimgbtn" data-smimg="'+i+'" aria-expanded="'+(g.open?"true":"false")+'"'+(tot?"":" disabled")+'>'+(tot?smImgTxt(o,!!g.open):"Không có ảnh")+'</button><button type="button" class="dpimgbtn dpv" data-tog="'+i+'" title="Xem thông tin hai căn">'+(openSet[g.k]?"Ẩn thông tin":"Thông tin")+'</button></div><div class="dpdet"'+(openSet[g.k]?"":" hidden")+'>'+(openSet[g.k]?detailH(o,i):"")+'</div><div class="dpimgs"'+(g.open?"":" hidden")+'>'+(g.open?imgCmpH(o,i):"")+'</div><div class="dpsc-a"><button type="button" class="dpsc-yes'+(st==="y"?" on":"")+'" data-sa="y">Trùng</button><button type="button" class="dpsc-no'+(st==="n"?" on":"")+'" data-sa="n">Không phải trùng</button></div></div>'}
   function smAskH(){
     var remTxt=(smRes&&smRes.grayTotal>smGray.length)?(" · còn "+smRes.grayTotal+" cặp vùng xám"):"";
-    return '<div class="dpsm-h"><b>Quét thông minh'+(smRoundN>1?' · vòng '+smRoundN:'')+'</b><span class="dpsm-chip"></span></div><p class="dpsm-p">Ngưỡng đang dùng '+TH+'%'+remTxt+'. Đánh dấu từng cặp rồi hệ thống tự tinh chỉnh tới khi danh sách cuối chỉ còn các cặp trùng. «Không phải trùng» ẩn cặp đó và đẩy ngưỡng lên, «Trùng» giữ cặp đó làm mốc đúng.</p>'+smGray.map(smCardH).join("")+'<div class="dpsm-f"><button type="button" class="btn" data-sm="skip">Bỏ qua</button><button type="button" class="btn p" data-sm="apply"></button></div>'}
+    var calNote=(smRes&&smRes.cal&&smRes.cal.active)?(" · đã học "+smRes.cal.posN+" trùng / "+smRes.cal.negN+" loại"):"";
+    return '<div class="dpsm-h"><b>Quét thông minh'+(smRoundN>1?' · vòng '+smRoundN:'')+'</b><span class="dpsm-chip"></span></div><p class="dpsm-p">Ngưỡng đang dùng '+TH+'%'+remTxt+calNote+'. Đánh dấu từng cặp rồi hệ thống tự tinh chỉnh tới khi danh sách cuối chỉ còn các cặp trùng. «Không phải trùng» ẩn cặp đó và đẩy ngưỡng lên, «Trùng» giữ cặp đó làm mốc đúng.</p>'+smGray.map(smCardH).join("")+'<div class="dpsm-f"><button type="button" class="btn" data-sm="skip">Bỏ qua</button><button type="button" class="btn p" data-sm="apply"></button></div>'}
   /* cập nhật tại chỗ (không dựng lại thẻ) để ảnh không nháy */
   function smPaint(){
     var p=G("dupsmart");if(!p||p.hidden||!smRes)return;
@@ -3199,12 +3180,13 @@ function init(nt){
   function smAllDone(){return smGray.length>0&&smGray.every(function(g){return !!smSt(g.k)})}
   function smSigOf(){loadIgnored();return smGray.map(function(g){return smSt(g.k)||"-"}).join("")}
   function smClose(){smTok++;smCalc=false;smRes=null;smGray=[];smView=[];closeZoom();smPanel("")}
+  smCloseHook=smClose;
   function smRefresh(){
     var tok=++smTok;smCalc=true;smPaint();
     analyzeThresholds({fast:true}).then(function(res){
       if(tok!==smTok)return;
       smCalc=false;
-      if(res&&res.ok&&smRes){smRes.recommended=res.recommended;smRes.hasMore=!!res.hasMore;smRes.grayTotal=res.grayTotal||0}
+      if(res&&res.ok&&smRes){smRes.recommended=res.recommended;smRes.hasMore=!!res.hasMore;smRes.grayTotal=res.grayTotal||0;if(res.cal)smRes.cal=res.cal}
       smPaint();
       if(smAllDone())smApply();
     },function(){if(tok===smTok){smCalc=false;smPaint()}});
@@ -3256,10 +3238,11 @@ function init(nt){
   /* Một vòng: phân tích ngưỡng → xác minh thị giác ứng viên vùng xám → tự loại cặp chắc chắn sai → hiện tối đa 6 cặp đáng hỏi nhất.
      Lặp không giới hạn số vòng cho tới khi sạch hết vùng xám (hoặc các cặp còn lại đều là Trùng và không còn ứng viên mờ). */
   function smRound(){
-    smRoundN++;smRunning=true;
+    smRoundN++;smRunning=true;syncScanUi();
     smPanel('<div class="dpsm-h"><b>Quét thông minh'+(smRoundN>1?' · vòng '+smRoundN:'')+'</b></div><p class="dpsm-p" id="dupsmst">Đang tìm ngưỡng &amp; xác minh vùng xám…</p>');
     return analyzeThresholds().then(function(res){
-      smRunning=false;
+      smRunning=false;syncScanUi();
+      if(stopFlag){smPanel("");msg((res&&res.msg)||"Đã dừng quét thông minh.");return}
       if(!res||!res.ok){smPanel("");msg((res&&res.msg)||"Chưa phân tích được.",1);return}
       var autoTxt="";
       if(res.autoNeg&&res.autoNeg.length){
@@ -3272,19 +3255,18 @@ function init(nt){
         var skipCnt=(res.auto.dom||0)+(res.auto.weak||0)+(res.auto.mm||0);
         if(skipCnt>0||res.auto.pos>0||res.auto.mmOk>0)autoTxt+=" · lọc "+skipCnt+" cặp yếu"+(res.auto.mmOk?", giữ "+res.auto.mmOk+" cặp chắc chắn trùng":"")+(res.auto.pos?", suy ra "+res.auto.pos+" cặp trùng":"");
       }
-      smAutoTxt=autoTxt;
-      smRes={recommended:res.recommended,hasMore:!!res.hasMore,grayTotal:res.grayTotal||0};
+      smRes={recommended:res.recommended,hasMore:!!res.hasMore,grayTotal:res.grayTotal||0,cal:res.cal||null};
       smGray=(res.gray||[]).slice().sort(function(x,y){return((y.mx||0)-(x.mx||0))||(y.nImg||0)-(x.nImg||0)});
       if(!smGray.length){
         smPanel("");smRes=null;
         if(res.recommended!==TH||smThDirty||imgPairs===null){
           var i=G("dupth");if(i)i.value=String(res.recommended);
           syncSensDraft();smThDirty=false;
-          msg((smRoundN>1?"Đã lọc sạch vùng xám":"Không có cặp vùng xám cần xác nhận")+smAutoTxt+" · quét lại với ngưỡng tối ưu "+res.recommended+"%…");
+          msg((smRoundN>1?"Đã lọc sạch vùng xám":"Không có cặp vùng xám cần xác nhận")+autoTxt+" · quét lại với ngưỡng tối ưu "+res.recommended+"%…");
           applyAndSaveSettings();
         }else{
           render();
-          msg((smRoundN>1?"Đã xác nhận xong":"Ngưỡng "+TH+"% đã tối ưu")+smAutoTxt+" · danh sách chỉ còn các cặp trùng.");
+          msg((smRoundN>1?"Đã xác nhận xong":"Ngưỡng "+TH+"% đã tối ưu")+autoTxt+" · danh sách chỉ còn các cặp trùng.");
         }
         return;
       }
@@ -3292,8 +3274,8 @@ function init(nt){
       smView=smGray.map(function(g){return{a:g.a,b:g.b,why:["img"],img:g.imgs||[],sc:0}});
       render();
       smPanel(smAskH());smSig=smSigOf();smPaint();
-      msg((smRoundN>1?"Vòng "+smRoundN+": ":"")+"cần xác nhận "+smGray.length+(res.grayTotal>smGray.length?"/"+res.grayTotal:"")+" cặp vùng xám · gợi ý "+res.recommended+"%"+smAutoTxt+".");
-    }).then(null,function(){smRunning=false;smPanel("")});
+      msg((smRoundN>1?"Vòng "+smRoundN+": ":"")+"cần xác nhận "+smGray.length+(res.grayTotal>smGray.length?"/"+res.grayTotal:"")+" cặp vùng xám · gợi ý "+res.recommended+"%"+autoTxt+".");
+    }).then(null,function(){smRunning=false;syncScanUi();smPanel("")});
   }
   function smApply(){
     var rec=smRes&&smRes.recommended;
@@ -3328,12 +3310,12 @@ function init(nt){
   }
   function smStart(){
     if(scanning||smRunning)return;
-    smRunning=true;smRoundN=0;smThDirty=false;smClose();
+    smClose();stopFlag=false;smRunning=true;smRoundN=0;smThDirty=false;syncScanUi();
     smPanel('<div class="dpsm-h"><b>Quét thông minh</b></div><p class="dpsm-p" id="dupsmst">Đang quét ảnh…</p>');
     scanAwait().then(function(){
-      if(stopFlag){smRunning=false;smPanel("");return}
+      if(stopFlag){smRunning=false;syncScanUi();smPanel("");return}
       return smRound();
-    }).then(null,function(){smRunning=false;smPanel("")});
+    }).then(null,function(){smRunning=false;syncScanUi();smPanel("")});
   }
   G("dupsmart").onclick=function(e){
     var b=e.target.closest("[data-sa]");
@@ -3350,7 +3332,8 @@ function init(nt){
   G("dupsmart").onchange=onPairChange;
   G("dupsmart").addEventListener("pointerdown",onPairDown,{passive:true});
   G("dupzyes").onclick=function(){var z=zoomCmp;if(!z)return;var k=z.key;closeZoom();smAnswer(k,"y")};
-  G("dupimg").onclick=function(){items=N().items();if(ignActiveCount()===0)smStart();else scan()};
+  G("dupimg").onclick=function(){if(scanning||smRunning)return;smClose();items=N().items();scan()};
+  var sb2=G("dupsmartbtn");if(sb2)sb2.onclick=function(){if(scanning||smRunning)return;items=N().items();smStart()};
   G("dupstop").onclick=stopScan;
   G("dupvpair").onclick=function(){if(viewMode!=="pairs"){viewMode="pairs";render()}};
   G("dupvclust").onclick=function(){if(lastGraph&&lastGraph.stats&&lastGraph.stats.crossClusterCount>0&&viewMode!=="clusters"){viewMode="clusters";render()}};
@@ -3539,43 +3522,50 @@ function pickThreshold(res,nH,minIdx,calLB){
   }
   return{best:best,noiseMark:noiseMark,maxCand:maxCand};
 }
-var smInfNeg=null;   /* đặt trong analyzeThresholds: (idA,idB)=>true nếu suy ra từ nhãn người dùng là KHÔNG trùng */
-function canonPairKey(aId,bId,x,y){
-  return aId<bId?(aId+"|"+bId+"|"+x+"|"+y):(bId+"|"+aId+"|"+y+"|"+x);
-}
-function evalPairsAtTh(rawList,ignRawList,ts,src,byId,tMap,pos,prePairMap,calLB){
-  var useLB=calLB||LB;
-  var useList=rawList;
-  if(prePairMap){
-    useList=[];
-    rawList.forEach(function(r){
-      var loId=r.a.id<r.b.id?r.a.id:r.b.id,hiId=r.a.id<r.b.id?r.b.id:r.a.id,k=loId+"|"+hiId;
-      var isPos=!!(pos&&pos[k]);
-      var pv=prePairMap[canonPairKey(r.a.id,r.b.id,r.x,r.y)];
-      if(pv&&pv.drop&&!isPos)return;
-      if(pv&&pv.ens!==r.n)useList.push({a:r.a,b:r.b,x:r.x,y:r.y,n:pv.ens,d:100-pv.ens,k:pv.tagK||r.k,o:r.o});
-      else useList.push(r);
-    });
+function buildAnalysisGroups(list,prePairMap,pos,infNeg,tMap){
+  var gMap={},groups=[],i,r,lo,hi,sw,hk,pv,nr;
+  for(i=0;i<list.length;i++){
+    r=list[i];
+    sw=r.a.id>r.b.id;lo=sw?r.b:r.a;hi=sw?r.a:r.b;hk=lo.id+"|"+hi.id;
+    if(infNeg&&infNeg(lo.id,hi.id))continue;
+    nr={a:lo,b:hi,x:sw?r.y:r.x,y:sw?r.x:r.y,d:r.d,k:r.k||"",o:r.o||"",n:r.n};
+    if(prePairMap){
+      pv=prePairMap[canonPairKey(r.a.id,r.b.id,r.x,r.y)];
+      if(pv&&pv.drop&&!(pos&&pos[hk]))continue;
+      if(pv&&pv.ens!==r.n){nr.n=pv.ens;nr.d=100-pv.ens;if(pv.tagK)nr.k=pv.tagK}
+    }
+    var g=gMap[hk];
+    if(!g){g=gMap[hk]={k:hk,lo:lo,hi:hi,r:[]};groups.push(g)}
+    g.r.push(nr);
   }
-  var filtered=smartFilter(useList,ts,src,tMap),P={};
-  filtered.forEach(function(r){
-    var a=byId[r.a.id],b=byId[r.b.id];if(!a||!b)return;
-    var loId=a.id<b.id?a.id:b.id,hiId=a.id<b.id?b.id:a.id;
-    if(ignored[loId+"|"+hiId]||(smInfNeg&&smInfNeg(loId,hiId)))return;   /* cặp đã «Không phải trùng» hoặc suy ra được là không trùng */
-    var o=addP(P,a,b,"img");if(!o)return;
-    var sw=o.a.id!==r.a.id;
-    o.img.push(sw?{x:r.y,y:r.x,d:r.d,k:r.k||"",o:r.o||"",n:r.n}:{x:r.x,y:r.y,d:r.d,k:r.k||"",o:r.o||"",n:r.n});
-  });
-  filterGenericImgs(P,src.length,ts);
+  for(i=0;i<groups.length;i++){
+    var og=groups[i],tsText=tMap[og.k]||0;
+    og.m1=oneToOnePairs(og.r,true);
+    og.ctx=pairCtx(og.lo,og.hi,tsText);
+    og.tsText=tsText;
+    og.na=(og.lo.im||[]).filter(Boolean).length||1;
+    og.nb=(og.hi.im||[]).filter(Boolean).length||1;
+    og.r=null;
+  }
+  return{groups:groups,map:gMap};
+}
+function evalPairsAtTh(rawGrp,ignGrp,ts,nSrc,pos,prePairMap,calLB){
+  var cfg=smartCalc(ts),useLB=calLB||LB,P={},i;
+  for(i=0;i<rawGrp.groups.length;i++){
+    var g=rawGrp.groups[i];
+    var kept=smartEvalGroup(g.m1,g.na,g.nb,g.ctx,g.tsText,cfg,false,null);
+    if(kept)P[g.k]={a:g.lo,b:g.hi,why:["img"],img:kept.map(function(r){return imgItemOf(r,false)})};
+  }
+  filterGenericImgs(P,nSrc,ts);
   var imgHousePairs=0,trustedPairs=0,riskyPairs=0,conflictPairs=0,det=[];
   Object.keys(P).forEach(function(k){
     var o=P[k];if(!o.img.length)return;
     imgHousePairs++;
-    var tsText=tMap[k]||0,ctx=pairCtx(o.a,o.b,tsText),nImg=o.img.length;
-    var mx=0,hasExact=false,visStrong=false,pvCnt=0,hubBadCnt=0,i;
+    var g=rawGrp.map[k],tsText=g?g.tsText:0,ctx=g?g.ctx:pairCtx(o.a,o.b,tsText),nImg=o.img.length;
+    var mx=0,hasExact=false,visStrong=false,pvCnt=0,hubBadCnt=0;
     for(i=0;i<nImg;i++){
       if(o.img[i].x===o.img[i].y)hasExact=true;
-      var s=o.img[i].n!=null?o.img[i].n:Math.max(0,100-o.img[i].d);
+      var s=simOf(o.img[i]);
       if(s>mx)mx=s;
       if(prePairMap){
         var pv=prePairMap[canonPairKey(o.a.id,o.b.id,o.img[i].x,o.img[i].y)];
@@ -3598,16 +3588,15 @@ function evalPairsAtTh(rawList,ignRawList,ts,src,byId,tMap,pos,prePairMap,calLB)
     else if(ctx.conflict){if(nImg===1){conflictPairs++;lbl="c"}else{riskyPairs++;lbl="r"}}
     else if(hubBad||(nImg===1&&!ctx.support&&tsText<1&&mx<useLB.risk)){riskyPairs++;lbl="r"}
     /* chi tiết từng cặp để hiển thị/kiểm chứng thủ công (xem renderAnaDetail) */
-    det.push({k:k,cf:cf,ex:hasExact,a:o.a,b:o.b,mx:mx,nImg:nImg,lbl:lbl,sd:ctx.sameDist,sw:ctx.sameWard,dd:ctx.diffDist,pd:ctx.pDiff,pc:ctx.pClose,ac:ctx.aClose,conf:ctx.conflict,sup:ctx.support,tx:tsText,
+    det.push({k:k,cf:cf,ex:hasExact,a:o.a,b:o.b,mx:mx,nImg:nImg,lbl:lbl,sd:ctx.sameDist,sw:ctx.sameWard,dd:ctx.diffDist,pd:ctx.pDiff,conf:ctx.conflict,sup:ctx.support,tx:tsText,
       best:o.img.slice().sort(function(p,q){return (q.n||0)-(p.n||0)}).slice(0,2).map(function(m){return{x:m.x,y:m.y,n:m.n}})});
   });
   var ignFP=0;
-  if(ignRawList&&ignRawList.length){
-    var fIgn=smartFilter(ignRawList,ts,src,tMap),ignSeen={};
-    fIgn.forEach(function(r){
-      var loId=r.a.id<r.b.id?r.a.id:r.b.id,hiId=r.a.id<r.b.id?r.b.id:r.a.id,pk=loId+"|"+hiId;
-      if(!ignSeen[pk]){ignSeen[pk]=1;ignFP++}
-    });
+  if(ignGrp&&ignGrp.groups.length){
+    for(i=0;i<ignGrp.groups.length;i++){
+      var ig=ignGrp.groups[i];
+      if(smartEvalGroup(ig.m1,ig.na,ig.nb,ig.ctx,ig.tsText,cfg,false,null))ignFP++;
+    }
   }
   return{th:ts,housePairs:imgHousePairs,trustedPairs:trustedPairs,riskyPairs:riskyPairs,conflictPairs:conflictPairs,ignFP:ignFP,maxComp:maxCompSizeOf(P),det:det};
 }
@@ -3642,6 +3631,7 @@ function analyzeThresholds(opts){
       allPairs=[];
     }
     function buildRawStep(){
+      if(isAborted(false))return Promise.resolve();
       if(smRawCache&&smRawCache.sig===rawSig)return Promise.resolve();
       var end=Math.min(p+25,allJ.length),j,a,b,m,k;
       for(;p<end;p++){
@@ -3661,43 +3651,40 @@ function analyzeThresholds(opts){
       return Promise.resolve();
     }
     return Promise.resolve().then(buildRawStep).then(function(){
-      var raw=[],ignRaw=[];
+      if(isAborted(false))return{ok:false,stopped:true,msg:"Đã dừng quét thông minh."};
+      var raw=[],ignRaw=[],exactHouse={};
       allPairs.forEach(function(r){
-        var loId=r.a.id<r.b.id?r.a.id:r.b.id,hiId=r.a.id<r.b.id?r.b.id:r.a.id;
-        if(ignored[loId+"|"+hiId])ignRaw.push(r);else raw.push(r);
+        var hk=hkOf(r.a.id,r.b.id);
+        if(ignored[hk])ignRaw.push(r);
+        else{raw.push(r);if(r.x===r.y)exactHouse[hk]=1}
       });
       var inf=buildInfCtx(byId);
       var infPos=0;
       if(posN){
         raw.forEach(function(r){
-          var lo=r.a.id<r.b.id?r.a.id:r.b.id,hi=r.a.id<r.b.id?r.b.id:r.a.id,k=lo+"|"+hi;
-          if(!pos[k]&&!ignored[k]&&inf.samePos(lo,hi)){pos[k]=1;posN++;infPos++}})}
-      smInfNeg=inf.isNeg;
+          var hk=hkOf(r.a.id,r.b.id),ids=hk.split("|");
+          if(!pos[hk]&&inf.samePos(ids[0],ids[1])){pos[hk]=1;posN++;infPos++}});
+      }
       var wantPreVis=!opts.fast&&MM_MODE!==0;
       var prePassPromise=Promise.resolve();
       if(wantPreVis){
         var borderG={},wantPt0=MM_MODE===3||MM_MODE===4,wantMc0=MM_MODE===2||MM_MODE===4;
         raw.forEach(function(r){
           if(r.x===r.y||r.n<72)return;
-          var loId=r.a.id<r.b.id?r.a.id:r.b.id,hiId=r.a.id<r.b.id?r.b.id:r.a.id,hk=loId+"|"+hiId;
-          if(pos[hk]||inf.isNeg(loId,hiId))return;
-          var mmK=MM_MODE+"|"+CACHE_KEY+"|"+r.x+"|"+r.y,cm=smMmPairRes[mmK];
+          var hk=hkOf(r.a.id,r.b.id);
+          if(exactHouse[hk]||pos[hk]||inf.isNeg(r.a.id,r.b.id))return;
+          var cm=smMmPairRes[mmResKey(r.x,r.y)];
           var hasPt=!wantPt0||(cm&&cm.pt!==undefined);
           var hasMc=!wantMc0||(cm&&cm.mc!=null)||(mcCache[r.x]!==undefined&&mcCache[r.y]!==undefined);
           if(hasPt&&hasMc)return;
-          var bg=borderG[hk]||(borderG[hk]={lo:byId[loId],hi:byId[hiId],mx:0,ex:false,r:[]});
+          var ids=hk.split("|"),bg=borderG[hk]||(borderG[hk]={lo:byId[ids[0]],hi:byId[ids[1]],mx:0,r:[]});
           if(r.n>bg.mx)bg.mx=r.n;
           bg.r.push(r);
-        });
-        raw.forEach(function(r){
-          if(r.x!==r.y)return;
-          var loId=r.a.id<r.b.id?r.a.id:r.b.id,hiId=r.a.id<r.b.id?r.b.id:r.a.id,hk=loId+"|"+hiId;
-          if(borderG[hk])borderG[hk].ex=true;
         });
         var borderList=[];
         Object.keys(borderG).forEach(function(hk){
           var bg=borderG[hk];
-          if(bg.ex||!bg.lo||!bg.hi)return;
+          if(!bg.lo||!bg.hi)return;
           var conf=pairCtx(bg.lo,bg.hi,tMap[hk]||0).conflict;
           if((bg.mx>=74&&bg.mx<=93)||(conf&&bg.mx>=74&&bg.mx<98)){
             bg.conf=conf;borderList.push(bg);
@@ -3717,40 +3704,35 @@ function analyzeThresholds(opts){
         }
       }
       return prePassPromise.then(function(){
+        if(isAborted(false))return{ok:false,stopped:true,msg:"Đã dừng quét thông minh."};
         /* Xây dựng bản đồ xác minh trước (CSLS hub + cache Patch/Spatial/Trung tâm) trước khi chọn ngưỡng */
         var wantPt=MM_MODE===3||MM_MODE===4,wantMc=MM_MODE===2||MM_MODE===4;
-        var hubUrls=[],hubSeen={},hubRest=[];
+        var hubUrls=[],hubSeen={},hubRest=[],ptResultsAll={},pairCntAll={};
         allPairs.forEach(function(r){
-          if(r.x===r.y||r.n<70)return;
-          var pri=r.n>=72&&r.n<=94;
-          [r.x,r.y].forEach(function(u){
-            if(hubSeen[u])return;
-            if(pri){hubSeen[u]=1;hubUrls.push(u)}else hubRest.push(u);
-          });
+          var hk=hkOf(r.a.id,r.b.id);
+          if(r.n>=72)pairCntAll[hk]=(pairCntAll[hk]||0)+1;
+          if(MM_MODE!==0&&wantPt){
+            var cm=smMmPairRes[mmResKey(r.x,r.y)];
+            if(cm&&cm.pt)ptResultsAll[canonPairKey(r.a.id,r.b.id,r.x,r.y)]=cm.pt;
+          }
+          if(r.x!==r.y&&r.n>=70){
+            var pri=r.n>=72&&r.n<=94;
+            [r.x,r.y].forEach(function(u){
+              if(hubSeen[u])return;
+              if(pri){hubSeen[u]=1;hubUrls.push(u)}else hubRest.push(u);
+            });
+          }
         });
         hubRest.forEach(function(u){if(!hubSeen[u]&&hubUrls.length<260){hubSeen[u]=1;hubUrls.push(u)}});
         if(hubUrls.length>260)hubUrls=hubUrls.slice(0,260);
         var ownerMap=buildOwnerMap(allPairs),rCls=hubUrls.length?buildClsHubMap(hubUrls,ownerMap):{};
         var rMc=(MM_MODE!==0&&wantMc&&Object.keys(mcCache).length>=4)?buildVecHubMap(hubUrls,mcCache,ownerMap,5):null;
-        var ptResultsAll={};
-        if(MM_MODE!==0&&wantPt){
-          allPairs.forEach(function(r){
-            var cm=smMmPairRes[MM_MODE+"|"+CACHE_KEY+"|"+r.x+"|"+r.y];
-            if(cm&&cm.pt)ptResultsAll[r.a.id+"|"+r.b.id+"|"+r.x+"|"+r.y]=cm.pt;
-          });
-        }
         var rPt=(MM_MODE!==0&&wantPt&&Object.keys(ptResultsAll).length)?buildPtHubMap(allPairs,ptResultsAll):null;
-        var pairCntAll={};
-        allPairs.forEach(function(r){
-          if(r.n<72)return;
-          var loId=r.a.id<r.b.id?r.a.id:r.b.id,hiId=r.a.id<r.b.id?r.b.id:r.a.id,hk=loId+"|"+hiId;
-          pairCntAll[hk]=(pairCntAll[hk]||0)+1;
-        });
         var prePairMap={},preDropTrack={};
         allPairs.forEach(function(r){
           if(r.x===r.y||r.n<FLOOR)return;
-          var loId=r.a.id<r.b.id?r.a.id:r.b.id,hiId=r.a.id<r.b.id?r.b.id:r.a.id,hk=loId+"|"+hiId;
-          var mmKey=MM_MODE+"|"+CACHE_KEY+"|"+r.x+"|"+r.y,cm=MM_MODE?smMmPairRes[mmKey]:null;
+          var hk=hkOf(r.a.id,r.b.id);
+          var cm=MM_MODE?smMmPairRes[mmResKey(r.x,r.y)]:null;
           var pmRes=(MM_MODE&&wantPt&&cm)?(cm.pt||null):null,spRes=(pmRes&&cm)?(cm.sv||null):null;
           var ma=(MM_MODE&&wantMc)?mcCache[r.x]:null,mb=(MM_MODE&&wantMc)?mcCache[r.y]:null;
           var mcSim=(ma&&mb)?Math.min(100,Math.round(dotV(ma,mb)*100)):(MM_MODE&&wantMc&&cm&&cm.mc!=null?cm.mc:null);
@@ -3764,20 +3746,15 @@ function analyzeThresholds(opts){
           var hardDrop=ev.hasVis&&ev.drop;
           var hubSus=!ev.hasVis&&clsMargin!==null&&clsMargin<=LB.hubMin&&r.n<94;
           prePairMap[ck]={drop:hardDrop,ens:ev.hasVis?ev.ens:r.n,tagK:ev.hasVis?ev.tagK:(r.k||""),visStrong:ev.visStrong,hubSus:hubSus,clsMargin:clsMargin,hasVis:ev.hasVis};
-          if(!ignored[hk]&&!pos[hk]){
-            var tr=preDropTrack[hk]||(preDropTrack[hk]={mx:0,ex:false,tot:0,drp:0});
+          if(!ignored[hk]&&!pos[hk]&&!exactHouse[hk]){
+            var tr=preDropTrack[hk]||(preDropTrack[hk]={mx:0,tot:0,drp:0});
             tr.tot++;if(r.n>tr.mx)tr.mx=r.n;if(hardDrop)tr.drp++;
           }
-        });
-        raw.forEach(function(r){
-          if(r.x!==r.y)return;
-          var loId=r.a.id<r.b.id?r.a.id:r.b.id,hiId=r.a.id<r.b.id?r.b.id:r.a.id,hk=loId+"|"+hiId;
-          if(preDropTrack[hk])preDropTrack[hk].ex=true;
         });
         var preDropHouse={},preVisCut=0;
         Object.keys(preDropTrack).forEach(function(hk){
           var tr=preDropTrack[hk];
-          if(!tr.ex&&tr.tot>0&&tr.drp===tr.tot){preDropHouse[hk]=tr;preVisCut++}
+          if(tr.tot>0&&tr.drp===tr.tot){preDropHouse[hk]=tr;preVisCut++}
         });
 
         /* Thu thập đặc trưng nhãn thực («Trùng» & «Không phải trùng») để hiệu chuẩn mốc */
@@ -3800,10 +3777,7 @@ function analyzeThresholds(opts){
           });
           return out;
         }
-        var posFeats=posN?collectLabelFeats(raw.filter(function(r){
-          var loId=r.a.id<r.b.id?r.a.id:r.b.id,hiId=r.a.id<r.b.id?r.b.id:r.a.id;
-          return !!pos[loId+"|"+hiId];
-        })):[];
+        var posFeats=posN?collectLabelFeats(raw.filter(function(r){return !!pos[hkOf(r.a.id,r.b.id)]})):[];
         var negFeats=ignRaw.length?collectLabelFeats(ignRaw):[];
         var calLB=calibrateFromLabels(posFeats,negFeats);
         var negProf=negFeats.filter(function(f){return !f.conf}).map(function(f){return{mx:f.mx,n:f.nImg,sup:f.sup,tx:f.tx,sw:f.sw,pc:f.pc,ac:f.ac}});
@@ -3813,10 +3787,13 @@ function analyzeThresholds(opts){
             if(p0.mx>=d.mx+2&&p0.n>=d.nImg&&p0.sup>=d.sup&&p0.tx>=d.tx&&(!d.sw||p0.sw)&&(!d.pc||p0.pc)&&(!d.ac||p0.ac))return true;
           }
           return false}
+        var rawGrp=buildAnalysisGroups(raw,prePairMap,posN?pos:null,inf.isNeg,tMap);
+        var ignGrp=buildAnalysisGroups(ignRaw,null,null,null,tMap);
         var tiers=[90,88,86,84,82,80,78,76,74,72,70],res=[],ti=0,snap=smSnap(),nH=Math.max(1,src.length);
         function tierStep(){
+          if(isAborted(false)){smBack(snap);return Promise.resolve({ok:false,stopped:true,msg:"Đã dừng quét thông minh."})}
           var t0=Date.now();
-          while(ti<tiers.length&&Date.now()-t0<30){res.push(evalPairsAtTh(raw,ignRaw,tiers[ti],src,byId,tMap,posN?pos:null,prePairMap,calLB));smBack(snap);ti++}
+          while(ti<tiers.length&&Date.now()-t0<30){res.push(evalPairsAtTh(rawGrp,ignGrp,tiers[ti],src.length,posN?pos:null,prePairMap,calLB));smBack(snap);ti++}
           if(ti<tiers.length)return new Promise(function(r){setTimeout(r,0)}).then(tierStep);
           return finish();
         }
@@ -3855,7 +3832,7 @@ function analyzeThresholds(opts){
             while(lt>grayMin){loScan.push(lt);lt-=2}
             loScan.push(grayMin);
             loScan.forEach(function(thLo){
-              var er=evalPairsAtTh(raw,ignRaw,thLo,src,byId,tMap,posN?pos:null,prePairMap,calLB);
+              var er=evalPairsAtTh(rawGrp,ignGrp,thLo,src.length,posN?pos:null,prePairMap,calLB);
               smBack(snap);
               er.det.forEach(function(d){if(!first[d.k])first[d.k]={d:d,th:thLo}});
             });
@@ -3915,6 +3892,7 @@ function analyzeThresholds(opts){
           gray.an.forEach(function(k){if(!autoSeen[k]&&!ignored[k]){autoSeen[k]=1;autoNeg.push(k)}});
           var calInfo={active:calLB.active,posN:calLB.posN,negN:calLB.negN,trust:calLB.trust,ctxSim:calLB.ctxSim,risk:calLB.risk,multi:calLB.multi,hubMin:calLB.hubMin,sepMin:calLB.sepMin,sepMax:calLB.sepMax,preVisCut:preVisCut};
           function finalizeGray(finalList){
+            if(isAborted(false))return{ok:false,stopped:true,msg:"Đã dừng quét thông minh."};
             var totalCand=finalList.length;
             var aboveRem=finalList.slice(6).filter(function(x){return x.side==="above"}).length;
             var belowStrongRem=finalList.slice(6).filter(function(x){return x.side==="below"&&(x.nImg>=2||x.sup>=1||x.tx>=1||x.mx>=best-2)}).length;
@@ -3923,7 +3901,7 @@ function analyzeThresholds(opts){
             var needK={};shown.forEach(function(g){needK[g.k]=g});
             raw.forEach(function(r){
               var sw=r.a.id>r.b.id,lo=sw?r.b:r.a,hi=sw?r.a:r.b,g=needK[lo.id+"|"+hi.id];if(!g)return;
-              (g.imgs=g.imgs||[]).push(sw?{x:r.y,y:r.x,d:r.d,k:r.k||"",o:r.o||"",n:r.n}:{x:r.x,y:r.y,d:r.d,k:r.k||"",o:r.o||"",n:r.n});
+              (g.imgs=g.imgs||[]).push(imgItemOf(r,sw));
             });
             shown.forEach(function(g){
               var seenM={},im=(g.imgs||[]).filter(function(m){var q=m.x+"|"+m.y;if(seenM[q]||(m.n||0)<g.mx-12)return false;seenM[q]=1;return true}).sort(function(p0,q0){return (q0.n||0)-(p0.n||0)}).slice(0,12);
@@ -3936,18 +3914,16 @@ function analyzeThresholds(opts){
             var refTxt=ref?" · Giữ đủ "+ref.goal+"/"+ref.total+" cặp đã xác nhận cần ≤"+ref.minTh+"%":"";
             var calTxt=calInfo.active?(" · Hiệu chuẩn "+calInfo.posN+"✓/"+calInfo.negN+"✕"):"";
             var txt="Cặp theo ngưỡng (%): "+parts.join(" · ")+refTxt+noiseNote+calTxt+" · Gợi ý: "+best+"%";
-            smInfNeg=null;
-            return{ok:true,imgs:allJ.length,houses:nH,tiers:res,steps:steps,noiseOnset:noiseMark,recommended:best,summary:txt,ref:ref,refNote:refNote,cal:calInfo,gray:shown,grayTotal:totalCand,hasMore:hasMore,autoNeg:autoNeg,auto:{pos:infPos,inf:0,clr:skipSt.clr,dom:skipSt.dom,weak:skipSt.weak,mm:skipSt.mm,mmOk:skipSt.mmOk}};
+            return{ok:true,imgs:allJ.length,houses:nH,tiers:res,steps:steps,noiseOnset:noiseMark,recommended:best,summary:txt,ref:ref,refNote:refNote,cal:calInfo,gray:shown,grayTotal:totalCand,hasMore:hasMore,autoNeg:autoNeg,auto:{pos:infPos,clr:skipSt.clr,dom:skipSt.dom,weak:skipSt.weak,mm:skipSt.mm,mmOk:skipSt.mmOk}};
           }
           /* Xác minh thị giác sâu (Patch MaxSim + Spatial + Trung tâm + CSLS) cho ứng viên vùng xám trước khi hỏi */
           if(!opts.fast&&MM_MODE!==0&&gray.length){
             var visInfo={},snapV=smSnap();
             function runVisPass(cands){
-              if(!cands.length)return Promise.resolve();
+              if(!cands.length||isAborted(false))return Promise.resolve();
               var candMap={};cands.forEach(function(g){candMap[g.k]=g});
               var candRaw=raw.filter(function(r){
-                var lo=r.a.id<r.b.id?r.a.id:r.b.id,hi=r.a.id<r.b.id?r.b.id:r.a.id,k=lo+"|"+hi;
-                return !!candMap[k]&&r.n>=Math.max(FLOOR,grayMin);
+                return !!candMap[hkOf(r.a.id,r.b.id)]&&r.n>=Math.max(FLOOR,grayMin);
               });
               if(!candRaw.length)return Promise.resolve();
               return verifyGrayZonePairs(candRaw,false,best,{preSrc:src,preTMap:tMap,visInfo:visInfo});
@@ -3974,6 +3950,7 @@ function analyzeThresholds(opts){
             var visCands=aboveCands.slice(0,30).concat(belowCands.slice(0,Math.max(12,48-Math.min(30,aboveCands.length))));
             if(visCands.length){
               return runVisPass(visCands).then(function(){
+                if(isAborted(false)){smBack(snapV);return finalizeGray(gray)}
                 var fg=filterVisList(gray);
                 var extra=fg.slice(0,6).filter(function(g){return !g.ex&&!visInfo[g.k]});
                 if(!extra.length){smBack(snapV);return finalizeGray(fg)}
@@ -3999,7 +3976,7 @@ function open(nt){
   if(!N()){alert("Ứng dụng đang tải, thử lại sau vài giây.");return}
   init(N());
   undoSt=[];undoUi();
-  var smp=G("dupsmart");if(smp){smp.hidden=true;smp.innerHTML=""}smView=[];
+  if(smCloseHook)smCloseHook();
   loadSkip();
   loadImgMode();
   thUi();
@@ -4010,12 +3987,12 @@ function open(nt){
   if(sb){sb.classList.remove("dirty");sb.textContent="Lưu & quét lại ảnh"}
   if(en){en.hidden=true;en.textContent="";en.className="dpst dpfull"}
   if(aa){aa.hidden=true;lastRecTh=null}
-  items=N().items();cleanImgPairs();limMain=limIgn=LIMIT;openSet={};openImgSet={};pairImgMode={};pairImgMsg={};cmpAll={};zoomCmp=null;showIgn=false;msg(imgPairs&&imgPairs.length?imgPairs.length+" cặp ảnh giống":"");G("dupbar").hidden=!scanning;G("dupstop").hidden=!scanning;G("dupz").hidden=true;render();dpEnter();if(scanning)msg("Đang dừng lượt quét trước…");
+  items=N().items();cleanImgPairs();limMain=limIgn=LIMIT;openSet={};openImgSet={};pairImgMode={};pairImgMsg={};cmpAll={};zoomCmp=null;showIgn=false;msg(imgPairs&&imgPairs.length?imgPairs.length+" cặp ảnh giống":"");syncScanUi();G("dupz").hidden=true;render();dpEnter();if(scanning||smRunning)msg("Đang dừng lượt quét trước…");
   if(!G("dupd").open)G("dupd").showModal();G("dupd").scrollTop=0;
-  loadCache().then(function(){if(G("dupd").open&&!scanning){if(imgPairs===null)applyCachedPairs();autoScan()}});
+  loadCache().then(function(){if(G("dupd").open&&!scanning&&!smRunning){if(imgPairs===null)applyCachedPairs();autoScan()}});
   pullIgnored(false);hsPull()}
 function close(){
-  stopScan();zoomCmp=null;undoSt=[];undoUi();
+  stopScan();if(smCloseHook)smCloseHook();zoomCmp=null;undoSt=[];undoUi();
   flushIgnored();hsFlush();
   var z=G("dupz"),d=G("dupd");
   if(z)z.hidden=true;
