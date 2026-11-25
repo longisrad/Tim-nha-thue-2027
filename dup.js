@@ -269,15 +269,59 @@ function syncScanUi(){
 }
 
 /* ---------- Lưu danh sách "không phải trùng" vào localStorage ---------- */
-var undoSt=[],zlay=null,cmpAll={},smartPos={},smartImg={},smView=[],smHook=null,smCloseHook=null;
-function saveSmartPos(){try{var ks=Object.keys(smartPos).slice(-300),im={};ks.forEach(function(k){if(smartImg[k])im[k]=smartImg[k]});ls("dsp1",JSON.stringify(ks));ls("dsp2",JSON.stringify(im))}catch(e){}}
+var undoSt=[],zlay=null,cmpAll={},smartPos={},smartImg={},posLoaded=false,posDirty={},posIdbDone=false,smView=[],smHook=null,smCloseHook=null;
+function slimImgs(arr){
+  if(!Array.isArray(arr))return[];
+  return arr.slice(0,12).filter(function(m){return m&&m.x&&m.y}).map(function(m){
+    return{x:String(m.x),y:String(m.y),d:+m.d||0,k:m.k||"",o:m.o||"",n:m.n!=null?+m.n:Math.max(0,100-(+m.d||0))};
+  });
+}
+function posWriteLs(){
+  /* giống ignWriteLs: không giới hạn số cặp, không lưu ảnh (smartImg chỉ giữ trong phiên) */
+  var pStr=JSON.stringify(smartPos),qStr=Object.keys(posDirty).length?JSON.stringify(posDirty):"";
+  try{ls("dsp1",pStr);ls("dsp1q",qStr);if(ls("dsp2"))ls("dsp2","")}catch(e){}
+  if(N()&&N().idbSave){N().idbSave("dsp1",pStr);N().idbSave("dsp1q",qStr)}
+}
+function loadSmartPos(){
+  if(!posLoaded){
+    posLoaded=true;
+    var rawP=null,rawQ=null;
+    try{rawP=JSON.parse(ls("dsp1")||"null")}catch(e){}
+    if(Array.isArray(rawP)){rawP.forEach(function(k){if(k)smartPos[String(k)]=1})}
+    else if(rawP&&typeof rawP==="object"){Object.keys(rawP).forEach(function(k){if(rawP[k])smartPos[k]=+rawP[k]||1})}
+    try{rawQ=JSON.parse(ls("dsp1q")||"{}")}catch(e){}
+    if(rawQ&&typeof rawQ==="object"){Object.keys(rawQ).forEach(function(k){posDirty[k]=+rawQ[k]||0})}
+  }
+  if(!posIdbDone&&!ls("dsp1")&&N()&&N().idbGet){
+    posIdbDone=true;
+    Promise.all([N().idbGet("dsp1").catch(function(){return null}),N().idbGet("dsp1q").catch(function(){return null})]).then(function(v){
+      var chg=false;
+      if(typeof v[0]==="string"&&v[0]&&!ls("dsp1")){
+        try{
+          var o0=JSON.parse(v[0]);
+          if(Array.isArray(o0)){o0.forEach(function(k){if(k&&!(k in smartPos)&&!(k in posDirty)&&!ignored[k]){smartPos[String(k)]=1;chg=true}})}
+          else if(o0&&typeof o0==="object"){Object.keys(o0).forEach(function(k){if(o0[k]&&!(k in smartPos)&&!(k in posDirty)&&!ignored[k]){smartPos[k]=+o0[k]||1;chg=true}})}
+        }catch(e){}
+      }
+      if(typeof v[1]==="string"&&v[1]&&!ls("dsp1q")){
+        try{var o1=JSON.parse(v[1]);if(o1&&typeof o1==="object"){Object.keys(o1).forEach(function(k){if(!(k in posDirty)){posDirty[k]=+o1[k]||0;if(posDirty[k]>0)smartPos[k]=posDirty[k];else{delete smartPos[k];delete smartImg[k]}chg=true}})}}catch(e){}
+      }
+      if(chg){posWriteLs();var dd=G("dupd");if(dd&&dd.open)render()}
+    });
+  }
+}
+function saveSmartPos(now){
+  posWriteLs();clearTimeout(dsT);
+  if(now){dsT=0;pushIgnored()}
+  else dsT=setTimeout(function(){dsT=0;pushIgnored()},150);
+}
 function cleanSmartPos(byId){
   var ch=false;
   Object.keys(smartPos).forEach(function(k){
     var ids=k.split("|");
-    if((byId&&(!byId[ids[0]]||!byId[ids[1]]))||ignored[k]){delete smartPos[k];delete smartImg[k];ch=true}
+    if((byId&&(!byId[ids[0]]||!byId[ids[1]]))||ignored[k]){delete smartPos[k];delete smartImg[k];if(byId&&(!byId[ids[0]]||!byId[ids[1]]))delete posDirty[k];ch=true}
   });
-  if(ch)saveSmartPos();
+  if(ch)posWriteLs();
   return ch;
 }
 function buildInfCtx(byId){
@@ -338,40 +382,79 @@ function saveIgnored(now){
   if(now){dsT=0;pushIgnored()}
   else dsT=setTimeout(function(){dsT=0;pushIgnored()},150);
 }
-function flushIgnored(){if(dsT){clearTimeout(dsT);dsT=0;pushIgnored()}else if(Object.keys(ignDirty).length)pushIgnored()}
-function undoDo(){var u=undoSt.pop();if(!u)return;loadIgnored();u.a.forEach(function(x){if(x.p===undefined){delete ignored[x.k];ignDirty[x.k]=0}else{ignored[x.k]=x.p;ignDirty[x.k]=x.p}});saveIgnored();undoUi();render()}
-/* Đồng bộ cặp "Không trùng" lên tab "Trùng" của Sheet dựa theo hàng đợi thay đổi cục bộ ignDirty */
+function flushIgnored(){if(dsT){clearTimeout(dsT);dsT=0;pushIgnored()}else if(Object.keys(ignDirty).length||Object.keys(posDirty).length)pushIgnored()}
+function undoDo(){
+  var u=undoSt.pop();if(!u)return;
+  loadIgnored();loadSmartPos();
+  var spCh=false;
+  u.a.forEach(function(x){
+    if(x.p===undefined){delete ignored[x.k];ignDirty[x.k]=0}
+    else{ignored[x.k]=x.p;ignDirty[x.k]=x.p;if(smartPos[x.k]){delete smartPos[x.k];delete smartImg[x.k];posDirty[x.k]=0;spCh=true}}
+    if(x.sp!==undefined&&x.p===undefined){smartPos[x.k]=x.sp;posDirty[x.k]=x.sp;if(x.si)smartImg[x.k]=slimImgs(x.si);spCh=true}
+  });
+  if(spCh)posWriteLs();
+  saveIgnored();undoUi();render()}
+/* Đồng bộ cả cặp "Không phải trùng" (ignored) và "Trùng" (smartPos) lên tab "Trùng" của Sheet */
 function pushIgnored(){
   if(!(N()&&N().apiPost&&canWrite()))return;
   if(dsBusy){dsAgain=true;return}
-  var keys=Object.keys(ignDirty);
-  if(!keys.length)return;
-  var add=[],del=[],sent={};
+  var keys=Object.keys(ignDirty),pkeys=Object.keys(posDirty);
+  if(!keys.length&&!pkeys.length)return;
+  var add=[],del=[],sent={},posAdd=[],posDel=[],sentPos={};
   keys.forEach(function(k){var v=ignDirty[k];sent[k]=v;if(v>0)add.push({k:k,t:v});else del.push(k)});
+  pkeys.forEach(function(k){var v=posDirty[k];sentPos[k]=v;if(v>0)posAdd.push({k:k,t:v});else posDel.push(k)});
   dsBusy=true;
-  N().apiPost("dupSet",{add:add,del:del},30000).then(function(){
+  N().apiPost("dupSet",{add:add,del:del,posAdd:posAdd,posDel:posDel},30000).then(function(){
     Object.keys(sent).forEach(function(k){if(ignDirty[k]===sent[k])delete ignDirty[k]});
-    ignWriteLs();
+    Object.keys(sentPos).forEach(function(k){if(posDirty[k]===sentPos[k])delete posDirty[k]});
+    ignWriteLs();posWriteLs();
+    try{ls("dsp3s","1")}catch(e){}
   },function(){}).then(function(){dsBusy=false;if(dsAgain){dsAgain=false;pushIgnored()}})}
 function sameMap(a,b){var ka=Object.keys(a),kb=Object.keys(b);if(ka.length!==kb.length)return false;for(var i=0;i<ka.length;i++)if(a[ka[i]]!==b[ka[i]])return false;return true}
 function pullIgnored(force){
   if(!(N()&&N().apiGet))return Promise.resolve();
-  loadIgnored();
+  loadIgnored();loadSmartPos();
   if(pullP)return pullP;
   if(!force&&lastPull&&Date.now()-lastPull<20000)return Promise.resolve();
   pullP=N().apiGet("&action=dup",20000).then(function(d){
     lastPull=Date.now();
     if(!d||!d.ok)return;
-    var R={},nxt={},byId=null,its=N().items();
+    var R={},nxt={},Rpos={},nxtPos={},nxtImg={},byId=null,its=N().items();
     (d.pairs||[]).forEach(function(p){R[p.k]=p.t||1;nxt[p.k]=p.t||1});
+    (d.pos||[]).forEach(function(p){
+      Rpos[p.k]=p.t||1;nxtPos[p.k]=p.t||1;
+      if(smartImg[p.k])nxtImg[p.k]=smartImg[p.k];   /* ảnh chỉ giữ trong phiên, không lưu / không đồng bộ */
+    });
+    var mig="";try{mig=ls("dsp3s")||""}catch(e){}
+    if(mig!=="1"){
+      Object.keys(smartPos).forEach(function(k){
+        if(!(k in R)&&!(k in Rpos)&&!(k in ignDirty)&&!(k in posDirty)){
+          var tsPos=+smartPos[k]>1?+smartPos[k]:Date.now();
+          posDirty[k]=tsPos;
+        }
+      });
+      try{ls("dsp3s","1")}catch(e){}
+    }
     Object.keys(ignDirty).forEach(function(k){if(ignDirty[k]>0)nxt[k]=ignDirty[k];else delete nxt[k]});
+    Object.keys(posDirty).forEach(function(k){
+      if(posDirty[k]>0){nxtPos[k]=posDirty[k];if(smartImg[k])nxtImg[k]=smartImg[k]}
+      else{delete nxtPos[k];delete nxtImg[k]}
+    });
+    Object.keys(nxtPos).forEach(function(k){
+      if(nxt[k]){
+        if(posDirty[k]>0&&!(ignDirty[k]>0)){delete nxt[k];ignDirty[k]=0}
+        else{delete nxtPos[k];delete nxtImg[k]}
+      }
+    });
     if(its&&its.length){
       byId={};its.forEach(function(it){byId[it.id]=1});
       Object.keys(nxt).forEach(function(k){var ids=k.split("|");if(!byId[ids[0]]||!byId[ids[1]]){delete nxt[k];if(!(k in R))delete ignDirty[k]}   /* chỉ ẩn tạm trên máy, KHÔNG gửi lệnh xóa lên máy chủ: danh sách căn trên máy có thể cũ hơn máy chủ (căn mới do máy khác thêm). Máy chủ tự xóa cặp khi xóa căn (dupDropId_) */});
+      Object.keys(nxtPos).forEach(function(k){var ids=k.split("|");if(!byId[ids[0]]||!byId[ids[1]]){delete nxtPos[k];delete nxtImg[k];if(!(k in Rpos))delete posDirty[k]}});
     }
-    var chg=!sameMap(ignored,nxt);
-    ignored=nxt;
-    ignWriteLs();
+    var imgChg=JSON.stringify(smartImg)!==JSON.stringify(nxtImg);
+    var chg=!sameMap(ignored,nxt)||!sameMap(smartPos,nxtPos)||imgChg;
+    ignored=nxt;smartPos=nxtPos;smartImg=nxtImg;
+    ignWriteLs();posWriteLs();
     pushIgnored();
     var dd=G("dupd");if(dd&&dd.open&&chg)render()
   },function(){}).then(function(){pullP=null},function(){pullP=null});
@@ -798,7 +881,7 @@ function sortHousesAdjacent(list,graphObj){
   return out;
 }
 function build(){
-  loadIgnored();
+  loadIgnored();loadSmartPos();
   var src=activeItems(),P={},byId={};
   src.forEach(function(it){byId[it.id]=it});
   var inf=buildInfCtx(byId);
@@ -1074,10 +1157,14 @@ function changeImgMode(sel){
   if(box){box.innerHTML=imgCmpH(o,idx);markImgs(box)}}
 function ignorePair(el,val){
   var idx=+(val?el.dataset.ign:el.dataset.unign),o=viewList[idx];if(!o)return;
-  loadIgnored();
-  var k=o.a.id+"|"+o.b.id,prev=ignored[k],ts=Date.now();
-  if(val){ignored[k]=ts;ignDirty[k]=ts;delete openSet[k];delete openImgSet[k]}else{delete ignored[k];ignDirty[k]=0}
-  undoPush(val?"Đã đánh dấu Không trùng":"Đã bỏ đánh dấu Không trùng",[{k:k,p:prev}]);
+  loadIgnored();loadSmartPos();
+  var k=o.a.id+"|"+o.b.id,prev=ignored[k],spPrev=smartPos[k],siPrev=smartImg[k],ts=Date.now();
+  if(val){
+    ignored[k]=ts;ignDirty[k]=ts;
+    if(smartPos[k]||(k in posDirty)){delete smartPos[k];delete smartImg[k];posDirty[k]=0;posWriteLs()}
+    delete openSet[k];delete openImgSet[k];
+  }else{delete ignored[k];ignDirty[k]=0}
+  undoPush(val?"Đã đánh dấu Không trùng":"Đã bỏ đánh dấu Không trùng",[{k:k,p:prev,sp:spPrev,si:siPrev}]);
   saveIgnored();render()}
 /* Cập nhật riêng thẻ của cặp đang kiểm tra (nút + dòng trạng thái) thay vì dựng lại cả danh sách → hết nháy màn hình */
 function pairSig(list,o){
@@ -1156,11 +1243,11 @@ function checkPairImg(el){
     });
   },function(e){pairImgMsg[k]={bad:true,text:"Không tải được mô hình DINOv3 (cần mạng ở lần đầu): "+(e&&e.message||e)};paintPair(idx,k)})}
 function afterDel(id){
-  loadIgnored();var changed=false,spChg=false;
+  loadIgnored();loadSmartPos();var changed=false,spChg=false;
   Object.keys(ignored).forEach(function(k){var ids=k.split("|");if(ids[0]===id||ids[1]===id){delete ignored[k];ignDirty[k]=0;changed=true}});
-  Object.keys(smartPos).forEach(function(k){var ids=k.split("|");if(ids[0]===id||ids[1]===id){delete smartPos[k];delete smartImg[k];spChg=true}});
-  if(changed)saveIgnored();
-  if(spChg)saveSmartPos();
+  Object.keys(smartPos).forEach(function(k){var ids=k.split("|");if(ids[0]===id||ids[1]===id){delete smartPos[k];delete smartImg[k];posDirty[k]=0;spChg=true}});
+  if(spChg)posWriteLs();
+  if(changed||spChg)saveIgnored();
   sync()}
 function delItem(el,cb){
   var p=String(el.dataset.del||"").split(":"),o=viewList[+p[0]],it=o&&o[p[1]];
@@ -1321,9 +1408,9 @@ function renderCmpZoom(k){
     zm.innerHTML=o.img.map(function(m,i){return '<button type="button" class="dpzj'+(i===mi?' cur':'')+'" data-zjump="'+i+'">Trùng '+(i+1)+' · '+(m.n!=null?m.n:Math.max(0,100-m.d))+'%</button>'}).join("");
   }else{zm.hidden=true;zm.innerHTML=""}
   var zk=o.a.id+"|"+o.b.id,zi=G("dupzign"),zd1=G("dupzdel1"),zd2=G("dupzdel2"),zw=canWrite();
-  loadIgnored();
+  loadIgnored();loadSmartPos();
   zi.textContent=ignored[zk]?"Khôi phục nghi trùng":"Không phải trùng";
-  var zy=G("dupzyes");if(zy){zy.hidden=!(smView.length&&zoomCmp.idx<smView.length&&!ignored[zk]);zy.textContent=smartPos[zk]?"Bỏ xác nhận trùng":"Trùng"}
+  var zy=G("dupzyes");if(zy){zy.hidden=!!ignored[zk];zy.textContent=smartPos[zk]?"Bỏ xác nhận trùng":"Trùng"}
   zd1.hidden=zd2.hidden=!zw;
   zd1.dataset.del=zoomCmp.idx+":a";zd2.dataset.del=zoomCmp.idx+":b";
   zd1.title=o.a.n||"";zd2.title=o.b.n||"";
@@ -3134,9 +3221,47 @@ function init(nt){
      Quét ảnh → phân tích đa ngưỡng & hiệu chuẩn theo nhãn đã có → hiện các cặp vùng xám (có xem ảnh + so sánh lớn) để xác nhận Trùng / Không phải trùng → tự tinh chỉnh tới khi sạch vùng xám.
      Trạng thái từng cặp lấy thẳng từ danh sách «Không phải trùng» (ignored) và smartPos nên đồng bộ cả khi đánh dấu từ khung so sánh lớn. */
   var smRes=null,smGray=[],smCalc=false,smTok=0,smSig="",smRoundN=0,smThDirty=false;
-  try{(JSON.parse(ls("dsp1")||"[]")||[]).forEach(function(k){smartPos[k]=1})}catch(e){}
-  try{var _si=JSON.parse(ls("dsp2")||"{}")||{};Object.keys(_si).forEach(function(k){if(smartPos[k]&&Array.isArray(_si[k]))smartImg[k]=_si[k]})}catch(e){}
+  loadSmartPos();
   function scanAwait(){return new Promise(function(r){scan();if(scanning)scanDoneWaiters.push(r);else r()})}
+  var smScrollRaf=0,smScrollUseRaf=false;
+  function smScrollCancel(){
+    if(!smScrollRaf)return;
+    if(smScrollUseRaf&&typeof cancelAnimationFrame==="function")cancelAnimationFrame(smScrollRaf);
+    else clearTimeout(smScrollRaf);
+    smScrollRaf=0;
+  }
+  function smScrollTo(target,instant){
+    smScrollCancel();
+    function run(){
+      smScrollRaf=0;
+      var d=G("dupd"),mn=G("dupmain"),z=G("dupz");
+      if(!d||!d.open||(mn&&mn.hidden)||(z&&!z.hidden))return;
+      if(target&&typeof target!=="number"){if(target.hidden||(!smRunning&&!smRes))return}
+      var top=0,pad=8;
+      if(typeof target==="number"){top=target}
+      else if(target){
+        if(typeof target.getBoundingClientRect==="function"&&typeof d.getBoundingClientRect==="function"){
+          var dr=d.getBoundingClientRect(),er=target.getBoundingClientRect();
+          if(dr&&er&&(dr.height>0||er.height>0||dr.top!==0||er.top!==0))top=(d.scrollTop||0)+(er.top-dr.top)-pad;
+          else if(typeof target.offsetTop==="number")top=target.offsetTop-pad;
+        }else if(typeof target.offsetTop==="number"){
+          top=target.offsetTop-pad;
+        }
+      }
+      top=Math.max(0,Math.round(top));
+      if(Math.abs(top-(d.scrollTop||0))<4)return;
+      var red=false;
+      try{red=!!(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches)}catch(e){}
+      var beh=(instant||red)?"auto":"smooth";
+      if(typeof d.scrollTo==="function"){
+        try{d.scrollTo({top:top,behavior:beh})}catch(e2){d.scrollTop=top}
+      }else{
+        d.scrollTop=top;
+      }
+    }
+    if(typeof requestAnimationFrame==="function"){smScrollUseRaf=true;smScrollRaf=requestAnimationFrame(run)}
+    else{smScrollUseRaf=false;smScrollRaf=setTimeout(run,0)}
+  }
   function smPanel(html){var p=G("dupsmart");if(!p)return;p.innerHTML=html||"";p.hidden=!html}
   function smSt(k){return ignored[k]?"n":(smartPos[k]?"y":"")}
   function smImgTxt(o,open){var na=houseImgs(o.a).length,nb=houseImgs(o.b).length;return open?"Ẩn ảnh ("+na+" · "+nb+") ▴":"Xem ảnh ("+na+" · "+nb+") ▾"}
@@ -3166,7 +3291,7 @@ function init(nt){
   }
   function smAllDone(){return smGray.length>0&&smGray.every(function(g){return !!smSt(g.k)})}
   function smSigOf(){loadIgnored();return smGray.map(function(g){return smSt(g.k)||"-"}).join("")}
-  function smClose(){smTok++;smCalc=false;smRes=null;smGray=[];smView=[];closeZoom();smPanel("")}
+  function smClose(){smScrollCancel();smTok++;smCalc=false;smRes=null;smGray=[];smView=[];closeZoom();smPanel("")}
   smCloseHook=smClose;
   function smRefresh(){
     var tok=++smTok;smCalc=true;smPaint();
@@ -3181,23 +3306,29 @@ function init(nt){
   /* gọi sau mỗi lần render (kể cả khi đánh dấu từ khung so sánh lớn / hoàn tác) */
   function smSync(){
     if(!smRes||!smGray.length)return;
-    loadIgnored();
+    loadIgnored();loadSmartPos();
     var ch=false;
-    smGray.forEach(function(g){if(ignored[g.k]&&smartPos[g.k]){delete smartPos[g.k];delete smartImg[g.k];ch=true}});
+    smGray.forEach(function(g){if(ignored[g.k]&&smartPos[g.k]){delete smartPos[g.k];delete smartImg[g.k];posDirty[g.k]=0;ch=true}});
     if(ch)saveSmartPos();
     var sg=smSigOf();
     if(sg!==smSig){smSig=sg;smRefresh()}else smPaint();
   }
   smHook=function(){if(smRes&&smView.length)smSync()};
   function smAnswer(k,v){
-    loadIgnored();
-    var prev=smSt(k);
+    loadIgnored();loadSmartPos();
+    var prev=smSt(k),ts=Date.now();
     if(prev===v)v="";
     if(prev==="n"){delete ignored[k];ignDirty[k]=0}
-    if(prev==="y"){delete smartPos[k];delete smartImg[k]}
-    if(v==="n"){var ts=Date.now();ignored[k]=ts;ignDirty[k]=ts;delete openSet[k];delete openImgSet[k]}
-    if(v==="y"){smartPos[k]=1;var _g=smGray.filter(function(x){return x.k===k})[0];if(_g&&_g.imgs&&_g.imgs.length)smartImg[k]=_g.imgs.map(function(m){return{x:m.x,y:m.y,d:m.d,k:m.k||"",o:m.o||"",n:m.n}})}
-    saveIgnored();saveSmartPos();
+    if(prev==="y"){delete smartPos[k];delete smartImg[k];posDirty[k]=0}
+    if(v==="n"){ignored[k]=ts;ignDirty[k]=ts;delete smartPos[k];delete smartImg[k];posDirty[k]=0;delete openSet[k];delete openImgSet[k]}
+    if(v==="y"){
+      smartPos[k]=ts;posDirty[k]=ts;delete ignored[k];ignDirty[k]=0;
+      var _g=smGray.filter(function(x){return x.k===k})[0];
+      var _ims=(_g&&_g.imgs&&_g.imgs.length)?_g.imgs:null;
+      if(!_ims){var _vo=viewList.filter(function(x){return x&&(x.a.id+"|"+x.b.id)===k})[0];if(_vo&&_vo.img&&_vo.img.length)_ims=_vo.img}
+      if(_ims)smartImg[k]=slimImgs(_ims);
+    }
+    ignWriteLs();saveSmartPos();
     render();smSync();
   }
   function smImgToggle(i){
@@ -3227,15 +3358,17 @@ function init(nt){
   function smRound(){
     smRoundN++;smRunning=true;syncScanUi();
     smPanel('<div class="dpsm-h"><b>Quét thông minh'+(smRoundN>1?' · vòng '+smRoundN:'')+'</b></div><p class="dpsm-p" id="dupsmst">Đang tìm ngưỡng &amp; xác minh vùng xám…</p>');
+    smScrollTo(G("dupsmart"));
     return analyzeThresholds().then(function(res){
       smRunning=false;syncScanUi();
-      if(stopFlag){smPanel("");msg((res&&res.msg)||"Đã dừng quét thông minh.");return}
-      if(!res||!res.ok){smPanel("");msg((res&&res.msg)||"Chưa phân tích được.",1);return}
+      if(stopFlag){smPanel("");msg((res&&res.msg)||"Đã dừng quét thông minh.");smScrollTo(0);return}
+      if(!res||!res.ok){smPanel("");msg((res&&res.msg)||"Chưa phân tích được.",1);smScrollTo(0);return}
       var autoTxt="";
       if(res.autoNeg&&res.autoNeg.length){
-        loadIgnored();
-        var tsA=Date.now(),nA=0;
-        res.autoNeg.forEach(function(k){if(!ignored[k]){ignored[k]=tsA;ignDirty[k]=tsA;delete openSet[k];delete openImgSet[k];nA++}});
+        loadIgnored();loadSmartPos();
+        var tsA=Date.now(),nA=0,spChA=false;
+        res.autoNeg.forEach(function(k){if(!ignored[k]){ignored[k]=tsA;ignDirty[k]=tsA;if(smartPos[k]){delete smartPos[k];delete smartImg[k];posDirty[k]=0;spChA=true}delete openSet[k];delete openImgSet[k];nA++}});
+        if(spChA)posWriteLs();
         if(nA){saveIgnored();autoTxt=" · tự loại "+nA+" cặp không trùng"}
       }
       if(res.auto){
@@ -3255,6 +3388,7 @@ function init(nt){
           render();
           msg((smRoundN>1?"Đã xác nhận xong":"Ngưỡng "+TH+"% đã tối ưu")+autoTxt+" · danh sách chỉ còn các cặp trùng.");
         }
+        smScrollTo(0);
         return;
       }
       /* đăng ký cặp vào viewList (đứng đầu, chỉ số cố định) để dùng chung khung so sánh lớn / xem ảnh */
@@ -3262,7 +3396,8 @@ function init(nt){
       render();
       smPanel(smAskH());smSig=smSigOf();smPaint();
       msg((smRoundN>1?"Vòng "+smRoundN+": ":"")+"cần xác nhận "+smGray.length+(res.grayTotal>smGray.length?"/"+res.grayTotal:"")+" cặp vùng xám · gợi ý "+res.recommended+"%"+autoTxt+".");
-    }).then(null,function(){smRunning=false;syncScanUi();smPanel("")});
+      smScrollTo(G("dupsmart"));
+    }).then(null,function(){smRunning=false;syncScanUi();smPanel("");smScrollTo(0)});
   }
   function smApply(){
     var rec=smRes&&smRes.recommended;
@@ -3276,10 +3411,13 @@ function init(nt){
         var i=G("dupth");if(i)i.value=String(rec);
         syncSensDraft();var dirty=smThDirty;smThDirty=false;
         msg((allY?"Tất cả đều trùng · ":"")+"đang hoàn tất quét ở ngưỡng tối ưu "+rec+"%…");
-        return applyAndSaveSettings(dirty);
+        var r=applyAndSaveSettings(dirty);
+        smScrollTo(0);
+        return r;
       }
       render();
       msg(allY?"Đã xác nhận xong · danh sách chỉ còn các cặp trùng · ngưỡng "+TH+"%.":"Đã áp dụng ngưỡng "+TH+"%.");
+      smScrollTo(0);
     }
     if(hadN||hasMore){
       if(rec>=TH_MIN&&rec<=99&&rec!==TH){
@@ -3306,17 +3444,18 @@ function init(nt){
     if(scanning||smRunning)return;
     smClose();stopFlag=false;smRunning=true;smRoundN=0;smThDirty=false;syncScanUi();
     smPanel('<div class="dpsm-h"><b>Quét thông minh</b></div><p class="dpsm-p" id="dupsmst">Đang quét ảnh…</p>');
+    smScrollTo(G("dupsmart"));
     scanAwait().then(function(){
-      if(stopFlag){smRunning=false;syncScanUi();smPanel("");return}
+      if(stopFlag){smRunning=false;syncScanUi();smPanel("");smScrollTo(0);return}
       return smRound();
-    }).then(null,function(){smRunning=false;syncScanUi();smPanel("")});
+    }).then(null,function(){smRunning=false;syncScanUi();smPanel("");smScrollTo(0)});
   }
   G("dupsmart").onclick=function(e){
     var b=e.target.closest("[data-sa]");
     if(b){var c=b.closest("[data-k]");if(c)smAnswer(c.dataset.k,b.dataset.sa);return}
     var s=e.target.closest("[data-sm]");
     if(s){
-      if(s.dataset.sm==="skip"){smClose();if(smThDirty){smThDirty=false;applyAndSaveSettings(true)}else render()}
+      if(s.dataset.sm==="skip"){smClose();if(smThDirty){smThDirty=false;applyAndSaveSettings(true)}else render();smScrollTo(0)}
       else if(s.dataset.sm==="apply"&&!s.disabled)smApply();
       return}
     var ti=e.target.closest("[data-smimg]");
@@ -3991,7 +4130,7 @@ function sync(){
   var d=G("dupd");if(!(d&&d.open&&N()))return;
   clearTimeout(syncT);syncT=setTimeout(function(){
     items=N().items();cleanImgPairs();
-    loadIgnored();
+    loadIgnored();loadSmartPos();
     smRawCache=null;
     if(items.length){   /* danh sách rỗng/chưa nạp thì không dọn; chỉ ẩn trên máy, máy chủ tự xóa cặp khi xóa căn (như pullIgnored) */
       var byId={},chg=false;items.forEach(function(it){byId[it.id]=1});
@@ -4002,12 +4141,62 @@ function sync(){
     if(cacheLoaded&&!scanning)autoScan()
   },120)}
 
+/* ---------- Quét kiểm / sửa đồng bộ cặp «Không phải trùng» + «Trùng» (dùng bởi dbg.js) ---------- */
+function syncState(){
+  loadIgnored();loadSmartPos();
+  return{ign:Object.assign({},ignored),ignQ:Object.assign({},ignDirty),pos:Object.assign({},smartPos),posQ:Object.assign({},posDirty),busy:!!dsBusy,canW:!!canWrite()}
+}
+function waitPushIdle(ms){
+  return new Promise(function(res){
+    var t0=Date.now();
+    (function chk(){if((!dsBusy&&!dsAgain&&!dsT)||Date.now()-t0>ms)res();else setTimeout(chk,300)})()
+  })
+}
+/* mode: "pull" (mặc định) = ghi lại bộ nhớ từ RAM, tự giải xung đột, kéo từ máy chủ rồi gửi hàng đợi;
+         "repush" = đẩy lại các cặp chỉ có trên máy mà máy chủ chưa có (cả «Không phải trùng» lẫn «Trùng»);
+         "mirror" = lấy máy chủ làm chuẩn: bỏ các cặp chỉ có trên máy (không đụng cặp đang chờ gửi). */
+function resyncDup(mode){
+  mode=mode||"pull";
+  if(!(N()&&N().apiGet))return Promise.resolve({ok:false,msg:"Chưa có API máy chủ"});
+  loadIgnored();loadSmartPos();
+  return N().apiGet("&action=dup",25000).then(function(d){
+    if(!d||!d.ok)return{ok:false,msg:"Máy chủ từ chối: "+(d&&d.error||"không rõ lý do")};
+    var S={},SP={},its=N().items(),byId=null,r={ign:0,pos:0,conf:0,drop:0,noPos:!Array.isArray(d.pos)};
+    (d.pairs||[]).forEach(function(p){S[p.k]=p.t||1});
+    (d.pos||[]).forEach(function(p){SP[p.k]=p.t||1});
+    if(its&&its.length){byId={};its.forEach(function(it){byId[it.id]=1})}
+    function live(k){var q=k.split("|");return !byId||(byId[q[0]]&&byId[q[1]])}
+    if(mode==="repush"){
+      if(!canWrite())return{ok:false,msg:"Máy này chỉ xem, không gửi được lên máy chủ"};
+      Object.keys(ignored).forEach(function(k){if(!(k in S)&&!(k in ignDirty)&&ignored[k]>0&&live(k)){ignDirty[k]=ignored[k];r.ign++}});
+      if(!r.noPos)Object.keys(smartPos).forEach(function(k){if(!(k in SP)&&!(k in posDirty)&&live(k)){posDirty[k]=smartPos[k]>0?smartPos[k]:Date.now();r.pos++}});
+      else r.pos=-1;
+    }else if(mode==="mirror"){
+      Object.keys(ignored).forEach(function(k){if(!(k in S)&&!(k in ignDirty)){delete ignored[k];r.drop++}});
+      if(!r.noPos)Object.keys(smartPos).forEach(function(k){if(!(k in SP)&&!(k in posDirty)){delete smartPos[k];delete smartImg[k];r.drop++}});
+    }
+    /* cặp nằm ở cả hai danh sách: bên mới hơn thắng (bằng nhau thì «Không phải trùng» thắng, giống pullIgnored) */
+    Object.keys(smartPos).forEach(function(k){
+      if(!ignored[k])return;
+      if(+ignored[k]>=+smartPos[k]){delete smartPos[k];delete smartImg[k];if(k in SP||k in posDirty)posDirty[k]=0}
+      else{delete ignored[k];if(k in S||k in ignDirty)ignDirty[k]=0}
+      r.conf++});
+    if(mode==="repush"){r.ign=Object.keys(ignDirty).filter(function(k){return ignDirty[k]>0}).length;if(!r.noPos)r.pos=Object.keys(posDirty).filter(function(k){return posDirty[k]>0}).length}
+    ignWriteLs();posWriteLs();
+    return pullIgnored(true).then(function(){pushIgnored();return waitPushIdle(30000)}).then(function(){
+      r.left=Object.keys(ignDirty).length+Object.keys(posDirty).length;
+      r.ok=true;
+      r.msg=(mode==="repush"?"Đã gửi lại "+r.ign+" cặp Không phải trùng"+(r.pos>=0?" + "+r.pos+" cặp Trùng":" (máy chủ chưa hỗ trợ cặp Trùng, cần cập nhật Code.gs)"):mode==="mirror"?"Đã bỏ "+r.drop+" cặp chỉ có trên máy (lấy máy chủ làm chuẩn)":"Đã ghi lại bộ nhớ và kéo từ máy chủ")+(r.conf?" · giải "+r.conf+" cặp xung đột":"")+(r.left?" · còn "+r.left+" thay đổi chờ gửi":"");
+      var dd=G("dupd");if(dd&&dd.open)render();
+      return r})
+  },function(e){return{ok:false,msg:"Không kết nối được máy chủ: "+(e&&e.message||e)}})
+}
 window.Dup={retire:function(){return retList().map(function(x){return x.c})},ignStat:function(){return ignStat()},smart:function(){loadImgMode();var s=smartCalc();return{th:TH,ts:s.ts,mid:s.mid,tl:s.tl,strong:s.strong,algo:ALGO_VER,mm:MM_MODE,cal:s.cal,kept:s.kept,cut:s.cut,dedupCut:s.dedupCut,ctxCut:s.ctxCut,mmChecked:s.mmChecked,mmCut:s.mmCut,mmBoost:s.mmBoost,spChecked:s.spChecked,spCut:s.spCut,spSave:s.spSave,clusters:lastGraph?lastGraph.stats.clusterCount:0}},clusters:function(customImgPairs,customItems){if(customItems)items=customItems;else if(N())items=N().items();if(customImgPairs){imgPairs=customImgPairs}var r=build();return r.graph},sortAdjacent:function(list,customImgPairs){if(customImgPairs)imgPairs=customImgPairs;var srcList=list||(N()?N().items():items);if(!items.length&&srcList.length)items=srcList;var r=build();return sortHousesAdjacent(srcList,r.graph)},analyze:analyzeThresholds,keys:function(){return{h:CACHE_KEY,p:PM_KEY}},cached:function(){return cacheLoaded?Object.keys(cache).length:-1},dino:function(){
     if(DW.w)return"worker/"+DW.dev+" x"+BN+" res"+DS;
     if(DINO.m)return"main/wasm x"+BN+" res"+DS;
     if(DINO.p)return"đang tải";
     if(DINO.err)return"lỗi: "+DINO.err;
-    return"chưa tải (chưa cần)"},dinoLoad:function(){return dinoLoad().then(function(){return window.Dup.dino()},function(e){return"lỗi: "+(e&&e.message||e)})},pull:function(f){var p=pullIgnored(f);if(f)hsPull();return p},init:init,open:open,close:close,sync:sync,closeZoom:closeZoom};
+    return"chưa tải (chưa cần)"},dinoLoad:function(){return dinoLoad().then(function(){return window.Dup.dino()},function(e){return"lỗi: "+(e&&e.message||e)})},pull:function(f){var p=pullIgnored(f);if(f)hsPull();return p},syncState:syncState,resync:resyncDup,init:init,open:open,close:close,sync:sync,closeZoom:closeZoom};
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",function(){init()});
 else init();
 })();

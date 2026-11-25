@@ -14,7 +14,9 @@
    - Bảo vệ dữ liệu tuyệt đối: khóa toàn bộ thao tác ghi/xóa/tải lại khi đang sửa/tải ảnh (ckDirty, ckSaveN, ckUpN, ckUpQ, ckTrashQ, ckErr)
      và từ chối tự tải lại khi đang ở màn hình Checklist (tab==="ck") hoặc đang mở hộp thoại khác.
    - Chống lặp tải lại (Loop Breaker): tối đa 2 lần/phiên và không lặp cùng mã lỗi trong 5 phút.
-   - API: window.Dbg = { run, show, all, report, autoFix, plan, profile, test }. */
+   - API: window.Dbg = { run, show, all, report, autoFix, plan, profile, test, dupScan, fixDup }.
+   - Quét kiểm đồng bộ cặp trùng: Dbg.dupScan() (so cặp Không phải trùng + Trùng giữa máy và máy chủ, phát hiện lệch / xung đột / máy chủ cũ).
+   - Lệnh sửa: Dbg.fixDup("repush") đẩy lại cặp chỉ có trên máy · "pull" ghi lại + kéo + giải xung đột · "heal" sửa bản lưu dsp1 · "mirror" lấy máy chủ làm chuẩn. */
 (function(){
 "use strict";
 var G=function(i){return document.getElementById(i)};
@@ -101,7 +103,8 @@ function freshMeta(){
     hcBad:false,
     igBad:false,igLsN:-1,igIdbN:-1,igQueueCount:0,igRawLs:"",igRawIdb:"",
     ckcBad:false,ckNeedCount:0,
-    srvItemMismatch:false,srvRoleMismatch:false,srvHashBehind:false,srvDupDesync:false
+    srvItemMismatch:false,srvRoleMismatch:false,srvHashBehind:false,srvDupDesync:false,
+    psBad:false,psLsN:-1,psIdbN:-1,psQueueCount:0,psRawLs:"",psRawIdb:"",dupConflict:0,dupRamDiff:false,srvPosDesync:false,srvPosUnsupported:false,srvPairConflict:0,srvOnlyLocal:0
   }}
 
 /* ---------- Các nhóm kiểm tra ---------- */
@@ -448,11 +451,125 @@ function ignRead(){
     var a=pjson(r[0].ls||r[0].idb),q=pjson(r[1].ls||r[1].idb);
     return{ign:a.o||{},q:q.o||{},bad:!!(a.bad||q.bad),rawLs:r[0].ls,rawIdb:r[0].idb,
       lsN:r[0].ls?Object.keys(pjson(r[0].ls).o||{}).length:-1,idbN:r[0].idb?Object.keys(pjson(r[0].idb).o||{}).length:-1}})}
+/* ---------- Đồng bộ cặp «Trùng» (dsp1/dsp1q) + quét kiểm + lệnh sửa ---------- */
+function posNorm(o){
+  if(Array.isArray(o)){var m={};o.forEach(function(k){if(k)m[String(k)]=1});return m}
+  var m2={};Object.keys(o||{}).forEach(function(k){if(o[k])m2[k]=+o[k]||1});return m2}
+function posRead(){
+  return Promise.all([rdKey("dsp1"),rdKey("dsp1q")]).then(function(r){
+    var a=pjson(r[0].ls||r[0].idb),q=pjson(r[1].ls||r[1].idb);
+    return{pos:posNorm(a.o),q:q.o||{},bad:!!(a.bad||q.bad),rawLs:r[0].ls,rawIdb:r[0].idb,
+      lsN:r[0].ls?Object.keys(posNorm(pjson(r[0].ls).o)).length:-1,idbN:r[0].idb?Object.keys(posNorm(pjson(r[0].idb).o)).length:-1}})}
+function liveFn(items){var m={};items.forEach(function(it){m[it.id]=1});return function(k){var a=k.split("|");return !!(m[a[0]]&&m[a[1]])}}
+/* so một danh sách cặp trên máy với máy chủ (có tính hàng đợi chưa gửi: q[k]>0 = chờ thêm, q[k]===0 = chờ xóa) */
+function cmpPairs(loc,q,srv,live){
+  var lk=Object.keys(loc).filter(live),sk=Object.keys(srv).filter(live);
+  return{lk:lk,sk:sk,
+    onlyL:lk.filter(function(k){return !srv[k]&&!(q[k]>0)}),
+    onlyS:sk.filter(function(k){return !loc[k]&&q[k]!==0}),
+    fL:fpKeys(lk),fS:fpKeys(sk)}}
+function bothKeys(a,b){return Object.keys(a).filter(function(k){return a[k]>0&&b[k]>0})}
+function chkPosLocal(add,g,M,ig,ps,live){
+  M.psBad=!!ps.bad;M.psRawLs=ps.rawLs;M.psRawIdb=ps.rawIdb;M.psLsN=ps.lsN;M.psIdbN=ps.idbN;
+  var nq=Object.keys(ps.q).length;M.psQueueCount=nq;
+  if(ps.bad)add("bad",g,"Danh sách \"Trùng\" (dsp1) bị hỏng, không đọc được. Dùng \"Sửa đồng bộ cặp trùng\"","DSP_CORRUPT");
+  if(nq)add("warn",g,nq+" thay đổi \"Trùng\" chưa gửi lên máy chủ: máy khác chưa thấy. Cần có mạng và quyền sửa; dùng \"Sửa đồng bộ cặp trùng\" để gửi","DSP_QUEUE");
+  if(ps.lsN>=0&&ps.idbN>=0&&ps.lsN!==ps.idbN)add("info",g,"\"Trùng\": localStorage có "+ps.lsN+" cặp, IndexedDB có "+ps.idbN+" cặp (có thể vừa thay đổi, đang ghi dở)","DSP_LS_IDB_DIFF");
+  var cf=bothKeys(ig.ign,ps.pos).filter(live);M.dupConflict=cf.length;
+  if(cf.length)add("warn",g,cf.length+" cặp nằm cùng lúc ở \"Không phải trùng\" và \"Trùng\" trên máy: bên đánh dấu sau sẽ thắng khi sửa đồng bộ","DUP_CONFLICT");
+  var orph=Object.keys(ps.pos).filter(function(k){return !live(k)}).length;
+  add("info",g,"Trùng: "+Object.keys(ps.pos).length+" cặp trên máy"+(orph?" · "+orph+" cặp trỏ tới căn không còn (app tự ẩn)":"")+" · mã "+fpKeys(Object.keys(ps.pos).filter(live)));
+  try{
+    if(window.Dup&&typeof window.Dup.syncState==="function"){
+      var st=window.Dup.syncState();
+      if(!st.busy){
+        var dI=fpKeys(Object.keys(st.ign))!==fpKeys(Object.keys(ig.ign)),dP=fpKeys(Object.keys(st.pos))!==fpKeys(Object.keys(ps.pos));
+        if(dI||dP){M.dupRamDiff=true;add("warn",g,"Bộ nhớ đang chạy lệch bản đã lưu ("+(dI?"Không phải trùng":"")+(dI&&dP?" + ":"")+(dP?"Trùng":"")+"): dữ liệu lưu có thể bị ghi đè hoặc thiếu khi tải lại. Dùng \"Sửa đồng bộ cặp trùng\" để ghi lại","DUP_RAM_DIFF")}
+      }
+    }else add("info",g,"dup.js trên máy này chưa có Dup.syncState/Dup.resync: cập nhật dup.js để dùng quét kiểm và lệnh sửa đồng bộ cặp trùng","DUP_OLD_SYNC")
+  }catch(e){}
+}
+/* Quét kiểm đồng bộ cặp trùng (nhóm "Đồng bộ · Cặp trùng"): so «Không phải trùng» + «Trùng» giữa máy và máy chủ.
+   Trả {L: dòng kết quả, SM: cờ lệch, M: số liệu máy để lập kế hoạch sửa}. Dòng đầu là kết luận "thành công" khi mọi thứ khớp. */
+var DGRP="Đồng bộ · Cặp trùng";
+function dupScan(){
+  var g=DGRP,L=[],SM={dupDesync:false,posDesync:false,posUnsupported:false,pairConflict:0,onlyLocal:0},M={},T=window.NT,items=[];
+  function add(s,gr,t){L.push({s:s,g:g,t:t})}
+  function res(){return{L:L,SM:SM,M:M}}
+  try{items=(T&&T.items&&T.items())||[]}catch(e){}
+  if(!(window.NB&&window.NB.apiGet)||!items.length){return Promise.resolve(res())}
+  if(navigator.onLine===false){add("info",g,"Thiết bị đang offline: chưa đối chiếu cặp trùng với máy chủ");return Promise.resolve(res())}
+  return Promise.all([ignRead(),posRead(),window.NB.apiGet("&action=dup",25000)]).then(function(r){
+    var ig=r[0],ps=r[1],dd=r[2],live=liveFn(items),body=[];
+    if(!dd||!dd.ok){add("bad",g,"Máy chủ từ chối danh sách cặp trùng: "+(dd&&dd.error||"không rõ lý do"));return}
+    chkPosLocal(function(){},g,M,ig,ps,live);
+    var sp={};(dd.pairs||[]).forEach(function(p){sp[p.k]=p.t||1});
+    var c=cmpPairs(ig.ign,ig.q,sp,live),nqI=Object.keys(ig.q).length;
+    SM.onlyLocal+=c.onlyL.length;
+    if(c.onlyL.length||c.onlyS.length){SM.dupDesync=true;body.push({s:"warn",t:"Không phải trùng lệch máy chủ (mã máy "+c.fL+", máy chủ "+c.fS+"): "+(c.onlyL.length?c.onlyL.length+" cặp chỉ có trên máy":"")+(c.onlyL.length&&c.onlyS.length?", ":"")+(c.onlyS.length?c.onlyS.length+" cặp chỉ có trên máy chủ":"")})}
+    var pc=null,nqP=Object.keys(ps.q).length;
+    if(!Array.isArray(dd.pos)){
+      SM.posUnsupported=true;
+      body.push({s:"bad",t:"Máy chủ không trả danh sách cặp \"Trùng\" (thiếu trường pos): Code.gs trên Apps Script là bản cũ nên cặp \"Trùng\" CHƯA lên Sheet. Dán Code.gs mới rồi Deploy > Manage deployments > Edit > New version"})}
+    else{
+      var spo={};dd.pos.forEach(function(p){spo[p.k]=p.t||1});
+      pc=cmpPairs(ps.pos,ps.q,spo,live);SM.onlyLocal+=pc.onlyL.length;
+      if(pc.onlyL.length||pc.onlyS.length){SM.posDesync=true;body.push({s:"warn",t:"Trùng lệch máy chủ (mã máy "+pc.fL+", máy chủ "+pc.fS+"): "+(pc.onlyL.length?pc.onlyL.length+" cặp chỉ có trên máy":"")+(pc.onlyL.length&&pc.onlyS.length?", ":"")+(pc.onlyS.length?pc.onlyS.length+" cặp chỉ có trên máy chủ":"")})}
+      var sc=bothKeys(spo,sp).filter(live);SM.pairConflict=sc.length;
+      if(sc.length)body.push({s:"warn",t:sc.length+" cặp có ở cả hai danh sách \"Không phải trùng\" và \"Trùng\" trên máy chủ (bên mới hơn thắng khi đồng bộ lại)"})}
+    if(ig.bad)body.push({s:"bad",t:"Danh sách \"Không phải trùng\" (dign1) bị hỏng, không đọc được"});
+    if(ps.bad)body.push({s:"bad",t:"Danh sách \"Trùng\" (dsp1) bị hỏng, không đọc được"});
+    if(M.dupConflict)body.push({s:"warn",t:M.dupConflict+" cặp nằm cùng lúc ở \"Không phải trùng\" và \"Trùng\" trên máy"});
+    if(M.dupRamDiff)body.push({s:"warn",t:"Bộ nhớ đang chạy lệch bản đã lưu của cặp trùng"});
+    var queued=nqI+nqP,clean=!body.length;
+    if(clean&&!queued)add("ok",g,"Đồng bộ cặp trùng thành công: Không phải trùng "+c.sk.length+" cặp · Trùng "+(pc?pc.sk.length:0)+" cặp, khớp máy chủ (mã "+c.fS+" · "+(pc?pc.fS:"")+")");
+    else if(clean)add("info",g,"Cặp trùng khớp máy chủ, đang chờ gửi "+queued+" thay đổi mới ("+nqI+" Không phải trùng, "+nqP+" Trùng): sẽ tự gửi khi có mạng và quyền sửa");
+    else add("warn",g,"Đồng bộ cặp trùng CHƯA hoàn tất: "+body.length+" vấn đề"+(SM.onlyLocal?" · \"Tự động sửa lỗi\" sẽ đẩy lại "+SM.onlyLocal+" cặp chỉ có trên máy":""));
+    body.forEach(function(x){add(x.s,g,x.t)});
+    if(queued&&!clean)add("info",g,"Đang chờ gửi "+queued+" thay đổi ("+nqI+" Không phải trùng, "+nqP+" Trùng)")
+  },function(e){add("warn",g,"Không đối chiếu được cặp trùng với máy chủ: "+netMsg(e))}).then(res)}
+function netMsg(e){return e&&e.message?String(e.message):"lỗi kết nối"}
+/* Gộp kết quả quét vào báo cáo máy chủ (S) và số liệu máy (R.M) để kế hoạch tự sửa dùng */
+function mergeDupScan(x){
+  if(!x)return;
+  if(!S)S={at:Date.now(),L:[],SM:{}};
+  S.L=S.L.filter(function(l){return l.g!==DGRP}).concat(x.L);S.at=Date.now();
+  S.SM=S.SM||{};
+  S.SM.dupDesync=!!x.SM.dupDesync;S.SM.posDesync=!!x.SM.posDesync;S.SM.posUnsupported=!!x.SM.posUnsupported;S.SM.pairConflict=x.SM.pairConflict||0;S.SM.onlyLocal=x.SM.onlyLocal||0;
+  if(R&&R.M){
+    var m=R.M;
+    m.srvDupDesync=S.SM.dupDesync;m.srvPosDesync=S.SM.posDesync;m.srvPosUnsupported=S.SM.posUnsupported;m.srvPairConflict=S.SM.pairConflict;m.srvOnlyLocal=S.SM.onlyLocal;
+    ["psBad","psLsN","psIdbN","psQueueCount","psRawLs","psRawIdb","dupConflict","dupRamDiff"].forEach(function(k){if(x.M[k]!==undefined)m[k]=x.M[k]})}}
+function dupPre(){
+  if(navigator.onLine===false||!(window.NB&&window.NB.apiGet))return Promise.resolve();
+  return dupScan().then(mergeDupScan,function(){})}
+/* Sửa lưu trữ dsp1: hợp nhất localStorage ↔ IndexedDB rồi ghi lại từ bộ nhớ đang chạy */
+function repairDsp(M){
+  var lsP=pjson(M.psRawLs),idbP=pjson(M.psRawIdb),note="";
+  var go=function(){
+    if(window.Dup&&typeof window.Dup.resync==="function"){
+      return Promise.resolve(window.Dup.resync("pull")).then(function(r){return{ok:!!(r&&r.ok),msg:"Đã sửa \"Trùng\" ("+(note||"ghi lại từ bộ nhớ")+"): "+((r&&r.msg)||"")}})}
+    if(window.Dup&&typeof window.Dup.pull==="function"){try{window.Dup.pull(true)}catch(e){}}
+    return{ok:true,msg:"Đã sửa \"Trùng\" ("+(note||"ổn định")+")"}};
+  if(lsP.bad&&idbP.bad)return wipeKeys(["dsp1"]).then(function(){note="cả 2 bản lưu hỏng → đặt lại";return go()});
+  var src=null;
+  if(idbP.o&&!idbP.bad&&(lsP.bad||M.psIdbN>M.psLsN)){src=posNorm(idbP.o);note="IndexedDB → localStorage"}
+  else if(lsP.o&&!lsP.bad&&(idbP.bad||M.psLsN>M.psIdbN)){src=posNorm(lsP.o);note="localStorage → IndexedDB"}
+  else if(lsP.o&&idbP.o){src=Object.assign({},posNorm(idbP.o),posNorm(lsP.o));note="hợp nhất localStorage ↔ IndexedDB"}
+  return(src?saveKeyBoth("dsp1",JSON.stringify(src)):Promise.resolve()).then(function(){return Promise.resolve(go())})}
+/* Lệnh sửa: mode = "pull" | "repush" | "mirror" | "heal" */
+function fixDup(mode){
+  mode=mode||"repush";
+  if(!(window.Dup&&typeof window.Dup.resync==="function"))return Promise.resolve({ok:false,msg:"dup.js trên máy này chưa có Dup.resync: cần cập nhật dup.js"});
+  if(mode==="heal"){
+    return Promise.all([ignRead(),posRead()]).then(function(r){return repairDsp({psRawLs:r[1].rawLs,psRawIdb:r[1].rawIdb,psLsN:r[1].lsN,psIdbN:r[1].idbN})})}
+  return Promise.resolve(window.Dup.resync(mode))}
+
 function chkSync(add,M){
   var g="Đồng bộ · Dữ liệu quét trùng",g2="Đồng bộ · Mã đối chiếu",T=window.NT,items=[];
   try{items=(T&&T.items&&T.items())||[]}catch(e){}
   if(!T||!T.idbGet||!items.length)return Promise.resolve();
-  return Promise.all([rdKey(KP()),rdKey(KH()),ignRead(),rdKey("dhs1")]).then(function(r){
+  return Promise.all([rdKey(KP()),rdKey(KH()),ignRead(),rdKey("dhs1"),posRead()]).then(function(r){
     var dc=dupCfg(),th=dc.th,algo=dc.algo,mm=dc.mm,skip=true;
     try{skip=T.ls("dnoout")!=="0"}catch(e){}
     M.pmTargetTh=th;M.pmTargetAlgo=algo;M.pmTargetMm=mm;
@@ -502,6 +619,7 @@ function chkSync(add,M){
     M.igQueueCount=nq;
     if(nq)add("warn",g,nq+" thay đổi \"Không phải trùng\" chưa gửi lên máy chủ: máy khác chưa thấy. Cần có mạng và quyền sửa; mở Kiểm tra trùng rồi đóng lại để gửi","DIGN_QUEUE");
     if(ig.lsN>=0&&ig.idbN>=0&&ig.lsN!==ig.idbN)add("info",g,"\"Không phải trùng\": localStorage có "+ig.lsN+" cặp, IndexedDB có "+ig.idbN+" cặp (có thể vừa thay đổi, đang ghi dở)","DIGN_LS_IDB_DIFF");
+    try{chkPosLocal(add,g,M,ig,r[4],liveFn(items))}catch(e){add("info",g,"Không kiểm được cặp Trùng: "+(e&&e.message||e))}
     try{if(window.Dup&&typeof window.Dup.ignStat==="function"&&typeof window.Dup.keys==="function"&&typeof window.Dup.smart==="function"){var st=window.Dup.ignStat();add("info",g,"Không phải trùng: "+st.total+" cặp trên máy · giao diện đang hiện "+st.shown+" · ẩn "+(st.out+st.none)+" (căn Loại "+st.out+", không còn nghi trùng "+st.none+")"+(st.img?"":" · chưa nạp kết quả quét ảnh nên cặp dựa trên ảnh có thể bị tính vào mục không còn nghi trùng; mở Kiểm tra trùng rồi chạy lại báo cáo"))}else{M.missingIgnStat=true;add("info",g,"Chưa đủ API đối chiếu mới trên dup.js: dup.js trên máy này là bản cũ, hãy cập nhật dup.js","DUP_OLD_VER")}}catch(e){add("info",g,"Không đọc được thống kê cặp Không phải trùng bị ẩn: "+(e&&e.message||e))}
     var igk=Object.keys(ig.ign).filter(function(k){var a=k.split("|");return byId[a[0]]&&byId[a[1]]});
     var hcFp=fnv(actImg.slice().sort().map(function(s){return s+"="+(hc[s]||"")}).join("\n"));
@@ -632,7 +750,7 @@ function hashProbe(add,base,g,SM){
       else add("ok",g,"Hash ảnh khớp máy chủ: "+d.total+" dòng, máy đã kéo hết")})
   },function(e){srvFail(add,g,"Đếm hash ảnh",e)})}
 function chkServer(){
-  var L=[],SM={itemMismatch:false,roleMismatch:false,hashBehind:false,dupDesync:false};
+  var L=[],SM={itemMismatch:false,roleMismatch:false,hashBehind:false,dupDesync:false,posDesync:false,posUnsupported:false,pairConflict:0,onlyLocal:0};
   function add(s,g,t){L.push({s:s,g:g,t:t})}
   var X={at:Date.now(),L:L,SM:SM},g1="Máy chủ · Cấu hình",g2="Máy chủ · Đường truyền",g3="Máy chủ · Phản hồi",g4="Máy chủ · Ảnh Drive";
   stopped=false;
@@ -734,7 +852,7 @@ function run(force){
     L.push({s:s,g:g,t:t});
     if(code)F.push({c:code,s:s,g:g,t:t})}
   function fin(){
-    if(S&&S.SM){M.srvItemMismatch=S.SM.itemMismatch;M.srvRoleMismatch=S.SM.roleMismatch;M.srvHashBehind=S.SM.hashBehind;M.srvDupDesync=S.SM.dupDesync}
+    if(S&&S.SM){M.srvItemMismatch=S.SM.itemMismatch;M.srvRoleMismatch=S.SM.roleMismatch;M.srvHashBehind=S.SM.hashBehind;M.srvDupDesync=S.SM.dupDesync;M.srvPosDesync=!!S.SM.posDesync;M.srvPosUnsupported=!!S.SM.posUnsupported;M.srvPairConflict=S.SM.pairConflict||0;M.srvOnlyLocal=S.SM.onlyLocal||0}
     R={at:Date.now(),L:L,F:F,M:M,P:detectProfile(M),can:CAN};
     running=false;badge();
     var d=G("dbgd");if(d&&d.open)draw();
@@ -1024,6 +1142,21 @@ function buildFixPlan(opts){
       id:"DIGN_HEAL",title:"Đồng bộ & sửa danh sách \"Không phải trùng\" (dign1)",target:"installed",safeSilent:true,needsReload:false,requiresOnline:false,respectsGuard:true,
       run:function(){return repairDign(M)}})}
 
+  if(M.psBad||(M.psLsN>=0&&M.psIdbN>=0&&M.psLsN!==M.psIdbN)){
+    addStep({
+      id:"DSP_HEAL",title:"Đồng bộ & sửa danh sách \"Trùng\" (dsp1)",target:"installed",safeSilent:true,needsReload:false,requiresOnline:false,respectsGuard:true,
+      run:function(){return repairDsp(M)}})}
+
+  if((M.dupConflict>0||M.dupRamDiff||M.srvPairConflict>0||(M.psQueueCount>0&&P.online))&&window.Dup&&typeof window.Dup.resync==="function"){
+    addStep({
+      id:"DUP_RESYNC",title:"Ghi lại & giải xung đột cặp Trùng / Không phải trùng, gửi hàng đợi",target:"installed",safeSilent:true,needsReload:false,requiresOnline:true,respectsGuard:true,
+      run:function(){return Promise.resolve(window.Dup.resync("pull")).then(function(r){return{ok:!!(r&&r.ok),msg:(r&&r.msg)||""}})}})}
+
+  if(M.srvOnlyLocal>0&&P.online&&window.NB&&window.NB.canW&&window.Dup&&typeof window.Dup.resync==="function"){
+    addStep({
+      id:"DUP_REPUSH",title:"Đẩy lại "+M.srvOnlyLocal+" cặp trùng chỉ có trên máy lên máy chủ",target:"installed",safeSilent:true,needsReload:false,requiresOnline:true,respectsGuard:true,
+      run:function(){return Promise.resolve(window.Dup.resync("repush")).then(function(r){return{ok:!!(r&&r.ok),msg:(r&&r.msg)||""}})}})}
+
   if(M.imgPS>=95||M.imgPL>=95){
     addStep({
       id:"IMG_CACHE_TRIM",title:"Tỉa bớt cache ảnh đầy (>95%) xuống 75%",target:"installed",safeSilent:true,needsReload:false,requiresOnline:false,respectsGuard:false,
@@ -1034,7 +1167,7 @@ function buildFixPlan(opts){
       id:"LS_QUOTA_TRIM",title:"Giải phóng localStorage gần đầy ("+kb(M.lsBytes)+")",target:"installed",safeSilent:true,needsReload:false,requiresOnline:false,respectsGuard:true,
       run:trimLocalStorage})}
 
-  if((M.srvItemMismatch||M.srvRoleMismatch||M.srvHashBehind||M.srvDupDesync)&&P.online){
+  if((M.srvItemMismatch||M.srvRoleMismatch||M.srvHashBehind||M.srvDupDesync||M.srvPosDesync)&&P.online){
     addStep({
       id:"SRV_SYNC_PULL",title:"Đồng bộ lại danh sách, quyền & hash từ máy chủ",target:"installed",safeSilent:true,needsReload:false,requiresOnline:true,respectsGuard:true,
       run:function(){
@@ -1073,7 +1206,7 @@ function autoFix(opts){
   var silent=!!opts.silent,allowReload=opts.allowReload!==undefined?!!opts.allowReload:!silent,dryRun=!!opts.dryRun;
   afBusy=true;
   var ensureRun=R?Promise.resolve(R):run(true);
-  return ensureRun.then(function(){
+  return ensureRun.then(function(){return opts.noScan?null:dupPre()}).then(function(){
     var plan=buildFixPlan(opts);
     if(dryRun){afBusy=false;return{ok:true,dryRun:true,plan:plan,results:[]}}
     var results=[],needReload=false;
@@ -1100,7 +1233,8 @@ function autoFix(opts){
         reload();
         afBusy=false;
         return{ok:true,reloading:true,plan:plan,results:results}}
-      return run(true).then(function(){
+      var dupRan=results.some(function(r){return /^(DSP_|DUP_)/.test(r.id)&&r.status!=="blocked"&&r.status!=="deferred"});
+      return (dupRan?dupPre():Promise.resolve()).then(function(){return run(true)}).then(function(){
         afBusy=false;
         var d=G("dbgd");if(d&&d.open)draw();
         return{ok:true,reloading:false,plan:plan,results:results}})})},function(e){afBusy=false;return{ok:false,error:e&&e.message||e,results:[]}})}
@@ -1254,7 +1388,7 @@ function rerun(){
 function srvRun(){
   if(srvBusy)return Promise.resolve();
   srvBusy=true;PROG=function(t){say("Máy chủ "+t)};say("Máy chủ 1/5 · Kiểm tra cấu hình");draw();
-  return chkServer().then(function(x){S=x},function(er){S={at:Date.now(),L:[{s:"bad",g:"Máy chủ",t:"Bộ kiểm tra bị lỗi: "+(er&&er.message||er)}]}}).then(function(){srvBusy=false;PROG=null;say("");draw()})}
+  return chkServer().then(function(x){S=x},function(er){S={at:Date.now(),L:[{s:"bad",g:"Máy chủ",t:"Bộ kiểm tra bị lỗi: "+(er&&er.message||er)}]}}).then(function(){PROG=null;say("Máy chủ · Đối chiếu cặp trùng");return dupPre()}).then(function(){srvBusy=false;PROG=null;say("");draw()})}
 function allRun(){
   if(busy||srvBusy)return Promise.resolve();
   busy=true;say("Đang kiểm tra thiết bị…");draw();
@@ -1427,10 +1561,11 @@ function autoHealSilent(){
   try{
     if(window.DBG_NO_AUTOFIX||localStorage.getItem("dbg-af-off")==="1")return Promise.resolve();
   }catch(e){}
-  var pl=buildFixPlan();
-  var safe=pl.steps.filter(function(s){return !s.blockedBy&&s.safeSilent});
-  if(!safe.length)return Promise.resolve();
-  return autoFix({silent:true,allowReload:false})}
+  return dupPre().then(function(){
+    var pl=buildFixPlan();
+    var safe=pl.steps.filter(function(s){return !s.blockedBy&&s.safeSilent});
+    if(!safe.length)return;
+    return autoFix({silent:true,allowReload:false,noScan:true})})}
 function start(){
   autoPersist();
   if(/[?&]dbgtest=1/.test(location.search))wTest();
@@ -1447,6 +1582,8 @@ window.Dbg={
   autoFix:autoFix,
   plan:function(){return buildFixPlan()},
   profile:function(){return detectProfile(R&&R.M)},
-  test:wTest
+  test:wTest,
+  dupScan:function(){return dupScan().then(function(x){x.text=x.L.map(function(l){return"["+l.s+"] "+l.t}).join("\n");return x})},
+  fixDup:fixDup
 };
 })();
