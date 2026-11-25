@@ -3009,7 +3009,7 @@ function init(nt){
     function nm(it){return '<span class="dpsc-nm"><b>'+esc(it.n)+'</b><small>'+esc(addrOf(it)||"Chưa có địa chỉ")+(it.p!=null?" · "+fmt(it.p)+" tr":"")+'</small></span>'}
     return '<div class="dpc dpsc'+(st?" "+st:"")+'" data-k="'+esc(g.k)+'" data-i="'+i+'"><div class="dpsc-h">'+simBadge(g.mx)+'<span class="dpsc-t">'+g.nImg+' ảnh khớp · '+(g.side==="below"?"dưới ngưỡng gợi ý":"sát ngưỡng gợi ý")+'</span></div><div class="dpsc-hs">'+nm(g.a)+nm(g.b)+'</div><div class="dpsc-i">'+th+'</div><div class="dpsc-b"><button type="button" class="dpimgbtn" data-cmpfull="'+i+'" title="Mở so sánh toàn màn hình">So sánh lớn</button><button type="button" class="dpimgbtn" data-smimg="'+i+'" aria-expanded="'+(g.open?"true":"false")+'"'+(tot?"":" disabled")+'>'+(tot?smImgTxt(o,!!g.open):"Không có ảnh")+'</button><button type="button" class="dpimgbtn dpv" data-tog="'+i+'" title="Xem thông tin hai căn">'+(openSet[g.k]?"Ẩn thông tin":"Thông tin")+'</button></div><div class="dpdet"'+(openSet[g.k]?"":" hidden")+'>'+(openSet[g.k]?detailH(o,i):"")+'</div><div class="dpimgs"'+(g.open?"":" hidden")+'>'+(g.open?imgCmpH(o,i):"")+'</div><div class="dpsc-a"><button type="button" class="dpsc-yes'+(st==="y"?" on":"")+'" data-sa="y">Trùng</button><button type="button" class="dpsc-no'+(st==="n"?" on":"")+'" data-sa="n">Không phải trùng</button></div></div>'}
   function smAskH(){
-    return '<div class="dpsm-h"><b>Quét thông minh'+(smRoundN>1?' · vòng '+smRoundN:'')+'</b><span class="dpsm-chip"></span></div><p class="dpsm-p">Ngưỡng đang dùng '+TH+'%. Quét lặp lại cho tới khi tất cả cặp vùng xám đều trùng. Bấm ảnh để phóng to, «So sánh lớn» để xem toàn màn hình. «Không phải trùng» ẩn cặp đó và đẩy ngưỡng gợi ý lên, «Trùng» giữ cặp đó làm mốc đúng.</p>'+smGray.map(smCardH).join("")+'<div class="dpsm-f"><button type="button" class="btn" data-sm="skip">Bỏ qua</button><button type="button" class="btn p" data-sm="apply"></button></div>'}
+    return '<div class="dpsm-h"><b>Quét thông minh'+(smRoundN>1?' · vòng '+smRoundN:'')+'</b><span class="dpsm-chip"></span></div><p class="dpsm-p">Ngưỡng đang dùng '+TH+'%. Nếu tất cả cặp đều «Trùng», quét thông minh lặp lại với ngưỡng thấp hơn; gặp «Không phải trùng» thì áp ngưỡng gợi ý mới, quét lại rồi dừng. Bấm ảnh để phóng to, «So sánh lớn» để xem toàn màn hình. «Không phải trùng» ẩn cặp đó và đẩy ngưỡng gợi ý lên, «Trùng» giữ cặp đó làm mốc đúng.</p>'+smGray.map(smCardH).join("")+'<div class="dpsm-f"><button type="button" class="btn" data-sm="skip">Bỏ qua</button><button type="button" class="btn p" data-sm="apply"></button></div>'}
   /* cập nhật tại chỗ (không dựng lại thẻ) để ảnh không nháy */
   function smPaint(){
     var p=G("dupsmart");if(!p||p.hidden||!smRes)return;
@@ -3071,8 +3071,8 @@ function init(nt){
       else box.hidden=true}
   }
   function smWaitScan(){return new Promise(function(r){if(scanning)scanDoneWaiters.push(r);else r()})}
-  /* Một vòng: phân tích ngưỡng → hiện cặp vùng xám. Có «Không phải trùng» thì smApply quét lại rồi gọi vòng kế tiếp;
-     cả vòng đều «Trùng» (hoặc hết cặp vùng xám) thì dừng. Tối đa 10 vòng. */
+  /* Một vòng: phân tích ngưỡng → hiện cặp vùng xám. Tất cả cặp đều «Trùng» thì smApply áp ngưỡng gợi ý, quét lại rồi lặp vòng kế tiếp
+     (đi sâu xuống vùng xám thấp hơn); có «Không phải trùng» thì áp ngưỡng gợi ý mới, quét lại rồi dừng. Hết cặp vùng xám cũng dừng. Tối đa 10 vòng. */
   function smRound(){
     if(smRoundN>=10){smRunning=false;smPanel("");msg("Đã dừng sau 10 vòng quét thông minh.");return Promise.resolve()}
     smRoundN++;smRunning=true;
@@ -3104,12 +3104,12 @@ function init(nt){
     smClose();
     function next(){
       if(stopFlag)return;
-      if(hadN)return smRound();   /* còn cặp bị loại → ngưỡng đã đổi, lặp vòng mới */
-      msg(allY?"Tất cả cặp vùng xám đều trùng · ngưỡng "+TH+"%.":"Đã áp dụng ngưỡng "+TH+"%.");
+      if(allY)return smRound();   /* tất cả đều trùng → lặp quét thông minh tiếp */
+      msg(hadN?"Đã loại cặp không trùng · áp dụng ngưỡng "+TH+"%.":"Đã áp dụng ngưỡng "+TH+"%.");
     }
     if(rec>=60&&rec<=99&&rec!==TH){
       var i=G("dupth");if(i)i.value=String(rec);
-      syncSensDraft();msg("Đang quét lại với ngưỡng gợi ý "+rec+"%…");
+      syncSensDraft();msg((allY?"Tất cả đều trùng · ":"")+"đang quét lại với ngưỡng gợi ý "+rec+"%…");
       return applyAndSaveSettings().then(smWaitScan).then(next);
     }
     render();return next();
