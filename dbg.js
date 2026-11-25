@@ -34,13 +34,13 @@ if(NOTRAP){
   })()}
 var R=null,running=false,taps=0,tapT=0;
 var FILES=["ck.js","img.js","dup.js","bk.js","dbg.js"];
-var NK_KEYS=["tab","$","CK","LP","PARTS","TIPS","VW","canW","ckA","ckC","ckCopy","ckCur","ckDirty","ckFresh","ckId","ckLiteOf","ckLoad","ckQ","ckSaveOff","ckSnap","ckStat","ckT","ckTrashQ","ckUpQ","ckcSave","closeCk","esc","fail","findItem","imgSrc","items","jumpTop","openLb","persist","rtgH","runPool","shrink","trashIds","uname","upBusy","upMon","upSafe"];
+var NK_KEYS=["v","S","tab","$","CK","LP","PARTS","TIPS","VW","canW","ckCopy","ckLiteOf","ckLoad","ckSaveOff","ckSnap","ckStat","ckcSave","closeCk","esc","fail","findItem","imgSrc","items","jumpTop","openLb","persist","rtgH","runPool","shrink","trashIds","uname","upBusy","upMon","upSafe"];
 var NK_FN=["$","ckCopy","ckLiteOf","ckLoad","ckSaveOff","ckSnap","ckStat","ckcSave","closeCk","esc","fail","findItem","imgSrc","jumpTop","openLb","persist","rtgH","runPool","shrink","trashIds","uname","upBusy","upMon","upSafe"];
-var NI_KEYS=["IW","VW","imgSrc","findItem","segArr","curSeg","ckWarm","tab","items"];
+var NI_KEYS=["v","IW","VW","imgSrc","findItem","segArr","curSeg","ckWarm","tab","items"];
 var NI_FN=["imgSrc","findItem","segArr","curSeg","ckWarm","tab","items"];
-var NB_KEYS=["$","IDBM","apiGet","apiPost","apiUrl","capP","hs","netMsg","nrm","refresh","items","canW","pendAdd","bumpVer"];
+var NB_KEYS=["v","$","IDBM","apiGet","apiPost","apiUrl","capP","hs","netMsg","nrm","refresh","items","canW","pendAdd","bumpVer"];
 var NB_FN=["$","apiGet","apiPost","apiUrl","capP","hs","netMsg","nrm","refresh","pendAdd","bumpVer"];
-var NT_KEYS=["apiGet","apiPost","items","esc","su","imgSrc","addrOf","stName","fmt","ls","openDv","openEdit","canW","idbGet","idbSave","del"];
+var NT_KEYS=["v","apiGet","apiPost","items","esc","su","imgSrc","addrOf","stName","fmt","ls","openDv","openEdit","canW","idbGet","idbSave","del"];
 var MM_NAMES={0:"Tắt (Chỉ DINOv3)",2:"Trung tâm 75% + CSLS",3:"Patch Token + MaxSim + Spatial + CSLS",4:"Patch + Spatial + Trung tâm + CSLS"};
 function dupSfx(){
   var e=null,ds=224,f16=true,r;
@@ -133,11 +133,22 @@ function bridge(add,obj,name,keys,fns,M){
     M.bridgeBroken=true;
     add("bad","Cầu nối",name+": thiếu "+(miss.join(", ")||"–")+(bad.length?" · sai kiểu "+bad.join(", "):"")+" (index.html và các tệp con không cùng phiên bản)","BRIDGE_SKEW");
   }else add("ok","Cầu nối",name+": đủ "+keys.length+" mục")}
+var S_KEYS=["id","cur","dirty","t","q","upN","saveN","err","fresh","trashQ","upQ","c","a"];
+function chkBridgeVer(add,M){
+  [["NK","Ck"],["NI","Img"],["NT","Dup"],["NB","Bk"]].forEach(function(p){
+    var a=window[p[0]],b=window[p[1]];if(!a||!b)return;
+    if(a.v!==b.v){M.bridgeBroken=true;add("bad","Cầu nối",p[0]+" v"+a.v+" khác "+p[1]+" v"+b.v+" (index.html và tệp con không cùng phiên bản)","BRIDGE_VER")}
+    else add("ok","Cầu nối",p[0]+" và "+p[1]+" cùng phiên bản v"+a.v)});
+  var S=window.NK&&window.NK.S;
+  if(S){var ms=S_KEYS.filter(function(k){return !(k in S)});
+    if(ms.length){M.bridgeBroken=true;add("bad","Cầu nối","NK.S thiếu: "+ms.join(", "),"BRIDGE_STATE")}
+    else add("ok","Cầu nối","NK.S (trạng thái checklist): đủ "+S_KEYS.length+" mục")}}
 function chkBridges(add,M){
   bridge(add,window.NK,"NK (ck.js)",NK_KEYS,NK_FN,M);
   bridge(add,window.NI,"NI (img.js)",NI_KEYS,NI_FN,M);
-  bridge(add,window.NT,"NT (dup.js)",NT_KEYS,NT_KEYS,M);
-  bridge(add,window.NB,"NB (bk.js)",NB_KEYS,NB_FN,M)}
+  bridge(add,window.NT,"NT (dup.js)",NT_KEYS,NT_KEYS.filter(function(k){return k!=="v"}),M);
+  bridge(add,window.NB,"NB (bk.js)",NB_KEYS,NB_FN,M);
+  chkBridgeVer(add,M)}
 function chkRes(add){
   var rs=[];try{rs=performance.getEntriesByType("resource")||[]}catch(e){}
   FILES.forEach(function(f){
@@ -280,7 +291,7 @@ function chkData(add,M){
   if(!items.length&&!ready()){return checkCkc}
   if(!items.length){add("warn",g,"Chưa có căn nào trên máy (chưa tải xong, đang offline, hoặc danh sách trống). Bấm \"Kiểm tra toàn bộ\" để xem lý do.","NO_ITEMS");return checkCkc}
   var ids={},dup=0,noName=0,withCk=0,need=0,odd=0,imG=0,imV=0,imH=0,ckC={},CKIDS={};
-  try{ckC=K.ckC||{}}catch(e){}
+  try{ckC=K.S.c||{}}catch(e){}
   try{(K.CK||[]).forEach(function(s){(s.i||[]).forEach(function(x){CKIDS[x[0]]=1})})}catch(e){}
   items.forEach(function(it){
     if(ids[it.id])dup++;ids[it.id]=1;
@@ -302,10 +313,10 @@ function chkData(add,M){
   if(need)add("info",g,need+"/"+withCk+" checklist chưa tải về máy (đang tải ngầm hoặc đang offline)");
   if(odd)add("info",g,odd+" checklist có mục không còn trong biểu mẫu hiện tại (dữ liệu cũ, không ảnh hưởng)");
   if(K){
-    if(K.ckDirty)add("info",g,"Đang có thay đổi checklist chưa lưu");
-    if(K.ckSaveN)add("info",g,"Đang lưu checklist lên Sheet");
-    if((K.ckUpN||0)>0||(K.ckUpQ&&K.ckUpQ.length))add("info",g,(K.ckUpN||(K.ckUpQ&&K.ckUpQ.length))+" ảnh đang tải lên");
-    if(K.ckTrashQ&&K.ckTrashQ.length)add("info",g,K.ckTrashQ.length+" ảnh chờ chuyển vào thùng rác")}
+    if(K.S&&K.S.dirty)add("info",g,"Đang có thay đổi checklist chưa lưu");
+    if(K.S&&K.S.saveN)add("info",g,"Đang lưu checklist lên Sheet");
+    if(K.S&&((K.S.upN||0)>0||(K.S.upQ&&K.S.upQ.length)))add("info",g,(K.S.upN||(K.S.upQ&&K.S.upQ.length))+" ảnh đang tải lên");
+    if(K.S&&K.S.trashQ&&K.S.trashQ.length)add("info",g,K.S.trashQ.length+" ảnh chờ chuyển vào thùng rác")}
   return checkCkc}
 function clk(s){return new Date(B.t+s).toLocaleTimeString("vi-VN")}
 function chkPerf(add){
@@ -1119,7 +1130,7 @@ function buildFixPlan(opts){
     addStep({
       id:"CKC_REPAIR",title:"Làm sạch dữ liệu checklist hỏng (ckc1)",target:"installed",safeSilent:true,needsReload:false,requiresOnline:false,respectsGuard:true,
       run:function(){
-        try{if(window.NK)window.NK.ckC={}}catch(e){}
+        try{if(window.NK&&window.NK.S)window.NK.S.c={}}catch(e){}
         return wipeKeys(["ckc1"]).then(function(){return{ok:true,msg:"Đã xóa ckc1 hỏng (Sheet an toàn), app sẽ tự tải lại khi mở căn"}})}})}
 
   if(M.hcBad){
@@ -1468,7 +1479,7 @@ function copy(t){
 /* ---------- Bảo vệ dữ liệu dựa trên trạng thái thật của index.html & ck.js ---------- */
 function guard(forAutoFix){
   var K=window.NK;
-  if(K&&(K.ckDirty||(K.ckSaveN||0)>0||(K.ckUpN||0)>0||(K.ckUpQ&&K.ckUpQ.length)||(K.ckTrashQ&&K.ckTrashQ.length)||K.ckErr)){
+  if(K&&K.S&&(K.S.dirty||(K.S.saveN||0)>0||(K.S.upN||0)>0||(K.S.upQ&&K.S.upQ.length)||(K.S.trashQ&&K.S.trashQ.length)||K.S.err)){
     return "Đang có thay đổi checklist chưa lưu hoặc ảnh đang tải lên. Hãy đợi xong rồi thử lại."}
   if(forAutoFix&&K&&K.tab==="ck")return "Đang mở trang Checklist, tạm hoãn để tránh gián đoạn thao tác.";
   if(forAutoFix){
@@ -1536,7 +1547,7 @@ function onClick(e){
   if(a==="ck"){
     if(!confirm("Xóa chi tiết checklist đã nhớ trên máy? Dữ liệu trên Sheet không bị ảnh hưởng, app sẽ tải lại khi cần."))return;
     say("Đang xóa…");
-    try{window.NK.ckC={}}catch(x){}
+    try{window.NK.S.c={}}catch(x){}
     wipeKeys(["ckc1"]).then(reload,reload);return}
   if(a==="dpm"){
     if(!confirm("Xóa kết quả so khớp ảnh trùng trên máy này? Hash ảnh được giữ nên quét lại rất nhanh. Danh sách \"Không phải trùng\" và dữ liệu trên Sheet không bị ảnh hưởng."))return;

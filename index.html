@@ -635,6 +635,8 @@ function capP(n){try{return CAP&&window.Capacitor.Plugins&&window.Capacitor.Plug
 </script>
 <script>
 (function(){
+/* Trạng thái checklist dùng chung với ck.js (một đối tượng duy nhất, thay cho 13 cặp getter/setter của NK) */
+var CS={id:"",cur:null,dirty:false,t:null,q:Promise.resolve(),upN:0,saveN:0,err:false,fresh:false,trashQ:[],upQ:[],c:{},a:{}};
 /* Khóa cuộn trang nền khi có hộp thoại (dialog) đang mở */
 (function(){
   var y=0,locked=false,sm=HTMLDialogElement.prototype.showModal;
@@ -670,9 +672,9 @@ var VWF=0.8,VW=(function(){var n=Math.min(screen.width||innerWidth,screen.height
 /* Xử lý lỗi ảnh Drive (retry 3 nguồn), hiện ảnh mượt (.ld) và nén ảnh đã chuyển sang img.js */
 /* ===== Tải ảnh bền khi app chạy nền ===== */
 var vis={seq:0};
-document.addEventListener("visibilitychange",function(){vis.seq++;if(document.hidden){if(ckDirty)ckFlush()}else{wlOn();if(ckDirty)ckFlush()}});
-window.addEventListener("online",function(){vis.seq++;if(ckDirty)ckFlush()});
-window.addEventListener("pagehide",function(){if(ckDirty)ckFlush()});
+document.addEventListener("visibilitychange",function(){vis.seq++;if(document.hidden){if(CS.dirty)ckFlush()}else{wlOn();if(CS.dirty)ckFlush()}});
+window.addEventListener("online",function(){vis.seq++;if(CS.dirty)ckFlush()});
+window.addEventListener("pagehide",function(){if(CS.dirty)ckFlush()});
 function pageOk(){return document.visibilityState==="visible"&&navigator.onLine!==false}
 function waitReady(){return new Promise(function(z){
   if(pageOk()){z();return}
@@ -683,7 +685,7 @@ function netMsg(e){var m=e&&e.message?String(e.message):"";return /failed to fet
 var wl=null,wlN=0;
 function wlOn(){if(wlN<1||wl||!navigator.wakeLock||document.visibilityState!=="visible")return;navigator.wakeLock.request("screen").then(function(l){wl=l;l.addEventListener("release",function(){wl=null})},function(){})}
 function upBusy(d){wlN=Math.max(0,wlN+d);if(wlN>0)wlOn();else if(wl){try{wl.release()}catch(e){}wl=null}}
-window.addEventListener("beforeunload",function(e){if(upl>0||ckUpN>0||ckUpQ.length>0||ckSaveN>0||ckDirty){e.preventDefault();e.returnValue=""}});
+window.addEventListener("beforeunload",function(e){if(upl>0||CS.upN>0||CS.upQ.length>0||CS.saveN>0||CS.dirty){e.preventDefault();e.returnValue=""}});
 function upSafe(p){
   var started=0,fails=0,cuts=0;
   function find(){return apiPost("find",{name:p.name,folder:p.folder,area:p.area,ward:p.ward,addr:p.addr,kind:p.kind,hid:p.hid,fid:p.fid},20000).then(function(d){return d&&d.id?d:null},function(){return null})}
@@ -772,7 +774,7 @@ function refresh(silent){
     if(!r0)enterAnim();
     var next=nrm(d.items||[]),mg=items.length?mergeItems(items,next):{list:next,changed:true};
     dataVer=d.ver;
-    if(mg.changed||r0!==role){items=mg.list;dataRev++;applyRole();render();if(tab==="ck"&&!ckDirty&&!ckUpN&&!ckSaveN&&ckId)ckLoad(ckId)}
+    if(mg.changed||r0!==role){items=mg.list;dataRev++;applyRole();render();if(tab==="ck"&&!CS.dirty&&!CS.upN&&!CS.saveN&&CS.id)ckLoad(CS.id)}
     else applyRole();
     lcSave();schedWarm();if(!silent||mg.changed||($("dupd")&&$("dupd").open))dupPullBg(false);
   }).catch(function(){banner("Không kết nối được tới Google Sheets. Kiểm tra mạng hoặc link Web app.")}).then(function(){if(silent)rfT=0});
@@ -811,7 +813,7 @@ function toggleFav(id){var it=findItem(id);if(!it||!canW)return;if(!it.fv){favPo
 function stName(k){for(var i=0;i<ST.length;i++)if(ST[i][0]===k)return ST[i][1];return ST[0][1]}
 $("st").innerHTML=ST.map(function(s){return '<option value="'+s[0]+'">'+s[1]+'</option>'}).join("");
 
-var newId="",editIm=[],upQ=[],formTok=0,ckUpQ=[],editDr="",origIm=[],formTrash=[],ckTrashQ=[];
+var newId="",editIm=[],upQ=[],formTok=0,editDr="",origIm=[],formTrash=[];
 function svLock(){var b=upl>0;$("sv").disabled=b;$("sv").textContent=b?"⏳ Đang tải ảnh…":"Lưu";$("cx").disabled=b;$("del").disabled=b}
 function setIms(t,bad){var e=$("ims");if(!e)return;e.textContent=t||"";e.className="pm"+(bad?" bad":"")}
 var pvEls={},pvNm={};   // khóa -> ô ảnh đang hiển thị; pvNm: id Drive -> tên tệp lúc đang tải (để giữ nguyên ô khi tải xong)
@@ -1395,7 +1397,7 @@ var CK=[
 ];
 var TIPS=["Chụp hình + quay video mọi lỗi nhỏ","Ghi rõ vào biên bản bàn giao","Không cọc nếu hợp đồng mập mờ"];
 var TOT=0,CKIDS={};CK.forEach(function(s){TOT+=(s.i||[]).length;(s.i||[]).forEach(function(x){CKIDS[x[0]]=1})});
-var tab="list",ckId="",ckCur=null,ckDirty=false,ckT=null,ckQ=Promise.resolve(),ckUpN=0,ckSaveN=0,ckErr=false,ckExitFn=null,ckWarnT=0;
+var tab="list",ckExitFn=null,ckWarnT=0;
 function ckCopy(c){var o=c?JSON.parse(JSON.stringify(c)):{};o.c=o.c||{};o.v=o.v||{};o.nt=o.nt||"";o.im=o.im||[];o.vi=o.vi||[];return o}
 function ckHas(it){var c=it&&it.ck;if(!c)return false;var s=ckStat(c);return s.d+s.b>0||!!(c.nt&&String(c.nt).trim())||!!(c.vi&&c.vi.length)||!!(c.im&&c.im.length)}
 function ckStat(c){
@@ -1412,14 +1414,14 @@ function ckLiteOf(c,h){
 function ckAny(c){var l=ckLiteOf(c);return !!l&&(l.s[0]+l.s[1]+l.s[2]>0||!!(l.nt&&String(l.nt).trim()))}
 function ckLbl(it){var s=it.ck&&ckStat(it.ck);return s&&s.d+s.b?" "+s.d+"/"+s.t:""}
 function findItem(id){for(var i=0;i<items.length;i++)if(items[i].id===id)return items[i]}
-var CKC="ckc1",ckP={},ckTok=0,ckC=(function(){try{var leg=ls(CKC);if(leg){ls(CKC,"");var d=JSON.parse(leg);if(d&&d.k===lcKey()&&d.c&&typeof d.c==="object"){IDBM.save(CKC,leg);return d.c}}}catch(e){}return {}})(),ckSvT=null,ckWarming=false;
-var ckA={};
+var CKC="ckc1",ckP={},ckTok=0,ckSvT=null,ckWarming=false;
+CS.c=(function(){try{var leg=ls(CKC);if(leg){ls(CKC,"");var d=JSON.parse(leg);if(d&&d.k===lcKey()&&d.c&&typeof d.c==="object"){IDBM.save(CKC,leg);return d.c}}}catch(e){}return {}})();
 function ckcSave(){clearTimeout(ckSvT);ckSvT=setTimeout(function(){try{
-  var ids=[],id,o={},len=60,i,s;for(id in ckC)if(findItem(id))ids.push(id);
-  ids.sort(function(x,y){return (ckA[y]||0)-(ckA[x]||0)});
-  for(i=0;i<ids.length;i++){s=JSON.stringify(ckC[ids[i]]).length+ids[i].length+8;if(len+s>8000000)continue;o[ids[i]]=ckC[ids[i]];len+=s}
+  var ids=[],id,o={},len=60,i,s;for(id in CS.c)if(findItem(id))ids.push(id);
+  ids.sort(function(x,y){return (CS.a[y]||0)-(CS.a[x]||0)});
+  for(i=0;i<ids.length;i++){s=JSON.stringify(CS.c[ids[i]]).length+ids[i].length+8;if(len+s>8000000)continue;o[ids[i]]=CS.c[ids[i]];len+=s}
   IDBM.save(CKC,JSON.stringify({k:lcKey(),c:o}))}catch(e){}},1500)}
-function ckNeed(it){var l=it.ck;if(!l)return false;var e=ckC[it.id];return !(e&&e.h===(l.h||""))}
+function ckNeed(it){var l=it.ck;if(!l)return false;var e=CS.c[it.id];return !(e&&e.h===(l.h||""))}
 function ckRank(it){return (IW.vis[it.id]?3:IW.eng[it.id]?2:ckAny(it.ck)?1:0)}
 function ckWarm(){
   if(ckWarming||document.hidden||navigator.onLine===false||!apiUrl()||!role||pend>0)return;
@@ -1438,18 +1440,18 @@ function ckWarm(){
 function ckGet(id){
   var it=findItem(id);if(!it)return Promise.reject(new Error("Không tìm thấy căn này"));
   var l=it.ck;if(!l)return Promise.resolve(null);
-  var e=ckC[id];if(e&&e.h===(l.h||"")){ckA[id]=Date.now();return Promise.resolve(e.ck)}
+  var e=CS.c[id];if(e&&e.h===(l.h||"")){CS.a[id]=Date.now();return Promise.resolve(e.ck)}
   if(ckP[id])return ckP[id];
   return ckP[id]=apiGet("&action=ck&id="+encodeURIComponent(id)).then(function(d){
     delete ckP[id];if(!d.ok)throw new Error(d.error||"Lỗi máy chủ");
-    ckC[id]={h:d.h||"",ck:d.ck||null};ckA[id]=Date.now();ckcSave();return d.ck||null
+    CS.c[id]={h:d.h||"",ck:d.ck||null};CS.a[id]=Date.now();ckcSave();return d.ck||null
   },function(er){delete ckP[id];throw er})}
 function ckLoad(id){
   var t=++ckTok,it=id&&findItem(id);
   if(!it){renderCk(null);return}
-  var l=it.ck,e=ckC[id],el=$("ckb");
-  if(l&&!(e&&e.h===(l.h||""))){ckCur=null;ckDirty=false;ckErr=false;ckExitFn=null;el.className="";el.innerHTML='<div class="empty"><p>Đang tải checklist…</p></div>'}
-  ckGet(id).then(function(full){if(t===ckTok&&ckId===id&&tab==="ck")renderCk(full)},function(er){
+  var l=it.ck,e=CS.c[id],el=$("ckb");
+  if(l&&!(e&&e.h===(l.h||""))){CS.cur=null;CS.dirty=false;CS.err=false;ckExitFn=null;el.className="";el.innerHTML='<div class="empty"><p>Đang tải checklist…</p></div>'}
+  ckGet(id).then(function(full){if(t===ckTok&&CS.id===id&&tab==="ck")renderCk(full)},function(er){
     if(t===ckTok)el.innerHTML='<div class="empty"><p>Không tải được checklist: '+esc(er&&er.message?er.message:"lỗi kết nối")+'</p><button type="button" class="btn" data-ckretry>Thử lại</button></div>'})}
 function renderCk(full){if(window.Ck)Ck.renderCk(full)}
 function ckSnap(c){var s=ckCopy(c),r={rt:s.rt||null,pr:(s.pr||"").trim(),co:(s.co||"").trim()};delete s.rt;delete s.pr;delete s.co;s.tot=TOT;r.s=s;return r}
@@ -1485,28 +1487,28 @@ function ckWarn(msg){
 }
 function ckWaitExit(){
   if(tab!=="ck"||!ckExitFn)return;
-  if(ckUpN>0||ckUpQ.length>0){ckExitFn=null;ckSyncUi();return}
-  if(ckDirty)ckFlush();
-  if(ckSaveN>0||ckDirty){ckQ.then(ckWaitExit,ckWaitExit);return}
-  if(ckErr){ckExitFn=null;ckSyncUi();return}
+  if(CS.upN>0||CS.upQ.length>0){ckExitFn=null;ckSyncUi();return}
+  if(CS.dirty)ckFlush();
+  if(CS.saveN>0||CS.dirty){CS.q.then(ckWaitExit,ckWaitExit);return}
+  if(CS.err){ckExitFn=null;ckSyncUi();return}
   var fn=ckExitFn;ckExitFn=null;ckSyncUi();fn();
 }
 function ckLeave(fn){
-  if(tab!=="ck"||!ckCur||!canW){fn();return true}
-  if(ckUpN>0||ckUpQ.length>0){
+  if(tab!=="ck"||!CS.cur||!canW){fn();return true}
+  if(CS.upN>0||CS.upQ.length>0){
     ckExitFn=null;ckSyncUi();
-    ckWarn("Đang tải "+Math.max(ckUpN,ckUpQ.length)+" ảnh checklist lên Drive, vui lòng đợi xong rồi đóng.");
+    ckWarn("Đang tải "+Math.max(CS.upN,CS.upQ.length)+" ảnh checklist lên Drive, vui lòng đợi xong rồi đóng.");
     return false;
   }
-  if(ckDirty||ckSaveN>0){
+  if(CS.dirty||CS.saveN>0){
     ckExitFn=fn;
     ckFlush();
-    if(ckSaveN>0||ckDirty){ckSyncUi();ckQ.then(ckWaitExit,ckWaitExit);return false}
+    if(CS.saveN>0||CS.dirty){ckSyncUi();CS.q.then(ckWaitExit,ckWaitExit);return false}
     ckExitFn=null;
   }
-  if(ckErr){
+  if(CS.err){
     if(!confirm("Dữ liệu checklist vừa rồi chưa lưu được lên Sheet do lỗi kết nối. Bạn vẫn muốn đóng (có thể mất thay đổi chưa lưu)?"))return false;
-    ckErr=false;
+    CS.err=false;
   }
   fn();return true;
 }
@@ -1537,12 +1539,12 @@ function setTab(t,keep,force){
   $("add").hidden=!canW||t!=="list";
   if(!keep)jumpTop();
   if(t==="list"||t==="fav"||t==="real")render();
-  if(t==="ck")ckLoad(ckId);
+  if(t==="ck")ckLoad(CS.id);
   if(t==="sum")renderSum();
   if(!keep&&!same)pageIn()
 }
 function ckSaveOff(id,cur){var it=findItem(id);if(!it||!canW)return;var x=ckSnap(cur);
-  ckSaveN++;ckQ=ckQ.then(function(){var curIt=findItem(id);if(!curIt)return null;return ckPersist(id,curIt,x)}).then(function(d){ckSaveN=Math.max(0,ckSaveN-1);ckSyncUi();return d},function(e){ckSaveN=Math.max(0,ckSaveN-1);ckSyncUi();fail(e)})}
+  CS.saveN++;CS.q=CS.q.then(function(){var curIt=findItem(id);if(!curIt)return null;return ckPersist(id,curIt,x)}).then(function(d){CS.saveN=Math.max(0,CS.saveN-1);ckSyncUi();return d},function(e){CS.saveN=Math.max(0,CS.saveN-1);ckSyncUi();fail(e)})}
 var ckPrev="list";
 var ckY=null,hlT=0,hlOn=null,hlSel="",hlAct=false,hlTk=0;
 function hlEnd(){if(hlOn)hlOn.classList.remove("hl");hlOn=null;hlSel="";hlAct=false}
@@ -1553,7 +1555,7 @@ function hlEl(c,sel){
 }
 function hlRe(){if(!hlOn||document.contains(hlOn))return;var n=hlSel&&document.querySelector(hlSel);if(n){hlOn=n;if(hlAct)n.classList.add("hl")}else hlEnd()}
 function closeCkNow(){
-  var id=ckId;ckExitFn=null;noSmooth();ckFresh=false;
+  var id=CS.id;ckExitFn=null;noSmooth();CS.fresh=false;
   noMoreUntil=Date.now()+900;
   setTab(ckPrev||"list",true,true);
   if(!id)return;
@@ -1564,10 +1566,10 @@ function closeCkNow(){
   pageIn("pg-back")
 }
 function closeCk(){ckLeave(closeCkNow)}
-var nsT=0,ckFresh=false;
-function noSmooth(){var h=document.documentElement;h.classList.add("nosm");clearTimeout(nsT);nsT=setTimeout(function(){h.classList.remove("nosm");ckFresh=false},450)}
-function openCkNow(id){noSmooth();ckFresh=true;ckId=id;ckErr=false;ckExitFn=null;setTab("ck",true,true);jumpTop();pageIn("pg-fwd")}
-function openCk(id){if(tab==="ck"&&ckId!==id){ckLeave(function(){openCkNow(id)});return}openCkNow(id)}
+var nsT=0;
+function noSmooth(){var h=document.documentElement;h.classList.add("nosm");clearTimeout(nsT);nsT=setTimeout(function(){h.classList.remove("nosm");CS.fresh=false},450)}
+function openCkNow(id){noSmooth();CS.fresh=true;CS.id=id;CS.err=false;ckExitFn=null;setTab("ck",true,true);jumpTop();pageIn("pg-fwd")}
+function openCk(id){if(tab==="ck"&&CS.id!==id){ckLeave(function(){openCkNow(id)});return}openCkNow(id)}
 document.querySelector(".tabs").onclick=function(e){var b=e.target.closest(".tab");if(b)setTab(b.dataset.tab)};
 
 /* ===== Tab Tổng hợp (giống sheet "Tổng hợp") ===== */
@@ -1778,11 +1780,11 @@ $("sf").addEventListener("submit",function(e){
     if(!d||!d.ok){setSm((d&&d.error)||"Sai mã truy cập hoặc không có quyền.",1);return}
     if(!API_URL)ls(UK,u);
     ls(KK,k);
-    if(lcKey()!==oldK){ckC={};ckP={};knownIds=null;listChunks=null;listRenderedKey="";SUB_DOM={list:null,fav:null,real:null};activeListTab=(tab==="list"||tab==="fav"||tab==="real")?tab:"list";if($("list"))$("list").innerHTML="";lastSumTop="";lastMdlH="";mdlState=null;sumTopRev=-1;sumDetKey="";sumDistRev=-1;sumWardKey="";tabCntRev=-1;galOpen={};realSeg={};sxOpen={};gOpen={};ckId="";ckCur=null;ckDirty=false;ckUpN=0;ckSaveN=0;ckErr=false;ckExitFn=null}
+    if(lcKey()!==oldK){CS.c={};ckP={};knownIds=null;listChunks=null;listRenderedKey="";SUB_DOM={list:null,fav:null,real:null};activeListTab=(tab==="list"||tab==="fav"||tab==="real")?tab:"list";if($("list"))$("list").innerHTML="";lastSumTop="";lastMdlH="";mdlState=null;sumTopRev=-1;sumDetKey="";sumDistRev=-1;sumWardKey="";tabCntRev=-1;galOpen={};realSeg={};sxOpen={};gOpen={};CS.id="";CS.cur=null;CS.dirty=false;CS.upN=0;CS.saveN=0;CS.err=false;ckExitFn=null}
     role=d.role;canW=role==="edit";items=nrm(d.items||[]);dataVer=d.ver||"";dataRev++;
     setSm("");$("sd").close();
     enterAnim();applyRole();render();
-    if(tab==="ck"&&!ckDirty&&!ckUpN&&!ckSaveN&&ckId)ckLoad(ckId);
+    if(tab==="ck"&&!CS.dirty&&!CS.upN&&!CS.saveN&&CS.id)ckLoad(CS.id);
     lcSave();schedWarm();
   }).catch(function(){
     if(tok!==sfTok)return;
@@ -1800,7 +1802,7 @@ document.body.dataset.tab="list";
 (function(){var b=$("totop"),tk=false,on=false;function u(){tk=false;var v=window.scrollY>700;if(v!==on){on=v;b.classList.toggle("on",v)}}window.addEventListener("scroll",function(){if(!tk){tk=true;requestAnimationFrame(u)}},{passive:true});b.onclick=function(){window.scrollTo({top:0,behavior:"smooth"})}})();
 var IW={q:[],n:0,nt:0,run:0,wait:0,fail:0,t:0,lo:0,io:null,seen:{},vis:{},eng:{},PER:3};
 function iwGal(g,i){if(window.Img)Img.iwGal(g,i)}
-window.NI={IW:IW,VW:VW,imgSrc:imgSrc,findItem:findItem,segArr:segArr,curSeg:curSeg,ckWarm:ckWarm,ckGet:ckGet,tab:function(){return tab},items:function(){return items}};
+window.NI={v:1,IW:IW,VW:VW,imgSrc:imgSrc,findItem:findItem,segArr:segArr,curSeg:curSeg,ckWarm:ckWarm,ckGet:ckGet,tab:function(){return tab},items:function(){return items}};
 if(window.Img)Img.init(window.NI);
 $("add").hidden=true;
 
@@ -1832,7 +1834,7 @@ IDBM.get(CKC).then(function(raw){
   if(typeof raw!=="string"||!raw)return;
   var d=JSON.parse(raw);
   if(d&&d.k===lcKey()&&d.c&&typeof d.c==="object"){
-    for(var k in d.c)if(!ckC[k])ckC[k]=d.c[k];
+    for(var k in d.c)if(!CS.c[k])CS.c[k]=d.c[k];
   }
 }).catch(function(){});
 
@@ -1844,7 +1846,7 @@ if("serviceWorker" in navigator&&/^https?:$/i.test(location.protocol)){var regSw
   ["pointerdown","keydown","scroll","touchmove"].forEach(function(ev){window.addEventListener(ev,function(){lastAct=Date.now()},{passive:true,capture:true})});
   function updBusy(){
     var lb=$("lb");
-    return !!(Date.now()-lastAct<4000||upl>0||pend>0||ckDirty||ckSaveN>0||ckUpN>0||(ckUpQ&&ckUpQ.length)||(ckTrashQ&&ckTrashQ.length)||tab==="ck"||document.querySelector("dialog[open]")||(lb&&getComputedStyle(lb).display!=="none"))}
+    return !!(Date.now()-lastAct<4000||upl>0||pend>0||CS.dirty||CS.saveN>0||CS.upN>0||(CS.upQ&&CS.upQ.length)||(CS.trashQ&&CS.trashQ.length)||tab==="ck"||document.querySelector("dialog[open]")||(lb&&getComputedStyle(lb).display!=="none"))}
   function updTry(){
     if($("upd").hidden){clearInterval(updT);updT=0;return}
     var last=0;try{last=+sessionStorage.getItem("auto-upd")||0}catch(e){}
@@ -1887,8 +1889,8 @@ document.addEventListener("focusin",function(e){var t=e.target;if(!t||!t.closest
     rb.classList.add("spin");
     var fin=function(){rb.classList.remove("spin")};
     var dp=function(){try{return window.Dup&&Dup.pull?Dup.pull(true):0}catch(e){return 0}};
-    if(tab==="ck"&&(ckUpN>0||ckUpQ.length>0)){ckWarn("Đang tải ảnh checklist lên Drive, đợi xong rồi làm mới.");fin();return}
-    if(tab==="ck"&&(ckDirty||ckSaveN>0)){ckFlush();ckQ.then(function(){return refresh(false)}).then(dp).then(fin,fin)}
+    if(tab==="ck"&&(CS.upN>0||CS.upQ.length>0)){ckWarn("Đang tải ảnh checklist lên Drive, đợi xong rồi làm mới.");fin();return}
+    if(tab==="ck"&&(CS.dirty||CS.saveN>0)){ckFlush();CS.q.then(function(){return refresh(false)}).then(dp).then(fin,fin)}
     else refresh(false).then(dp).then(fin,fin);
   };
   var ua=navigator.userAgent||"",isIos=/iPad|iPhone|iPod/i.test(ua)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
@@ -1899,10 +1901,10 @@ document.addEventListener("focusin",function(e){var t=e.target;if(!t||!t.closest
     if(px)px.onclick=function(){if(ph)ph.hidden=true;ls("ios-pwa-hide","1")};
   }
 })();
-window.NT={apiGet:apiGet,apiPost:apiPost,items:function(){return items},esc:esc,su:su,imgSrc:imgSrc,addrOf:addrOf,stName:stName,fmt:fmt,ls:ls,openDv:openDv,openEdit:openForm,canW:function(){return canW},idbGet:function(k){return IDBM.get(k)},idbSave:function(k,v){return IDBM.save(k,v)},del:function(id){return removeItem(id).catch(function(e){fail(e);refresh(true);throw e})}};
-window.NK={get tab(){return tab},$:$,CK:CK,LP:LP,PARTS:PARTS,TIPS:TIPS,VW:VW,get canW(){return canW},set canW(v){canW=v},ckA:ckA,get ckC(){return ckC},set ckC(v){ckC=v},ckCopy:ckCopy,get ckCur(){return ckCur},set ckCur(v){ckCur=v},get ckDirty(){return ckDirty},set ckDirty(v){ckDirty=v},get ckErr(){return ckErr},set ckErr(v){ckErr=v},get ckFresh(){return ckFresh},set ckFresh(v){ckFresh=v},get ckId(){return ckId},set ckId(v){ckId=v},ckLiteOf:ckLiteOf,ckLoad:ckLoad,get ckQ(){return ckQ},set ckQ(v){ckQ=v},get ckSaveN(){return ckSaveN},set ckSaveN(v){ckSaveN=v},ckSaveOff:ckSaveOff,ckSnap:ckSnap,ckStat:ckStat,ckSyncUi:ckSyncUi,get ckT(){return ckT},set ckT(v){ckT=v},get ckTrashQ(){return ckTrashQ},set ckTrashQ(v){ckTrashQ=v},get ckUpN(){return ckUpN},set ckUpN(v){ckUpN=v},ckUpQ:ckUpQ,ckcSave:ckcSave,closeCk:closeCk,esc:esc,get fail(){return fail},set fail(v){fail=v},findItem:findItem,imgSrc:imgSrc,get items(){return items},set items(v){items=v;dataRev++},jumpTop:jumpTop,openLb:openLb,persist:persist,rtgH:rtgH,runPool:runPool,shrink:shrink,trashIds:trashIds,uname:uname,upBusy:upBusy,upMon:upMon,upSafe:upSafe};
+window.NT={v:1,apiGet:apiGet,apiPost:apiPost,items:function(){return items},esc:esc,su:su,imgSrc:imgSrc,addrOf:addrOf,stName:stName,fmt:fmt,ls:ls,openDv:openDv,openEdit:openForm,canW:function(){return canW},idbGet:function(k){return IDBM.get(k)},idbSave:function(k,v){return IDBM.save(k,v)},del:function(id){return removeItem(id).catch(function(e){fail(e);refresh(true);throw e})}};
+window.NK={v:2,S:CS,get tab(){return tab},$:$,CK:CK,LP:LP,PARTS:PARTS,TIPS:TIPS,VW:VW,get canW(){return canW},ckCopy:ckCopy,ckLiteOf:ckLiteOf,ckLoad:ckLoad,ckSaveOff:ckSaveOff,ckSnap:ckSnap,ckStat:ckStat,ckSyncUi:ckSyncUi,ckcSave:ckcSave,closeCk:closeCk,esc:esc,get fail(){return fail},findItem:findItem,imgSrc:imgSrc,get items(){return items},set items(v){items=v;dataRev++},jumpTop:jumpTop,openLb:openLb,persist:persist,rtgH:rtgH,runPool:runPool,shrink:shrink,trashIds:trashIds,uname:uname,upBusy:upBusy,upMon:upMon,upSafe:upSafe};
 if(window.Ck)Ck.init(window.NK);
-window.NB={$:$,IDBM:IDBM,apiGet:apiGet,apiPost:apiPost,apiUrl:apiUrl,capP:capP,hs:hs,netMsg:netMsg,nrm:nrm,refresh:refresh,get items(){return items},get canW(){return canW},pendAdd:function(n){pend+=n},bumpVer:function(){wver++;dataVer="";dataRev++}};
+window.NB={v:1,$:$,IDBM:IDBM,apiGet:apiGet,apiPost:apiPost,apiUrl:apiUrl,capP:capP,hs:hs,netMsg:netMsg,nrm:nrm,refresh:refresh,get items(){return items},get canW(){return canW},pendAdd:function(n){pend+=n},bumpVer:function(){wver++;dataVer="";dataRev++}};
 if(window.Bk)Bk.init(window.NB);
 })();
 </script>

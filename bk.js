@@ -4,9 +4,11 @@
    index.html chỉ giữ hộp thoại #bd (HTML), nút #bk và cầu nối window.NB.
    Nạp theo thứ tự nào cũng được: index.html gọi Bk.init(NB) nếu bk.js nạp trước, bk.js tự gọi nếu NB có trước. */
 (function(){
-var inst=null;
+var inst=null,KV=1;   // KV: phiên bản cầu nối NB mà bk.js này cần
+function skew(n,v){var m=n+" (cầu nối v"+KV+") không khớp index.html (v"+v+"). Hãy đóng hẳn rồi mở lại app để cập nhật.";try{console.error(m);var d=document.createElement("div");d.textContent=m;d.style.cssText="position:fixed;left:0;right:0;top:0;z-index:99999;padding:10px 14px;background:#b3261e;color:#fff;font:14px/1.4 sans-serif";(document.body||document.documentElement).appendChild(d)}catch(e){}}
 function init(nb){
   if(inst||!nb)return;
+  if(nb.v!==KV){skew("bk.js",nb.v);return}
   var N=nb,$=nb.$,IDBM=nb.IDBM,apiGet=nb.apiGet,apiPost=nb.apiPost,apiUrl=nb.apiUrl,capP=nb.capP,hs=nb.hs,netMsg=nb.netMsg,nrm=nb.nrm,refresh=nb.refresh;
   var api={};
   /* ===== Sao lưu / khôi phục =====
@@ -127,6 +129,6 @@ function init(nb){
   try{$("bk").dataset.ready="1"}catch(e){}
   try{IDBM.set("dir","").catch(function(){})}catch(e){}   // xóa tham chiếu thư mục cũ của tính năng ghi ra thư mục đã bỏ
 }
-window.Bk={init:init};
+window.Bk={v:KV,init:init};
 if(window.NB)init(window.NB);
 })();

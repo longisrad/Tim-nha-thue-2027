@@ -4,7 +4,7 @@
 (function(){
 "use strict";
 var G=function(i){return document.getElementById(i)};
-var NT=null,inited=false;
+var NT=null,inited=false,KV=1;   // KV: phiên bản cầu nối NT mà dup.js này cần
 function N(){return NT||window.NT}
 function esc(s){return N().esc(s)}
 function su(u){return N().su(u)}
@@ -2924,9 +2924,12 @@ var dpPgT=0,dpEnT=0;
 function dpPage(el,cls){if(!el)return;el.classList.remove("dp-fwd","dp-back");void el.offsetWidth;el.classList.add(cls);clearTimeout(dpPgT);dpPgT=setTimeout(function(){el.classList.remove("dp-fwd","dp-back")},260)}
 function dpEnter(){var l=G("dupl");if(!l)return;l.classList.remove("enter");void l.offsetWidth;l.classList.add("enter");clearTimeout(dpEnT);dpEnT=setTimeout(function(){var el=G("dupl");if(el)el.classList.remove("enter")},400)}
 function goMain(){showIgn=false;render();G("dupd").scrollTop=0;dpPage(G("dupmain"),"dp-back")}
+function skew(n,v){var m=n+" (cầu nối v"+KV+") không khớp index.html (v"+v+"). Hãy đóng hẳn rồi mở lại app để cập nhật.";try{console.error(m);var d=document.createElement("div");d.textContent=m;d.style.cssText="position:fixed;left:0;right:0;top:0;z-index:99999;padding:10px 14px;background:#b3261e;color:#fff;font:14px/1.4 sans-serif";(document.body||document.documentElement).appendChild(d)}catch(e){}}
 function init(nt){
   if(nt)NT=nt;
   if(inited)return;
+  var nv=NT||window.NT;
+  if(nv&&nv.v!==KV){skew("dup.js",nv.v);return}
   inited=true;
   var st=document.createElement("style");st.textContent=CSS+CSS2;document.head.appendChild(st);
   var box=document.createElement("div");box.innerHTML=DLG;document.body.appendChild(box.firstChild);
@@ -4191,7 +4194,7 @@ function resyncDup(mode){
       return r})
   },function(e){return{ok:false,msg:"Không kết nối được máy chủ: "+(e&&e.message||e)}})
 }
-window.Dup={retire:function(){return retList().map(function(x){return x.c})},ignStat:function(){return ignStat()},smart:function(){loadImgMode();var s=smartCalc();return{th:TH,ts:s.ts,mid:s.mid,tl:s.tl,strong:s.strong,algo:ALGO_VER,mm:MM_MODE,cal:s.cal,kept:s.kept,cut:s.cut,dedupCut:s.dedupCut,ctxCut:s.ctxCut,mmChecked:s.mmChecked,mmCut:s.mmCut,mmBoost:s.mmBoost,spChecked:s.spChecked,spCut:s.spCut,spSave:s.spSave,clusters:lastGraph?lastGraph.stats.clusterCount:0}},clusters:function(customImgPairs,customItems){if(customItems)items=customItems;else if(N())items=N().items();if(customImgPairs){imgPairs=customImgPairs}var r=build();return r.graph},sortAdjacent:function(list,customImgPairs){if(customImgPairs)imgPairs=customImgPairs;var srcList=list||(N()?N().items():items);if(!items.length&&srcList.length)items=srcList;var r=build();return sortHousesAdjacent(srcList,r.graph)},analyze:analyzeThresholds,keys:function(){return{h:CACHE_KEY,p:PM_KEY}},cached:function(){return cacheLoaded?Object.keys(cache).length:-1},dino:function(){
+window.Dup={v:KV,retire:function(){return retList().map(function(x){return x.c})},ignStat:function(){return ignStat()},smart:function(){loadImgMode();var s=smartCalc();return{th:TH,ts:s.ts,mid:s.mid,tl:s.tl,strong:s.strong,algo:ALGO_VER,mm:MM_MODE,cal:s.cal,kept:s.kept,cut:s.cut,dedupCut:s.dedupCut,ctxCut:s.ctxCut,mmChecked:s.mmChecked,mmCut:s.mmCut,mmBoost:s.mmBoost,spChecked:s.spChecked,spCut:s.spCut,spSave:s.spSave,clusters:lastGraph?lastGraph.stats.clusterCount:0}},clusters:function(customImgPairs,customItems){if(customItems)items=customItems;else if(N())items=N().items();if(customImgPairs){imgPairs=customImgPairs}var r=build();return r.graph},sortAdjacent:function(list,customImgPairs){if(customImgPairs)imgPairs=customImgPairs;var srcList=list||(N()?N().items():items);if(!items.length&&srcList.length)items=srcList;var r=build();return sortHousesAdjacent(srcList,r.graph)},analyze:analyzeThresholds,keys:function(){return{h:CACHE_KEY,p:PM_KEY}},cached:function(){return cacheLoaded?Object.keys(cache).length:-1},dino:function(){
     if(DW.w)return"worker/"+DW.dev+" x"+BN+" res"+DS;
     if(DINO.m)return"main/wasm x"+BN+" res"+DS;
     if(DINO.p)return"đang tải";

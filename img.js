@@ -7,7 +7,7 @@
 (function(){
 "use strict";
 var G=function(i){return document.getElementById(i)};
-var NI=null,inited=false,IW=null,VW=0;
+var NI=null,inited=false,IW=null,VW=0,KV=1;   // KV: phiên bản cầu nối NI mà img.js này cần
 function imgSrc(s,w){return NI.imgSrc(s,w)}
 function segArr(it,k){return NI.segArr(it,k)}
 function curSeg(it){return NI.curSeg(it)}
@@ -166,6 +166,7 @@ function iwGo(){ckWarm();iwObs();iwPlan();iwPump()}
 function iwLater(ms){clearTimeout(IW.t);IW.t=setTimeout(iwGo,ms)}
 function init(ni){
   if(inited||!ni)return;
+  if(ni.v!==KV){var m="img.js (cầu nối v"+KV+") không khớp index.html (v"+ni.v+"). Hãy đóng hẳn rồi mở lại app để cập nhật.";try{console.error(m);var d=document.createElement("div");d.textContent=m;d.style.cssText="position:fixed;left:0;right:0;top:0;z-index:99999;padding:10px 14px;background:#b3261e;color:#fff;font:14px/1.4 sans-serif";(document.body||document.documentElement).appendChild(d)}catch(e){}return}
   inited=true;NI=ni;IW=ni.IW;VW=ni.VW;
   sweep(document);
   document.addEventListener("load",function(e){var im=e.target;if(im&&im.tagName==="IMG"&&!im.classList.contains("ld"))im.classList.add("ld")},true);
@@ -181,6 +182,6 @@ function init(ni){
   if(navigator.serviceWorker)navigator.serviceWorker.addEventListener("controllerchange",function(){iwLater(1500)});
   iwLater(2500);
 }
-window.Img={init:init,openLb:openLb,iwGal:iwGal,iwNow:iwNow,iwIntent:iwIntent,iwCkNow:iwCkNow,shrink:shrink,sweep:sweep};
+window.Img={v:KV,init:init,openLb:openLb,iwGal:iwGal,iwNow:iwNow,iwIntent:iwIntent,iwCkNow:iwCkNow,shrink:shrink,sweep:sweep};
 if(window.NI)init(window.NI);
 })();
