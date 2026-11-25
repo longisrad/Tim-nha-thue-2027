@@ -268,6 +268,38 @@ var TH=80,VL=1,ALGO_VER=8,MIN=2,imgPairs=null,scanning=false,stopFlag=false,cach
 
 /* ---------- Lưu danh sách "không phải trùng" vào localStorage ---------- */
 var undoSt=[],zlay=null,cmpAll={},smartPos={},smartImg={},smView=[],smHook=null;
+function saveSmartPos(){try{var ks=Object.keys(smartPos).slice(-300),im={};ks.forEach(function(k){if(smartImg[k])im[k]=smartImg[k]});ls("dsp1",JSON.stringify(ks));ls("dsp2",JSON.stringify(im))}catch(e){}}
+function cleanSmartPos(byId){
+  var ch=false;
+  Object.keys(smartPos).forEach(function(k){
+    var ids=k.split("|");
+    if((byId&&(!byId[ids[0]]||!byId[ids[1]]))||ignored[k]){delete smartPos[k];delete smartImg[k];ch=true}
+  });
+  if(ch)saveSmartPos();
+  return ch;
+}
+function buildInfCtx(byId){
+  var par={};
+  function fnd(x){if(par[x]===undefined)par[x]=x;while(par[x]!==x){par[x]=par[par[x]];x=par[x]}return x}
+  Object.keys(smartPos).forEach(function(k){
+    if(ignored[k])return;
+    var q=k.split("|");
+    if(byId&&(!byId[q[0]]||!byId[q[1]]))return;
+    par[fnd(q[0])]=fnd(q[1]);
+  });
+  var negC={};
+  Object.keys(ignored).forEach(function(k){
+    if(!ignored[k])return;
+    var q=k.split("|");
+    if(byId&&(!byId[q[0]]||!byId[q[1]]))return;
+    var x=fnd(q[0]),y=fnd(q[1]);
+    if(x!==y){negC[x+"\u0001"+y]=1;negC[y+"\u0001"+x]=1}
+  });
+  function isNeg(aId,bId){var x=fnd(aId),y=fnd(bId);return x!==y&&!!negC[x+"\u0001"+y]}
+  function samePos(aId,bId){return fnd(aId)===fnd(bId)}
+  function compPair(aId,bId){var x=fnd(aId),y=fnd(bId);return x<y?(x+"\u0001"+y):(y+"\u0001"+x)}
+  return{fnd:fnd,isNeg:isNeg,samePos:samePos,compPair:compPair};
+}
 function undoUi(){var b=G("dupundo"),u=undoSt[undoSt.length-1];if(!b)return;b.hidden=!u;if(u){G("dupundot").textContent=u.l;G("dupundob").textContent="↶ Hoàn tác"+(undoSt.length>1?" ("+undoSt.length+")":"")}}
 function undoPush(l,a){if(!a||!a.length)return;undoSt.push({l:l,a:a});if(undoSt.length>30)undoSt.shift();undoUi()}
 var ignDirty={},dsBusy=false,dsAgain=false,dsT=0,pullP=null,lastPull=0,ignIdbDone=false;
@@ -409,16 +441,18 @@ function pairCtx(a,b,tsText){
   if(pa!=null&&pb!=null)pDiff=Math.abs(pa-pb)/Math.max(pa,pb);
   var aa=num(a.ar),ab=num(b.ar),aDiff=null;
   if(aa!=null&&ab!=null)aDiff=Math.abs(aa-ab)/Math.max(aa,ab);
+  var pClose=pDiff!==null&&pDiff<=0.12&&!diffDist;
+  var aClose=aDiff!==null&&aDiff<=0.15&&!diffDist;
   var support=tsText||0;
   if(sameWard)support++;
   else if(sameDist&&(pDiff===null||pDiff<=0.25))support++;
-  if(pDiff!==null&&pDiff<=0.12&&!diffDist)support++;
-  if(aDiff!==null&&aDiff<=0.15&&!diffDist)support++;
+  if(pClose)support++;
+  if(aClose)support++;
   var conflict=false;
   if(diffDist&&(pDiff===null||pDiff>0.2))conflict=true;
   if(pDiff!==null&&pDiff>0.45)conflict=true;
   if(aDiff!==null&&aDiff>0.55&&pDiff!==null&&pDiff>0.3)conflict=true;
-  return{support:support,conflict:conflict,sameDist:sameDist,diffDist:diffDist,pDiff:pDiff}}
+  return{support:support,conflict:conflict,sameDist:sameDist,sameWard:sameWard,diffDist:diffDist,pDiff:pDiff,pClose:pClose,aClose:aClose}}
 function oneToOnePairs(list,isNorm){
   var sorted=list.slice().sort(function(p,q){
     var np=p.n!=null?p.n:Math.max(0,100-p.d),nq=q.n!=null?q.n:Math.max(0,100-q.d);
@@ -774,6 +808,7 @@ function build(){
   loadIgnored();
   var src=activeItems(),P={},byId={};
   src.forEach(function(it){byId[it.id]=it});
+  var inf=buildInfCtx(byId);
   textPairs(src).forEach(function(t){var a=byId[t.a],b=byId[t.b];if(a&&b)P[t.a+"|"+t.b]={a:a,b:b,why:t.why.slice(),img:[]}});
   if(imgPairs)imgPairs.forEach(function(r){var a=byId[r.a.id],b=byId[r.b.id];if(!a||!b)return;var o=addP(P,a,b,"img");if(!o)return;var sw=o.a.id!==r.a.id;o.img.push(sw?{x:r.y,y:r.x,d:r.d,k:r.k||"",o:r.o||"",n:r.n}:{x:r.x,y:r.y,d:r.d,k:r.k||"",o:r.o||"",n:r.n})});
   filterGenericImgs(P,src.length);
@@ -790,7 +825,10 @@ function build(){
   var all=Object.keys(P).map(function(k){var o=P[k];o.sc=sc(o);return o}).sort(function(a,b){return(ih(b)?1:0)-(ih(a)?1:0)||b.sc-a.sc||b.img.length-a.img.length});
   var active=[],ign=[];
   all.forEach(function(p){
-    if(ignored[p.a.id+"|"+p.b.id]){ign.push(p);return}
+    var pk=p.a.id+"|"+p.b.id;
+    if(ignored[pk]){ign.push(p);return}
+    if(!smartPos[pk]&&inf.isNeg(p.a.id,p.b.id))return;   /* suy luận bắc cầu âm: tự ẩn cặp chắc chắn không trùng */
+    if(smartPos[pk]||inf.samePos(p.a.id,p.b.id))p.smPos=true;
     if(!ih(p)&&p.sc>=MIN&&priceDiffOver20(p.a,p.b))return;
     active.push(p);
   });
@@ -1126,9 +1164,11 @@ function checkPairImg(el){
     });
   },function(e){pairImgMsg[k]={bad:true,text:"Không tải được mô hình DINOv3 (cần mạng ở lần đầu): "+(e&&e.message||e)};paintPair(idx,k)})}
 function afterDel(id){
-  loadIgnored();var changed=false;
+  loadIgnored();var changed=false,spChg=false;
   Object.keys(ignored).forEach(function(k){var ids=k.split("|");if(ids[0]===id||ids[1]===id){delete ignored[k];ignDirty[k]=0;changed=true}});
+  Object.keys(smartPos).forEach(function(k){var ids=k.split("|");if(ids[0]===id||ids[1]===id){delete smartPos[k];delete smartImg[k];spChg=true}});
   if(changed)saveIgnored();
+  if(spChg)saveSmartPos();
   sync()}
 function delItem(el,cb){
   var p=String(el.dataset.del||"").split(":"),o=viewList[+p[0]],it=o&&o[p[1]];
@@ -2038,6 +2078,13 @@ function cmpSig(a,b,th){
    - Tối ưu vòng lặp patchMaxSim bằng register blocking 4x4 (d+=2), Float32 scratch buffer & sort in-place không cấp phát rác.
    - Kết hợp CSLS (Cross-domain Similarity Local Scaling) trên mọi kịch bản vùng xám để triệt tiêu hub ảnh phòng chung. */
 var ptCache={},ptOrder=[],PT_CAP=240,mcCache={},mcOrder=[],MC_CAP=600,mmInflight={};
+var smMmPairRes={},smMmOrder=[],SM_MM_CAP=1500,smRawCache=null;
+function putSmMmRes(s,val){
+  if(smMmPairRes[s]===undefined){
+    smMmOrder.push(s);
+    while(smMmOrder.length>SM_MM_CAP){var old=smMmOrder.shift();delete smMmPairRes[old]}
+  }
+  smMmPairRes[s]=val}
 var ptBufCap=0,ptBufA=null,ptBufB=null,ptVecCap=0,ptMaxA=null,ptMaxB=null,ptBgA=null,ptBgB=null;
 function ensurePtBuf(na,nb){
   var needV=Math.max(256,na,nb);
@@ -2376,34 +2423,57 @@ function verifyImgOf(s,wantPt,wantMc){
     im.src=isLh?(u+"?dh=3"):u;
   });
   mmInflight[key]=p;return p}
-function verifyGrayZonePairs(list,isScan){
+function verifyGrayZonePairs(list,isScan,thOv,opts){
+  opts=opts||{};
   if(!MM_MODE||!list.length)return Promise.resolve(list);
-  var cfg=smartCalc(),ts=cfg.ts,tl=cfg.tl,strong=cfg.strong;
-  var tMap=textScoreMap(activeItems()),pairCnt={},grayPairs=[];
+  var cfg=smartCalc(thOv),ts=cfg.ts,tl=cfg.tl,strong=cfg.strong;
+  var tMap=opts.preTMap||textScoreMap(opts.preSrc||activeItems()),pairCnt={},grayPairs=[];
   list.forEach(function(r){
     var loId=r.a.id<r.b.id?r.a.id:r.b.id,hiId=r.a.id<r.b.id?r.b.id:r.a.id,k=loId+"|"+hiId;
     pairCnt[k]=(pairCnt[k]||0)+1;
     if(r.x!==r.y&&r.n<strong)grayPairs.push(r);
   });
   SM.mmChecked=0;SM.mmCut=0;SM.mmBoost=0;SM.spChecked=0;SM.spCut=0;SM.spSave=0;
-  if(!grayPairs.length)return Promise.resolve(list);
-  var workPairs=grayPairs,uniq={},urls=[];   /* xác minh TẤT CẢ cặp vùng xám (chia mẻ bên dưới để không tràn cache patch token) */
-  workPairs.forEach(function(r){if(!uniq[r.x]){uniq[r.x]=1;urls.push(r.x)}if(!uniq[r.y]){uniq[r.y]=1;urls.push(r.y)}});
+  var visInfo=opts.visInfo||null;
+  if(!grayPairs.length){
+    if(visInfo){
+      list.forEach(function(r){
+        var loId=r.a.id<r.b.id?r.a.id:r.b.id,hiId=r.a.id<r.b.id?r.b.id:r.a.id,hk=loId+"|"+hiId;
+        var vi=visInfo[hk]||(visInfo[hk]={checked:0,hasVis:false,kept:0,strongOk:0,dropped:0,maxEns:0});
+        vi.kept++;if(r.n>vi.maxEns)vi.maxEns=r.n;
+      });
+    }
+    return Promise.resolve(list);
+  }
+  var workPairs=grayPairs,uniq={},urls=[],wantPt=MM_MODE===3||MM_MODE===4,wantMc=MM_MODE===2||MM_MODE===4;
+  var extractPairs=[];
+  workPairs.forEach(function(r){
+    if(!uniq[r.x]){uniq[r.x]=1;urls.push(r.x)}
+    if(!uniq[r.y]){uniq[r.y]=1;urls.push(r.y)}
+    var mmK=MM_MODE+"|"+CACHE_KEY+"|"+r.x+"|"+r.y,cm=smMmPairRes[mmK];
+    var hasPt=!wantPt||(cm&&cm.pt!==undefined);
+    var hasMc=!wantMc||(cm&&cm.mc!=null)||(mcCache[r.x]!==undefined&&mcCache[r.y]!==undefined);
+    if(!(hasPt&&hasMc))extractPairs.push(r);
+  });
   if(MC_CAP<urls.length+50)MC_CAP=urls.length+50;   /* vector Trung tâm nhỏ: giữ đủ cho mọi ảnh vùng xám để tính hub */
   var ownerMap=buildOwnerMap(workPairs),rCls=buildClsHubMap(urls,ownerMap);
-  var wantPt=MM_MODE===3||MM_MODE===4,wantMc=MM_MODE===2||MM_MODE===4,modelReady=!!(DW.w||DINO.m);
-  var prepModel=(!modelReady&&navigator.onLine!==false)?dinoLoad().then(function(){return true},function(){return false}):Promise.resolve(modelReady);
+  var modelReady=!!(DW.w||DINO.m);
+  var prepModel=(extractPairs.length&&!modelReady&&navigator.onLine!==false)?dinoLoad().then(function(){return true},function(){return false}):Promise.resolve(modelReady||!extractPairs.length);
   return prepModel.then(function(canDino){
-    if(stopFlag&&scanning)return list;
+    if(stopFlag&&scanning&&isScan)return list;
     var mmTxt="Đang xác minh "+(wantPt&&wantMc?"Patch MaxSim + Spatial + Trung tâm + CSLS":wantPt?"Patch Token + MaxSim + Spatial + CSLS":"Trung tâm 75% + CSLS");
     return Promise.resolve().then(function(){
-      if(stopFlag&&scanning)return list;
+      if(stopFlag&&scanning&&isScan)return list;
       var workMap={};
       workPairs.forEach(function(r){workMap[r.a.id+"|"+r.b.id+"|"+r.x+"|"+r.y]=r});
       var ptResults={},spResults={},doneN=0;
+      workPairs.forEach(function(r){
+        var rk0=r.a.id+"|"+r.b.id+"|"+r.x+"|"+r.y,cm=smMmPairRes[MM_MODE+"|"+CACHE_KEY+"|"+r.x+"|"+r.y];
+        if(cm){if(cm.pt)ptResults[rk0]=cm.pt;if(cm.sv)spResults[rk0]=cm.sv}
+      });
       /* Chia mẻ: mỗi mẻ tối đa PT_CAP-40 ảnh khác nhau để ảnh đã trích không bị đẩy khỏi cache trước khi chấm điểm */
       var batches=[],cur=[],curU={},curN=0,LIM=(canDino&&wantPt)?Math.max(20,PT_CAP-40):1e9;
-      workPairs.forEach(function(r){
+      extractPairs.forEach(function(r){
         var add=(curU[r.x]?0:1)+((r.y!==r.x&&!curU[r.y])?1:0);
         if(cur.length&&curN+add>LIM){batches.push(cur);cur=[];curU={};curN=0}
         cur.push(r);
@@ -2415,16 +2485,24 @@ function verifyGrayZonePairs(list,isScan){
       function scoreBatch(bp){
         var wi=0;
         function chunk(){
-          if(stopFlag&&scanning)return Promise.resolve(false);
+          if(stopFlag&&scanning&&isScan)return Promise.resolve(false);
           var t0=Date.now();
           while(wi<bp.length){
             var r=bp[wi++];doneN++;
-            if(canDino&&wantPt){
-              var pa=ptCache[r.x],pb=ptCache[r.y];
-              if(pa&&pb){var rk0=r.a.id+"|"+r.b.id+"|"+r.x+"|"+r.y,pr0=patchMaxSim(pa,pb);ptResults[rk0]=pr0;if(spNeeded(pr0,ts)){var sv0=spatialVerify(pa,pb);if(sv0)spResults[rk0]=sv0}}
+            if(canDino){
+              var pr0=null,sv0=null,mc0=null;
+              if(wantPt){
+                var pa=ptCache[r.x],pb=ptCache[r.y];
+                if(pa&&pb){var rk0=r.a.id+"|"+r.b.id+"|"+r.x+"|"+r.y;pr0=patchMaxSim(pa,pb);ptResults[rk0]=pr0;if(spNeeded(pr0,ts)){sv0=spatialVerify(pa,pb);if(sv0)spResults[rk0]=sv0}}
+              }
+              if(wantMc){
+                var ma0=mcCache[r.x],mb0=mcCache[r.y];
+                if(ma0&&mb0)mc0=Math.min(100,Math.round(dotV(ma0,mb0)*100));
+              }
+              if(pr0||mc0!==null)putSmMmRes(MM_MODE+"|"+CACHE_KEY+"|"+r.x+"|"+r.y,{pt:pr0,sv:sv0,mc:mc0});
             }
             if(canDino&&wantPt&&wi<bp.length&&(Date.now()-t0>=24)){
-              if(isScan&&!stopFlag)msg("Đang so Patch MaxSim + Spatial + CSLS ("+doneN+"/"+workPairs.length+" cặp)…");
+              if(isScan&&!stopFlag)msg("Đang so Patch MaxSim + Spatial + CSLS ("+doneN+"/"+extractPairs.length+" cặp)…");
               return new Promise(function(ok){setTimeout(ok,0)}).then(chunk);
             }
           }
@@ -2433,14 +2511,14 @@ function verifyGrayZonePairs(list,isScan){
         return chunk();
       }
       function runBatch(){
-        if(stopFlag&&scanning)return Promise.resolve(false);
+        if(stopFlag&&scanning&&isScan)return Promise.resolve(false);
         if(bi>=batches.length)return Promise.resolve(true);
         var bp=batches[bi++],bu=[],bs={},ext,idx=0;
         bp.forEach(function(r){if(!bs[r.x]){bs[r.x]=1;bu.push(r.x)}if(!bs[r.y]){bs[r.y]=1;bu.push(r.y)}});
-        if(canDino){
-          if(isScan&&!stopFlag)msg(mmTxt+" ("+workPairs.length+" cặp vùng xám"+(batches.length>1?" · mẻ "+bi+"/"+batches.length:"")+")…");
+        if(canDino&&bu.length){
+          if(isScan&&!stopFlag)msg(mmTxt+" ("+extractPairs.length+" cặp vùng xám"+(batches.length>1?" · mẻ "+bi+"/"+batches.length:"")+")…");
           var w=function(){
-            if((stopFlag&&scanning)||idx>=bu.length)return Promise.resolve();
+            if((stopFlag&&scanning&&isScan)||idx>=bu.length)return Promise.resolve();
             var u=bu[idx++];
             return verifyImgOf(u,wantPt,wantMc).then(w);
           };
@@ -2448,27 +2526,40 @@ function verifyGrayZonePairs(list,isScan){
         }else ext=Promise.resolve();
         return ext.then(function(){return scoreBatch(bp)}).then(function(ok){return ok?runBatch():false});
       }
-      if(!canDino&&isScan&&!stopFlag)msg("Đang xác minh CSLS ("+workPairs.length+" cặp vùng xám)…");
+      if(!canDino&&isScan&&!stopFlag&&extractPairs.length)msg("Đang xác minh CSLS ("+extractPairs.length+" cặp vùng xám)…");
       return runBatch().then(function(ok){
-        if(!ok||(stopFlag&&scanning))return list;
+        if(!ok||(stopFlag&&scanning&&isScan))return list;
         var rMc=(canDino&&wantMc)?buildVecHubMap(urls,mcCache,ownerMap,5):null;
         var rPt=(canDino&&wantPt)?buildPtHubMap(workPairs,ptResults):null;
         var kept=[];
         list.forEach(function(r){
           var rk=r.a.id+"|"+r.b.id+"|"+r.x+"|"+r.y;
-          if(!workMap[rk]){kept.push(r);return}
-          var pmRes=(canDino&&wantPt)?ptResults[rk]:null,spRes=(pmRes&&spResults[rk])||null;
-          var ma=(canDino&&wantMc)?mcCache[r.x]:null,mb=(canDino&&wantMc)?mcCache[r.y]:null;
-          var mcSim=(ma&&mb)?Math.min(100,Math.round(dotV(ma,mb)*100)):null;
+          var loId=r.a.id<r.b.id?r.a.id:r.b.id,hiId=r.a.id<r.b.id?r.b.id:r.a.id,hk=loId+"|"+hiId;
+          if(!workMap[rk]){
+            if(visInfo){
+              var vi0=visInfo[hk]||(visInfo[hk]={checked:0,hasVis:false,kept:0,strongOk:0,dropped:0,maxEns:0});
+              vi0.kept++;if(r.n>vi0.maxEns)vi0.maxEns=r.n;
+            }
+            kept.push(r);return;
+          }
+          var mmKey=MM_MODE+"|"+CACHE_KEY+"|"+r.x+"|"+r.y,cm=smMmPairRes[mmKey];
+          var pmRes=wantPt?(ptResults[rk]||(cm&&cm.pt)||null):null,spRes=(pmRes&&(spResults[rk]||(cm&&cm.sv)))||null;
+          var ma=wantMc?mcCache[r.x]:null,mb=wantMc?mcCache[r.y]:null;
+          var mcSim=(ma&&mb)?Math.min(100,Math.round(dotV(ma,mb)*100)):(wantMc&&cm&&cm.mc!=null?cm.mc:null);
           var clsHub=(rCls[r.x]!==undefined&&rCls[r.y]!==undefined)?0.5*(rCls[r.x]+rCls[r.y]):null;
           var clsMargin=clsHub!==null?(r.n-clsHub):null;
           var mcHub=(mcSim!==null&&rMc&&rMc[r.x]!==undefined&&rMc[r.y]!==undefined)?0.5*(rMc[r.x]+rMc[r.y]):null;
           var mcMargin=mcHub!==null?(mcSim-mcHub):null;
           var ptHub=(pmRes&&rPt&&rPt[r.x]!==undefined&&rPt[r.y]!==undefined)?0.5*(rPt[r.x]+rPt[r.y]):null;
           var ptMargin=ptHub!==null?(pmRes.sim-ptHub):null;
-          if(!pmRes&&mcSim===null&&clsMargin===null){kept.push(r);return}
+          if(!pmRes&&mcSim===null&&clsMargin===null){
+            if(visInfo){
+              var vi1=visInfo[hk]||(visInfo[hk]={checked:0,hasVis:false,kept:0,strongOk:0,dropped:0,maxEns:0});
+              vi1.kept++;if(r.n>vi1.maxEns)vi1.maxEns=r.n;
+            }
+            kept.push(r);return;
+          }
           SM.mmChecked++;if(spRes)SM.spChecked++;
-          var loId=r.a.id<r.b.id?r.a.id:r.b.id,hiId=r.a.id<r.b.id?r.b.id:r.a.id,hk=loId+"|"+hiId;
           var tsText=tMap[hk]||0,nInPair=pairCnt[hk]||1;
           var ptBad=pmRes?(pmRes.sim<Math.max(48,ts-26)||(pmRes.sim<Math.max(54,ts-20)&&pmRes.top<Math.max(66,ts-10))):false;
           var ptWeak=pmRes?(pmRes.sim<Math.max(58,ts-17)&&pmRes.top<Math.max(72,ts-5)):false;
@@ -2518,7 +2609,16 @@ function verifyGrayZonePairs(list,isScan){
             else if(nInPair===1&&tsText<1&&r.n<ts+1&&cClsWeak)drop=true;
           }
           if(drop&&spStrong&&!ptBad&&!mcBad&&r.n>=ts-2){drop=false;SM.spSave++}   /* hình học nhất quán mạnh: cứu cặp bị CSLS/hub loại nhầm */
-          if(drop){SM.mmCut++;if(spBad)SM.spCut++;return}
+          var hasVis=!!(pmRes||mcSim!==null);
+          if(drop){
+            SM.mmCut++;if(spBad)SM.spCut++;
+            if(visInfo){
+              var viD=visInfo[hk]||(visInfo[hk]={checked:0,hasVis:false,kept:0,strongOk:0,dropped:0,maxEns:0});
+              viD.checked++;if(hasVis)viD.hasVis=true;viD.dropped++;
+            }
+            return;
+          }
+          var outEns=r.n;
           if(ptGood||mcGood||spStrong||(cslsGood&&!ptWeak&&!mcWeak&&r.n>=ts-2)){
             var ens=r.n,tagK="",cAdj=((cslsGood&&!cslsWeak)?2:(cslsWeak&&!cslsGood?-2:0))+(spBad?-2:0);
             if(ptGood&&mcGood){ens=(spGood?Math.round(r.n*0.40+ptMapped*0.27+mcSim*0.20+spMapped*0.13):Math.round(r.n*0.45+ptMapped*0.30+mcSim*0.25))+cAdj;tagK=spGood?"pms":"pm"}
@@ -2528,12 +2628,19 @@ function verifyGrayZonePairs(list,isScan){
             else{ens=r.n+cAdj;tagK="cs"}
             ens=Math.max(Math.max(tl,r.n-2),Math.min(99,Math.min(r.n+5,ens)));
             r={a:r.a,b:r.b,x:r.x,y:r.y,n:ens,d:100-ens,k:tagK,o:r.o};
+            outEns=ens;
             SM.mmBoost++;
+          }
+          if(visInfo){
+            var viK=visInfo[hk]||(visInfo[hk]={checked:0,hasVis:false,kept:0,strongOk:0,dropped:0,maxEns:0});
+            viK.checked++;if(hasVis)viK.hasVis=true;viK.kept++;
+            if(outEns>viK.maxEns)viK.maxEns=outEns;
+            if(hasVis&&!cslsWeak&&((spStrong&&ptGood)||(ptGood&&mcGood&&!spBad)))viK.strongOk++;
           }
           kept.push(r);
         });
         var cutN=SM.mmCut;
-        var finalOut=cutN?smartFilter(kept):kept;
+        var finalOut=cutN?smartFilter(kept,thOv,opts.preSrc,tMap):kept;
         finalOut.rej=cutN;
         return finalOut;
       });
@@ -2856,13 +2963,16 @@ function init(nt){
       q.forEach(function(x){try{x.bad(new Error("Cấu hình mô hình đã thay đổi"))}catch(e){}});
       if(DW.tm){clearTimeout(DW.tm);DW.tm=0}
       mcCache={};mcOrder=[];ptCache={};ptOrder=[];
+      smMmPairRes={};smMmOrder=[];smRawCache=null;
     }
+    if(newEng.mm!==MM_MODE){smMmPairRes={};smMmOrder=[]}
     if(keyChanged||f16Changed){
       CACHE_KEY=newCacheKey;PM_KEY=newPmKey;
       cacheLoaded=false;cacheP=null;cache={};
       pmLoaded=false;pmP=null;pm=null;
       imgPairs=null;sigMemo={};
       hs=null;hsP=null;hsPendR=null;
+      smRawCache=null;
     }
     if(f16Changed){
       wipeP=clearPrecisionCache(oldCacheKey,oldPmKey,newCacheKey,newPmKey,oldF16);
@@ -3020,10 +3130,9 @@ function init(nt){
   /* ===== Quét thông minh: chạy khi danh sách «Không phải trùng» còn trống =====
      Quét ảnh → tìm ngưỡng phù hợp → hiện các cặp vùng xám (có xem ảnh + so sánh lớn) để xác nhận Trùng / Không phải trùng → quét lại bằng ngưỡng gợi ý mới.
      Trạng thái từng cặp lấy thẳng từ danh sách «Không phải trùng» (ignored) và smartPos nên đồng bộ cả khi đánh dấu từ khung so sánh lớn. */
-  var smAutoTxt="",smRes=null,smGray=[],smRunning=false,smCalc=false,smTok=0,smSig="",smRoundN=0;
+  var smAutoTxt="",smRes=null,smGray=[],smRunning=false,smCalc=false,smTok=0,smSig="",smRoundN=0,smThDirty=false;
   try{(JSON.parse(ls("dsp1")||"[]")||[]).forEach(function(k){smartPos[k]=1})}catch(e){}
   try{var _si=JSON.parse(ls("dsp2")||"{}")||{};Object.keys(_si).forEach(function(k){if(smartPos[k]&&Array.isArray(_si[k]))smartImg[k]=_si[k]})}catch(e){}
-  function saveSmartPos(){try{var ks=Object.keys(smartPos).slice(-300),im={};ks.forEach(function(k){if(smartImg[k])im[k]=smartImg[k]});ls("dsp1",JSON.stringify(ks));ls("dsp2",JSON.stringify(im))}catch(e){}}
   function ignActiveCount(){
     loadIgnored();
     var byId={},n=0;
@@ -3040,7 +3149,8 @@ function init(nt){
     function nm(it){return '<span class="dpsc-nm"><b>'+esc(it.n)+'</b><small>'+esc(addrOf(it)||"Chưa có địa chỉ")+(it.p!=null?" · "+fmt(it.p)+" tr":"")+'</small></span>'}
     return '<div class="dpc dpsc'+(st?" "+st:"")+'" data-k="'+esc(g.k)+'" data-i="'+i+'"><div class="dpsc-h">'+simBadge(g.mx)+'<span class="dpsc-t">'+g.nImg+' ảnh khớp · '+(g.side==="below"?"dưới ngưỡng gợi ý":"sát ngưỡng gợi ý")+'</span></div><div class="dpsc-hs">'+nm(g.a)+nm(g.b)+'</div><div class="dpsc-i">'+th+'</div><div class="dpsc-b"><button type="button" class="dpimgbtn" data-cmpfull="'+i+'" title="Mở so sánh toàn màn hình">So sánh lớn</button><button type="button" class="dpimgbtn" data-smimg="'+i+'" aria-expanded="'+(g.open?"true":"false")+'"'+(tot?"":" disabled")+'>'+(tot?smImgTxt(o,!!g.open):"Không có ảnh")+'</button><button type="button" class="dpimgbtn dpv" data-tog="'+i+'" title="Xem thông tin hai căn">'+(openSet[g.k]?"Ẩn thông tin":"Thông tin")+'</button></div><div class="dpdet"'+(openSet[g.k]?"":" hidden")+'>'+(openSet[g.k]?detailH(o,i):"")+'</div><div class="dpimgs"'+(g.open?"":" hidden")+'>'+(g.open?imgCmpH(o,i):"")+'</div><div class="dpsc-a"><button type="button" class="dpsc-yes'+(st==="y"?" on":"")+'" data-sa="y">Trùng</button><button type="button" class="dpsc-no'+(st==="n"?" on":"")+'" data-sa="n">Không phải trùng</button></div></div>'}
   function smAskH(){
-    return '<div class="dpsm-h"><b>Quét thông minh'+(smRoundN>1?' · vòng '+smRoundN:'')+'</b><span class="dpsm-chip"></span></div><p class="dpsm-p">Ngưỡng đang dùng '+TH+'%. Còn cặp «Không phải trùng» thì áp ngưỡng gợi ý mới, quét lại rồi hiện bảng tiếp theo; lặp lại tới khi tất cả cặp hiện ra đều «Trùng» thì dừng. Bấm ảnh để phóng to, «So sánh lớn» để xem toàn màn hình. «Không phải trùng» ẩn cặp đó và đẩy ngưỡng gợi ý lên, «Trùng» giữ cặp đó làm mốc đúng.</p>'+smGray.map(smCardH).join("")+'<div class="dpsm-f"><button type="button" class="btn" data-sm="skip">Bỏ qua</button><button type="button" class="btn p" data-sm="apply"></button></div>'}
+    var remTxt=(smRes&&smRes.grayTotal>smGray.length)?(" · còn "+smRes.grayTotal+" cặp vùng xám"):"";
+    return '<div class="dpsm-h"><b>Quét thông minh'+(smRoundN>1?' · vòng '+smRoundN:'')+'</b><span class="dpsm-chip"></span></div><p class="dpsm-p">Ngưỡng đang dùng '+TH+'%'+remTxt+'. Đánh dấu từng cặp rồi hệ thống tự tinh chỉnh tới khi danh sách cuối chỉ còn các cặp trùng. «Không phải trùng» ẩn cặp đó và đẩy ngưỡng lên, «Trùng» giữ cặp đó làm mốc đúng.</p>'+smGray.map(smCardH).join("")+'<div class="dpsm-f"><button type="button" class="btn" data-sm="skip">Bỏ qua</button><button type="button" class="btn p" data-sm="apply"></button></div>'}
   /* cập nhật tại chỗ (không dựng lại thẻ) để ảnh không nháy */
   function smPaint(){
     var p=G("dupsmart");if(!p||p.hidden||!smRes)return;
@@ -3054,17 +3164,17 @@ function init(nt){
     }
     var ch=p.querySelector(".dpsm-chip");if(ch)ch.textContent="Gợi ý "+rec+"%"+(smCalc?" …":"");
     var ap=p.querySelector("[data-sm=apply]");
-    if(ap){ap.disabled=smCalc;ap.textContent=rec!==TH?"Áp dụng "+rec+"% & quét lại":"Giữ "+rec+"%"}
+    if(ap){ap.disabled=smCalc;ap.textContent=rec!==TH?"Áp dụng "+rec+"% & tiếp tục":"Áp dụng & tiếp tục"}
   }
   function smAllDone(){return smGray.length>0&&smGray.every(function(g){return !!smSt(g.k)})}
   function smSigOf(){loadIgnored();return smGray.map(function(g){return smSt(g.k)||"-"}).join("")}
   function smClose(){smTok++;smCalc=false;smRes=null;smGray=[];smView=[];closeZoom();smPanel("")}
   function smRefresh(){
     var tok=++smTok;smCalc=true;smPaint();
-    analyzeThresholds().then(function(res){
+    analyzeThresholds({fast:true}).then(function(res){
       if(tok!==smTok)return;
       smCalc=false;
-      if(res&&res.ok&&smRes)smRes.recommended=res.recommended;
+      if(res&&res.ok&&smRes){smRes.recommended=res.recommended;smRes.hasMore=!!res.hasMore;smRes.grayTotal=res.grayTotal||0}
       smPaint();
       if(smAllDone())smApply();
     },function(){if(tok===smTok){smCalc=false;smPaint()}});
@@ -3101,12 +3211,23 @@ function init(nt){
       if(g.open){box.innerHTML=imgCmpH(o,i);markImgs(box);box.hidden=false;box.classList.remove("dpopen");void box.offsetWidth;box.classList.add("dpopen");warmPair(o)}
       else box.hidden=true}
   }
-  function smWaitScan(){return new Promise(function(r){if(scanning)scanDoneWaiters.push(r);else r()})}
-  /* Một vòng: phân tích ngưỡng → hiện cặp vùng xám. Có «Không phải trùng» thì smApply áp ngưỡng gợi ý mới, quét lại rồi lặp vòng kế tiếp
-   (hiện bảng mới); tất cả đều «Trùng» thì áp ngưỡng gợi ý rồi dừng. Hết cặp vùng xám cũng dừng. Không giới hạn số vòng. */
+  function quickRefilterPairs(th){
+    if(!smRawCache||!smRawCache.list)return;
+    var snap=smSnap();
+    var byId={};activeItems().forEach(function(it){byId[it.id]=it});
+    var inf=buildInfCtx(byId);
+    var cand=smRawCache.list.filter(function(r){
+      var lo=r.a.id<r.b.id?r.a.id:r.b.id,hi=r.a.id<r.b.id?r.b.id:r.a.id,k=lo+"|"+hi;
+      return !ignored[k]&&(smartPos[k]||!inf.isNeg(lo,hi));
+    });
+    imgPairs=smartFilter(cand,th);
+    smBack(snap);
+  }
+  /* Một vòng: phân tích ngưỡng → xác minh thị giác ứng viên vùng xám → tự loại cặp chắc chắn sai → hiện tối đa 6 cặp đáng hỏi nhất.
+     Lặp không giới hạn số vòng cho tới khi sạch hết vùng xám (hoặc các cặp còn lại đều là Trùng và không còn ứng viên mờ). */
   function smRound(){
     smRoundN++;smRunning=true;
-    smPanel('<div class="dpsm-h"><b>Quét thông minh'+(smRoundN>1?' · vòng '+smRoundN:'')+'</b></div><p class="dpsm-p" id="dupsmst">Đang tìm ngưỡng phù hợp…</p>');
+    smPanel('<div class="dpsm-h"><b>Quét thông minh'+(smRoundN>1?' · vòng '+smRoundN:'')+'</b></div><p class="dpsm-p" id="dupsmst">Đang tìm ngưỡng &amp; xác minh vùng xám…</p>');
     return analyzeThresholds().then(function(res){
       smRunning=false;
       if(!res||!res.ok){smPanel("");msg((res&&res.msg)||"Chưa phân tích được.",1);return}
@@ -3115,47 +3236,69 @@ function init(nt){
         loadIgnored();
         var tsA=Date.now(),nA=0;
         res.autoNeg.forEach(function(k){if(!ignored[k]){ignored[k]=tsA;ignDirty[k]=tsA;delete openSet[k];delete openImgSet[k];nA++}});
-        if(nA){saveIgnored();autoTxt=" · tự loại "+nA+" cặp chắc chắn không trùng"}
+        if(nA){saveIgnored();autoTxt=" · tự loại "+nA+" cặp không trùng"}
       }
-      if(res.auto&&(res.auto.dom+res.auto.weak+res.auto.pos>0))autoTxt+=" · bỏ qua "+(res.auto.dom+res.auto.weak)+" cặp yếu"+(res.auto.pos?", suy ra "+res.auto.pos+" cặp trùng":"");
+      if(res.auto){
+        var skipCnt=(res.auto.dom||0)+(res.auto.weak||0)+(res.auto.mm||0);
+        if(skipCnt>0||res.auto.pos>0||res.auto.mmOk>0)autoTxt+=" · lọc "+skipCnt+" cặp yếu"+(res.auto.mmOk?", giữ "+res.auto.mmOk+" cặp chắc chắn trùng":"")+(res.auto.pos?", suy ra "+res.auto.pos+" cặp trùng":"");
+      }
       smAutoTxt=autoTxt;
-      smRes={recommended:res.recommended};smGray=(res.gray||[]).slice().sort(function(x,y){return((y.mx||0)-(x.mx||0))||(y.nImg||0)-(x.nImg||0)});
+      smRes={recommended:res.recommended,hasMore:!!res.hasMore,grayTotal:res.grayTotal||0};
+      smGray=(res.gray||[]).slice().sort(function(x,y){return((y.mx||0)-(x.mx||0))||(y.nImg||0)-(x.nImg||0)});
       if(!smGray.length){
         smPanel("");smRes=null;
-        if(res.recommended!==TH){
+        if(res.recommended!==TH||smThDirty||imgPairs===null){
           var i=G("dupth");if(i)i.value=String(res.recommended);
-          syncSensDraft();msg((smRoundN>1?"Không còn cặp vùng xám":"Không có cặp vùng xám cần xác nhận")+smAutoTxt+" · quét lại với ngưỡng gợi ý "+res.recommended+"%…");
+          syncSensDraft();smThDirty=false;
+          msg((smRoundN>1?"Đã lọc sạch vùng xám":"Không có cặp vùng xám cần xác nhận")+smAutoTxt+" · quét lại với ngưỡng tối ưu "+res.recommended+"%…");
           applyAndSaveSettings();
-        }else msg(smRoundN>1?"Đã xác nhận xong · ngưỡng "+TH+"% phù hợp, không còn cặp vùng xám.":"Ngưỡng "+TH+"% đã phù hợp · không có cặp vùng xám cần xác nhận.");
+        }else{
+          render();
+          msg((smRoundN>1?"Đã xác nhận xong":"Ngưỡng "+TH+"% đã tối ưu")+smAutoTxt+" · danh sách chỉ còn các cặp trùng.");
+        }
         return;
       }
       /* đăng ký cặp vào viewList (đứng đầu, chỉ số cố định) để dùng chung khung so sánh lớn / xem ảnh */
       smView=smGray.map(function(g){return{a:g.a,b:g.b,why:["img"],img:g.imgs||[],sc:0}});
       render();
       smPanel(smAskH());smSig=smSigOf();smPaint();
-      msg((smRoundN>1?"Vòng "+smRoundN+": ":"")+"tìm thấy "+smGray.length+" cặp vùng xám · gợi ý ngưỡng "+res.recommended+"%"+smAutoTxt+".");
+      msg((smRoundN>1?"Vòng "+smRoundN+": ":"")+"cần xác nhận "+smGray.length+(res.grayTotal>smGray.length?"/"+res.grayTotal:"")+" cặp vùng xám · gợi ý "+res.recommended+"%"+smAutoTxt+".");
     }).then(null,function(){smRunning=false;smPanel("")});
   }
   function smApply(){
     var rec=smRes&&smRes.recommended;
     var hadN=smGray.some(function(g){return smSt(g.k)==="n"});
+    var hasMore=!!(smRes&&smRes.hasMore);
     var allY=smGray.length>0&&smGray.every(function(g){return smSt(g.k)==="y"});
     smClose();
-    function next(){
+    function finishScan(){
       if(stopFlag)return;
-      if(hadN)return smRound();   /* còn «Không phải trùng» → quét lại xong hiện bảng vòng kế tiếp, lặp tới khi cả bảng đều «Trùng» */
-      msg(allY?"Đã xác nhận xong · tất cả cặp vùng xám đều trùng · ngưỡng "+TH+"%.":"Đã áp dụng ngưỡng "+TH+"%.");
+      if(rec>=60&&rec<=99&&(rec!==TH||smThDirty||imgPairs===null)){
+        var i=G("dupth");if(i)i.value=String(rec);
+        syncSensDraft();smThDirty=false;
+        msg((allY?"Tất cả đều trùng · ":"")+"đang hoàn tất quét ở ngưỡng tối ưu "+rec+"%…");
+        return applyAndSaveSettings();
+      }
+      render();
+      msg(allY?"Đã xác nhận xong · danh sách chỉ còn các cặp trùng · ngưỡng "+TH+"%.":"Đã áp dụng ngưỡng "+TH+"%.");
     }
-    if(rec>=60&&rec<=99&&rec!==TH){
-      var i=G("dupth");if(i)i.value=String(rec);
-      syncSensDraft();msg((hadN?"Có cặp không phải trùng · ":(allY?"Tất cả đều trùng · ":""))+"đang quét lại với ngưỡng gợi ý "+rec+"%…");
-      return applyAndSaveSettings().then(next);   /* phân tích dùng vector đã có, không cần đợi quét lại danh sách xong */
+    if(hadN||hasMore){
+      if(rec>=60&&rec<=99&&rec!==TH){
+        TH=rec;smThDirty=true;
+        var i2=G("dupth");if(i2)i2.value=String(rec);
+        syncSensDraft();thUi();
+        try{ls("dsim",String(TH))}catch(e){}
+        quickRefilterPairs(rec);
+      }
+      render();
+      if(stopFlag)return;
+      return smRound();
     }
-    render();return next();
+    return finishScan();
   }
   function smStart(){
     if(scanning||smRunning)return;
-    smRunning=true;smRoundN=0;smClose();
+    smRunning=true;smRoundN=0;smThDirty=false;smClose();
     smPanel('<div class="dpsm-h"><b>Quét thông minh</b></div><p class="dpsm-p" id="dupsmst">Đang quét ảnh…</p>');
     scanAwait().then(function(){
       if(stopFlag){smRunning=false;smPanel("");return}
@@ -3167,7 +3310,7 @@ function init(nt){
     if(b){var c=b.closest("[data-k]");if(c)smAnswer(c.dataset.k,b.dataset.sa);return}
     var s=e.target.closest("[data-sm]");
     if(s){
-      if(s.dataset.sm==="skip"){smClose();render()}
+      if(s.dataset.sm==="skip"){smClose();if(smThDirty){smThDirty=false;applyAndSaveSettings()}else render()}
       else if(s.dataset.sm==="apply"&&!s.disabled)smApply();
       return}
     var ti=e.target.closest("[data-smimg]");
@@ -3235,7 +3378,7 @@ function smBack(o){var k;for(k in o)SM[k]=o[k]}
 function pickThreshold(res,nH,minIdx){
   minIdx=minIdx||0;   /* tầng có chỉ số < minIdx (ngưỡng cao hơn) sẽ làm mất cặp đã xác nhận → không được chọn */
   var n=res.length,i,minNoise=Math.max(3,Math.min(5,Math.ceil(nH*0.03)));   /* ≥3 cặp bẩn mới coi là nhiễu: 2 cặp lẻ chưa đủ mẫu */
-  function bw(r){return r.riskyPairs+r.conflictPairs*1.5+r.ignFP*2}
+  function bw(r){return r.riskyPairs+r.conflictPairs*1.5}
   var st=[];
   for(i=0;i<n-1;i++){
     var c=res[i],x=res[i+1];
@@ -3248,12 +3391,12 @@ function pickThreshold(res,nH,minIdx){
     var highOk=x1.th<84||s1.conf>=minNoise||(s1.bad>=minNoise+1&&s1.bad>s1.good);
     var jump=x1.housePairs>=Math.max(c1.housePairs*1.9,c1.housePairs+Math.max(5,Math.ceil(nH*0.15)));
     var comp=c1.maxComp>=2&&x1.maxComp>=Math.max(c1.maxComp*2,c1.maxComp+Math.max(4,Math.ceil(nH*0.12)));
-    var one=s1.pairs>0&&highOk&&((s1.bad>=minNoise&&s1.bad>s1.good*0.8)||(s1.bad>=2&&s1.bad>=s1.good&&(jump||comp)));
+    var one=s1.pairs>0&&highOk&&((s1.bad>=minNoise&&(s1.bad>s1.good*1.2||s1.conf>=minNoise||s1.bad>=s1.good+2))||(s1.bad>=2&&s1.bad>=s1.good*1.2&&(jump||comp)));
     var two=!one&&!!w2&&x1.th<=84&&s1.bad>0&&w2.bad>0&&(s1.bad+w2.bad)>=minNoise+1&&(s1.bad+w2.bad)>(s1.good+w2.good)*1.2;
     if(one){noiseMark=x1.th;maxCand=i;break}
     if(two){noiseMark=res[i+2].th;maxCand=i+1;break}   /* nhiễu tích dần qua 2 bước: đánh dấu ở cuối cửa sổ */
   }
-  if(res[n-1].housePairs===0)return{best:80,noiseMark:null};
+  if(res[n-1].housePairs===0)return{best:80,noiseMark:null,maxCand:n-1};
   var best=res[maxCand].th,bestScore=-1e9;
   var pairCap=Math.max(2,nH*0.35),compCap=Math.max(3,Math.round(nH*0.25));
   function softPen(cnt,firstW,restW){return cnt<=0?0:cnt===1?firstW:firstW+(cnt-1)*restW}
@@ -3266,7 +3409,7 @@ function pickThreshold(res,nH,minIdx){
     if(r.housePairs===0&&res[maxCand].housePairs>0)sc2-=50;
     if(sc2>bestScore){bestScore=sc2;best=r.th}
   }
-  return{best:best,noiseMark:noiseMark};
+  return{best:best,noiseMark:noiseMark,maxCand:maxCand};
 }
 var smInfNeg=null;   /* đặt trong analyzeThresholds: (idA,idB)=>true nếu suy ra từ nhãn người dùng là KHÔNG trùng */
 function evalPairsAtTh(rawList,ignRawList,ts,src,byId,tMap,pos){
@@ -3294,12 +3437,14 @@ function evalPairsAtTh(rawList,ignRawList,ts,src,byId,tMap,pos){
     /* Nhãn dùng mốc TUYỆT ĐỐI (LB), không tính theo ts: nếu mốc trượt theo ts thì ngưỡng thấp tự thấy mình "sạch hơn" → chấm điểm lệch.
        Các nhãn loại trừ nhau (trước đây 1 cặp có thể vừa "tin cậy" vừa "xung đột"). */
     var lbl="n",cf=!!(pos&&pos[k]);   /* cf: cặp người dùng đã xác nhận «Trùng» */
+    var strongSameDist=ctx.sameDist&&!ctx.conflict&&(tsText>=1||(mx>=84&&ctx.support>=2)||(mx>=LB.ctxSim&&(ctx.sameWard||(ctx.pClose&&ctx.aClose))));
+    var highImgTrust=mx>=LB.trust&&(!ctx.conflict||nImg>=2||tsText>=1||mx>=91);
     if(cf){trustedPairs++;lbl="t"}
-    else if(hasExact||mx>=LB.trust||(nImg>=2&&!ctx.conflict)||(ctx.sameDist&&!ctx.conflict&&(mx>=LB.ctxSim||tsText>=1))){trustedPairs++;lbl="t"}
+    else if(hasExact||highImgTrust||(nImg>=2&&!ctx.conflict)||strongSameDist){trustedPairs++;lbl="t"}
     else if(ctx.conflict){if(nImg===1){conflictPairs++;lbl="c"}else{riskyPairs++;lbl="r"}}
     else if(nImg===1&&!ctx.support&&tsText<1&&mx<LB.risk){riskyPairs++;lbl="r"}
     /* chi tiết từng cặp để hiển thị/kiểm chứng thủ công (xem renderAnaDetail) */
-    det.push({k:k,cf:cf,ex:hasExact,a:o.a,b:o.b,mx:mx,nImg:nImg,lbl:lbl,sd:ctx.sameDist,dd:ctx.diffDist,pd:ctx.pDiff,sup:ctx.support,tx:tsText,
+    det.push({k:k,cf:cf,ex:hasExact,a:o.a,b:o.b,mx:mx,nImg:nImg,lbl:lbl,sd:ctx.sameDist,sw:ctx.sameWard,dd:ctx.diffDist,pd:ctx.pDiff,pc:ctx.pClose,ac:ctx.aClose,conf:ctx.conflict,sup:ctx.support,tx:tsText,
       best:o.img.slice().sort(function(p,q){return (q.n||0)-(p.n||0)}).slice(0,2).map(function(m){return{x:m.x,y:m.y,n:m.n}})});
   });
   var ignFP=0;
@@ -3312,7 +3457,8 @@ function evalPairsAtTh(rawList,ignRawList,ts,src,byId,tMap,pos){
   }
   return{th:ts,housePairs:imgHousePairs,trustedPairs:trustedPairs,riskyPairs:riskyPairs,conflictPairs:conflictPairs,ignFP:ignFP,maxComp:maxCompSizeOf(P),det:det};
 }
-function analyzeThresholds(){
+function analyzeThresholds(opts){
+  opts=opts||{};
   items=N().items();
   loadIgnored();
   return loadCache().then(function(){
@@ -3330,55 +3476,49 @@ function analyzeThresholds(){
       smartCalc();
       return{ok:false,imgs:allJ.length,msg:"Chưa đủ hash ảnh trên máy ("+allJ.length+" ảnh từ căn đang hoạt động). Hãy bấm «Quét ảnh trùng» trước."};
     }
-    /* Phân tích ngưỡng chạy trên vector ảnh thô trong cache + nhãn người dùng (smartPos = Trùng, ignored = Không phải trùng).
-       KHÔNG phụ thuộc danh sách đang hiển thị (build()/imgPairs), nên không bị ràng buộc bởi kết quả quét hay bộ lọc hiển thị. */
     var pos={},posN=0,refNote="";
-    /* cặp người dùng đã xác nhận «Trùng» trong luồng Quét thông minh: luôn là mốc đúng (kéo ngưỡng xuống nếu cần) */
-    Object.keys(smartPos).forEach(function(k){var ids=k.split("|");if(byId[ids[0]]&&byId[ids[1]]&&!pos[k]){pos[k]=1;posN++}});
+    Object.keys(smartPos).forEach(function(k){var ids=k.split("|");if(byId[ids[0]]&&byId[ids[1]]&&!ignored[k]&&!pos[k]){pos[k]=1;posN++}});
     if(!posN)refNote="Chưa có cặp nào xác nhận «Trùng» nên chưa có mốc xác nhận.";
-    var tMap=textScoreMap(src),raw=[],ignRaw=[],seen={},ignSeen={},p=0,FLOOR=64;
-    function step(){
-      var end=Math.min(p+25,allJ.length),j,a,b,m,k,loId,hiId,pk,isIgn;
+    var tMap=textScoreMap(src),FLOOR=64;
+    var rawSig=CACHE_KEY+"\u0001"+allJ.map(function(x){return x.it.id+":"+x.s}).join("\u0002");
+    var allPairs=null,p=0,seen={};
+    if(smRawCache&&smRawCache.sig===rawSig){
+      allPairs=smRawCache.list;
+    }else{
+      allPairs=[];
+    }
+    function buildRawStep(){
+      if(smRawCache&&smRawCache.sig===rawSig)return Promise.resolve();
+      var end=Math.min(p+25,allJ.length),j,a,b,m,k;
       for(;p<end;p++){
         b=allJ[p];
         for(j=0;j<p;j++){
           a=allJ[j];
           if(a.it.id===b.it.id)continue;
-          loId=a.it.id<b.it.id?a.it.id:b.it.id;hiId=a.it.id<b.it.id?b.it.id:a.it.id;pk=loId+"|"+hiId;
-          isIgn=!!ignored[pk];
           m=a.s===b.s?{d:0,n:100,k:"",o:A[p].ori}:cmpSig(A[j],A[p],FLOOR);
           if(m){
             k=a.it.id+"|"+b.it.id+"|"+a.s+"|"+b.s;
-            if(isIgn){
-              /* giữ cả cặp đã loại giống 64–75% để ignFP không bị đếm thiếu ở các tầng thấp */
-              if(!ignSeen[k]){ignSeen[k]=1;ignRaw.push({a:a.it,b:b.it,x:a.s,y:b.s,d:m.d,k:m.k,o:m.o||"",n:m.n})}
-            }else if(!seen[k]){
-              seen[k]=1;raw.push({a:a.it,b:b.it,x:a.s,y:b.s,d:m.d,k:m.k,o:m.o||"",n:m.n});
-            }
+            if(!seen[k]){seen[k]=1;allPairs.push({a:a.it,b:b.it,x:a.s,y:b.s,d:m.d,k:m.k,o:m.o||"",n:m.n})}
           }
         }
       }
-      if(p<allJ.length)return new Promise(function(r){setTimeout(r,0)}).then(step);
-      /* ===== Suy luận từ nhãn đã có để bớt hỏi «Không phải trùng» (không giảm độ chính xác: chỉ dùng logic chắc chắn) =====
-         1) Bắc cầu dương: A~B «Trùng», B~C «Trùng» ⇒ A~C là trùng → tính luôn là nhãn dương, không hỏi.
-         2) Bắc cầu âm: A~B «Trùng» mà C đã «Không phải trùng» với B ⇒ C cũng không trùng với A → loại, không hỏi.
-         3) Trội âm (chỉ dùng cho cặp dưới ngưỡng): kém hơn mọi mặt (ảnh giống, số ảnh khớp, ngữ cảnh) một cặp đã bị «Không phải trùng»
-            dù ngữ cảnh của cặp đó KHÔNG xung đột ⇒ không hỏi. */
-      var par={};
-      function fnd(x){if(par[x]===undefined)par[x]=x;while(par[x]!==x){par[x]=par[par[x]];x=par[x]}return x}
-      Object.keys(pos).forEach(function(k){var q=k.split("|");par[fnd(q[0])]=fnd(q[1])});
-      var negC={};
-      Object.keys(ignored).forEach(function(k){
-        if(!ignored[k])return;
-        var q=k.split("|");if(!byId[q[0]]||!byId[q[1]])return;
-        var x=fnd(q[0]),y=fnd(q[1]);negC[x+"\u0001"+y]=1;negC[y+"\u0001"+x]=1});
-      function infNeg(aId,bId){var x=fnd(aId),y=fnd(bId);return x!==y&&!!negC[x+"\u0001"+y]}
+      if(p<allJ.length)return new Promise(function(r){setTimeout(r,0)}).then(buildRawStep);
+      smRawCache={sig:rawSig,list:allPairs};
+      return Promise.resolve();
+    }
+    return Promise.resolve().then(buildRawStep).then(function(){
+      var raw=[],ignRaw=[];
+      allPairs.forEach(function(r){
+        var loId=r.a.id<r.b.id?r.a.id:r.b.id,hiId=r.a.id<r.b.id?r.b.id:r.a.id;
+        if(ignored[loId+"|"+hiId])ignRaw.push(r);else raw.push(r);
+      });
+      var inf=buildInfCtx(byId);
       var infPos=0;
       if(posN){
         raw.forEach(function(r){
           var lo=r.a.id<r.b.id?r.a.id:r.b.id,hi=r.a.id<r.b.id?r.b.id:r.a.id,k=lo+"|"+hi;
-          if(!pos[k]&&!ignored[k]&&fnd(lo)===fnd(hi)){pos[k]=1;posN++;infPos++}})}
-      smInfNeg=infNeg;
+          if(!pos[k]&&!ignored[k]&&inf.samePos(lo,hi)){pos[k]=1;posN++;infPos++}})}
+      smInfNeg=inf.isNeg;
       var negProf=[];
       (function(){
         var g={};
@@ -3390,12 +3530,17 @@ function analyzeThresholds(){
           var m1=oneToOnePairs(o.r,false),mx=0,ex=false;
           m1.forEach(function(r){if(r.x===r.y)ex=true;if(r.n>mx)mx=r.n});
           var cx=pairCtx(o.lo,o.hi,tMap[k]||0);
-          if(!ex&&!cx.conflict)negProf.push({mx:mx,n:m1.length,sup:cx.support})})})();
+          if(!ex&&!cx.conflict){
+            negProf.push({mx:mx,n:m1.length,sup:cx.support,tx:tMap[k]||0,sw:cx.sameWard,pc:cx.pClose,ac:cx.aClose});
+          }
+        })})();
       function negDom(d){
-        for(var i=0;i<negProf.length;i++){var p=negProf[i];if(p.mx>=d.mx+1&&p.n>=d.nImg&&p.sup>=d.sup)return true}
+        for(var i=0;i<negProf.length;i++){
+          var p0=negProf[i];
+          if(p0.mx>=d.mx+2&&p0.n>=d.nImg&&p0.sup>=d.sup&&p0.tx>=d.tx&&(!d.sw||p0.sw)&&(!d.pc||p0.pc)&&(!d.ac||p0.ac))return true;
+        }
         return false}
       var tiers=[90,88,86,84,82,80,78,76,74,72,70],res=[],ti=0,snap=smSnap(),nH=Math.max(1,src.length);
-      /* mỗi tầng đo xong thì trả lại SM (smartFilter(thOv) ghi đè ts/mid/tl/strong + bộ đếm) và nhường nhịp để không đơ giao diện hay lệch lượt quét đang chạy */
       function tierStep(){
         var t0=Date.now();
         while(ti<tiers.length&&Date.now()-t0<30){res.push(evalPairsAtTh(raw,ignRaw,tiers[ti],src,byId,tMap,posN?pos:null));smBack(snap);ti++}
@@ -3403,91 +3548,156 @@ function analyzeThresholds(){
         return finish();
       }
       function finish(){
-      smartCalc();
-      var ref=null,minIdx=0;
-      if(posN){
-        var mxKept=0;
-        res.forEach(function(r){r.posKept=0;r.det.forEach(function(d){if(d.cf)r.posKept++});if(r.posKept>mxKept)mxKept=r.posKept});
-        var goal=mxKept;   /* số cặp đã xác nhận mà phân tích thô với được (cặp được cứu nhờ xác minh vùng xám nằm ngoài tầm) */
-        if(goal>0){
-          for(var ri=0;ri<res.length;ri++)if(res[ri].posKept>=goal){minIdx=ri;break}
-          ref={total:posN,goal:goal,minTh:res[minIdx].th};
-        }else refNote="Không cặp «Trùng» đã xác nhận nào nằm trong khoảng 70–90% thô nên chưa dùng làm mốc xác nhận.";
-      }
-      var pk=pickThreshold(res,nH,minIdx),best=pk.best,noiseMark=pk.noiseMark;
-      var steps=[],si;
-      for(si=0;si<res.length-1;si++){
-        var prevK={};res[si].det.forEach(function(d){prevK[d.k]=1});
-        steps.push({from:res[si].th,to:res[si+1].th,add:res[si+1].det.filter(function(d){return !prevK[d.k]})});
-      }
-      /* Vùng xám để người dùng xác nhận: cặp ngay dưới ngưỡng gợi ý (đang bị loại) và cặp sát ngưỡng nhưng nhãn chưa đáng tin */
-      var first={};
-      res.forEach(function(r){r.det.forEach(function(d){if(!first[d.k])first[d.k]={d:d,th:r.th}})});
-      /* Cặp KHÔNG cần hỏi vì gần như chắc chắn không trùng (chỉ 1 ảnh, không có thông tin/ngữ cảnh nào ủng hộ):
-         - "clr": xung đột rõ (khác quận + giá lệch nhiều, hoặc giá/diện tích lệch rất lớn), 1 ảnh khớp, chưa tới mốc tin cậy.
-           Nếu đang hiện trong kết quả (≥ ngưỡng gợi ý) thì tự đánh dấu «Không phải trùng» (khôi phục được ở danh sách đã ẩn).
-         - "dom": kém hơn một cặp đã bị người dùng «Không phải trùng» (xem negDom).
-         - "weak": dưới ngưỡng ≥4 điểm, 1 ảnh, không có ngữ cảnh/thông tin hỗ trợ. */
-      var autoNeg=[],autoSeen={},skipSt={clr:0,dom:0,weak:0};
-      function skipWhy(d,below){
-        if(d.ex)return "";
-        if(d.lbl==="c"&&d.nImg<=1&&d.tx<1&&d.mx<LB.trust)return "clr";
-        if(below&&negDom(d))return "dom";
-        if(below&&d.nImg<=1&&d.sup<1&&d.tx<1&&d.mx<best-3)return "weak";
-        return ""}
-      function grayPick(lo){
-        var out=[],sk={clr:0,dom:0,weak:0},an=[];
-        Object.keys(first).forEach(function(k){
-          var f=first[k],d=f.d;
-          if(d.cf||smartPos[k])return;
-          if(d.mx<best-6)return;   /* chỉ hỏi cặp có ảnh giống nhất ≥ ngưỡng gợi ý − 6 (tránh cặp 64-67% lọt vào nhờ bằng chứng phụ) */
-          var below=f.th<best&&f.th>=lo,above=f.th>=best&&d.lbl!=="t";
-          if(!(below||above))return;
-          var why=skipWhy(d,below);
-          if(why){sk[why]++;if(why==="clr"&&above)an.push(k);return}
-          /* độ mơ hồ: càng sát ngưỡng, càng nhiều ảnh khớp, càng có ngữ cảnh ủng hộ thì càng đáng hỏi (câu trả lời cho nhiều thông tin nhất) */
-          var amb=Math.abs(d.mx-best)-2*Math.min(2,d.sup||0)-(d.nImg>1?1.5:0);
-          out.push({k:k,a:d.a,b:d.b,mx:d.mx,nImg:d.nImg,lbl:d.lbl,th:f.th,side:below?"below":"above",best:d.best,amb:amb});
-        });
-        out.sort(function(p,q){return p.amb-q.amb||q.nImg-p.nImg});
-        out.sk=sk;out.an=an;
-        return out;
-      }
-      var gray=grayPick(best-6);
-      /* chỉ nới vùng hỏi khi chưa có nhãn nào (để có vài mốc hiệu chỉnh ban đầu); đã có nhãn thì không kéo thêm cặp yếu vào */
-      if(!gray.length&&!posN&&!Object.keys(ignored).length)gray=grayPick(Math.max(70,best-10));
-      skipSt=gray.sk;
-      gray.an.forEach(function(k){if(!autoSeen[k]&&!ignored[k]){autoSeen[k]=1;autoNeg.push(k)}});
-      /* bắc cầu âm: mọi cặp thô ≥ ngưỡng gợi ý mà suy ra được là không trùng cũng tự loại */
-      var infCut=0;
-      raw.forEach(function(r){
-        if(r.n<best)return;
-        var lo=r.a.id<r.b.id?r.a.id:r.b.id,hi=r.a.id<r.b.id?r.b.id:r.a.id,k=lo+"|"+hi;
-        if(autoSeen[k]||ignored[k]||smartPos[k]||!infNeg(lo,hi))return;
-        autoSeen[k]=1;autoNeg.push(k);infCut++});
-      gray=gray.slice(0,6);
-      /* ảnh khớp đầy đủ của từng cặp vùng xám (để so sánh lớn / xem ảnh) */
-      var needK={};gray.forEach(function(g){needK[g.k]=g});
-      raw.forEach(function(r){
-        var sw=r.a.id>r.b.id,lo=sw?r.b:r.a,hi=sw?r.a:r.b,g=needK[lo.id+"|"+hi.id];if(!g)return;
-        (g.imgs=g.imgs||[]).push(sw?{x:r.y,y:r.x,d:r.d,k:r.k||"",o:r.o||"",n:r.n}:{x:r.x,y:r.y,d:r.d,k:r.k||"",o:r.o||"",n:r.n});
-      });
-      gray.forEach(function(g){
-        var seenM={},im=(g.imgs||[]).filter(function(m){var q=m.x+"|"+m.y;if(seenM[q]||(m.n||0)<g.mx-12)return false;seenM[q]=1;return true}).sort(function(p,q){return (q.n||0)-(p.n||0)}).slice(0,12);
-        if(!im.length)im=(g.best||[]).map(function(m){return{x:m.x,y:m.y,d:100-(m.n||0),k:"",o:"",n:m.n}});
-        g.imgs=im;
-      });
-      res.forEach(function(r){delete r.det});   /* tiers chỉ còn số liệu gọn (console.table được) */
-      var parts=res.map(function(x){return x.th+"→"+x.housePairs});
-      var noiseNote=noiseMark?" · Nhiễu từ "+noiseMark+"%":"";
-      var refTxt=ref?" · Giữ đủ "+ref.goal+"/"+ref.total+" cặp đã xác nhận cần ≤"+ref.minTh+"%":"";
-      var txt="Cặp theo ngưỡng (%): "+parts.join(" · ")+refTxt+noiseNote+" · Gợi ý: "+best+"%";
-      smInfNeg=null;
-      return{ok:true,imgs:allJ.length,houses:nH,tiers:res,steps:steps,noiseOnset:noiseMark,recommended:best,summary:txt,ref:ref,refNote:refNote,gray:gray,autoNeg:autoNeg,auto:{pos:infPos,inf:infCut,clr:skipSt.clr,dom:skipSt.dom,weak:skipSt.weak}};
+        smartCalc();
+        var cleanPk=pickThreshold(res,nH,0);
+        var ref=null,minIdx=0;
+        if(posN){
+          var mxKept=0;
+          res.forEach(function(r){r.posKept=0;r.det.forEach(function(d){if(d.cf)r.posKept++});if(r.posKept>mxKept)mxKept=r.posKept});
+          var goal=mxKept;
+          if(goal>0){
+            for(var ri=0;ri<res.length;ri++)if(res[ri].posKept>=goal){minIdx=ri;break}
+            var pinned=0;
+            if(minIdx>cleanPk.maxCand){
+              var atClean=res[cleanPk.maxCand].posKept;
+              if(mxKept>=3&&atClean>=Math.ceil(mxKept*0.75)){
+                for(var ri2=0;ri2<=cleanPk.maxCand;ri2++)if(res[ri2].posKept>=atClean){minIdx=ri2;break}
+                pinned=goal-atClean;goal=atClean;
+              }
+            }
+            ref={total:posN,goal:goal,minTh:res[minIdx].th,pinned:pinned};
+          }else refNote="Không cặp «Trùng» đã xác nhận nào nằm trong khoảng 70–90% thô nên chưa dùng làm mốc xác nhận.";
+        }
+        var pk=pickThreshold(res,nH,minIdx),best=pk.best,noiseMark=pk.noiseMark;
+        var steps=[],si;
+        for(si=0;si<res.length-1;si++){
+          var prevK={};res[si].det.forEach(function(d){prevK[d.k]=1});
+          steps.push({from:res[si].th,to:res[si+1].th,add:res[si+1].det.filter(function(d){return !prevK[d.k]})});
+        }
+        var first={};
+        res.forEach(function(r){r.det.forEach(function(d){if(!first[d.k])first[d.k]={d:d,th:r.th}})});
+        var autoNeg=[],autoSeen={},skipSt={clr:0,dom:0,weak:0,mm:0,mmOk:0};
+        function canAutoClr(d){
+          return d.mx<=Math.min(85,best+5)&&((d.pd!==null&&d.pd>0.25)||!d.dd);
+        }
+        function skipWhy(d,below){
+          if(d.ex)return "";
+          if(d.lbl==="c"&&d.nImg<=1&&d.tx<1&&d.mx<LB.trust){
+            /* Chỉ bỏ qua không hỏi khi dưới ngưỡng hoặc đủ an toàn để tự loại; tránh cặp ≥best lọt thẳng ra danh sách cuối */
+            if(below||canAutoClr(d))return "clr";
+            return "";
+          }
+          if(below&&negDom(d))return "dom";
+          if(below&&d.nImg<=1&&d.sup<1&&d.tx<1&&d.mx<best-3)return "weak";
+          return ""}
+        function grayPick(lo,strictWeak){
+          var out=[],sk={clr:0,dom:0,weak:0,mm:0,mmOk:0},an=[];
+          Object.keys(first).forEach(function(k){
+            var f=first[k],d=f.d;
+            if(d.cf||smartPos[k]||ignored[k]||inf.isNeg(d.a.id,d.b.id))return;
+            if(d.mx<best-6)return;
+            var below=f.th<best&&f.th>=lo,above=f.th>=best&&d.lbl!=="t";
+            if(!(below||above))return;
+            if(strictWeak&&below&&d.nImg<=1&&d.sup<1&&d.tx<1&&d.mx<best-2)return;
+            var why=skipWhy(d,below);
+            if(why){
+              sk[why]++;
+              if(why==="clr"&&above&&canAutoClr(d))an.push(k);
+              return;
+            }
+            var thDist=Math.abs(f.th-best),mxDist=Math.abs(d.mx-best);
+            var amb=(above?(mxDist*0.5+(d.lbl==="r"?0:d.lbl==="n"?1:2.5)):(thDist*0.6+mxDist*0.4))-2*Math.min(2,d.sup||0)-(d.nImg>1?1.5:0)-(d.tx>=1?1.5:0);
+            out.push({k:k,a:d.a,b:d.b,mx:d.mx,nImg:d.nImg,lbl:d.lbl,th:f.th,side:below?"below":"above",best:d.best,amb:amb,ex:d.ex,sup:d.sup,tx:d.tx,conf:d.conf});
+          });
+          out.sort(function(p0,q0){return p0.amb-q0.amb||q0.nImg-p0.nImg});
+          /* Gộp các cặp nối cùng hai cụm đã xác nhận «Trùng»: chỉ hỏi 1 cặp đại diện tốt nhất */
+          var compSeen={},dedup=[];
+          out.forEach(function(g){
+            var ck=inf.compPair(g.a.id,g.b.id);
+            if(compSeen[ck])return;
+            compSeen[ck]=1;dedup.push(g);
+          });
+          dedup.sk=sk;dedup.an=an;
+          return dedup;
+        }
+        var gray=grayPick(best-6,false);
+        if(!gray.length&&!posN&&!Object.keys(ignored).length)gray=grayPick(Math.max(72,best-8),true);
+        skipSt=gray.sk;
+        gray.an.forEach(function(k){if(!autoSeen[k]&&!ignored[k]){autoSeen[k]=1;autoNeg.push(k)}});
+        function finalizeGray(finalList){
+          var totalCand=finalList.length;
+          var aboveRem=finalList.slice(6).filter(function(x){return x.side==="above"}).length;
+          var belowStrongRem=finalList.slice(6).filter(function(x){return x.side==="below"&&(x.nImg>=2||x.sup>=1||x.tx>=1||x.mx>=best-2)}).length;
+          var hasMore=aboveRem>0||belowStrongRem>0;
+          var shown=finalList.slice(0,6);
+          var needK={};shown.forEach(function(g){needK[g.k]=g});
+          raw.forEach(function(r){
+            var sw=r.a.id>r.b.id,lo=sw?r.b:r.a,hi=sw?r.a:r.b,g=needK[lo.id+"|"+hi.id];if(!g)return;
+            (g.imgs=g.imgs||[]).push(sw?{x:r.y,y:r.x,d:r.d,k:r.k||"",o:r.o||"",n:r.n}:{x:r.x,y:r.y,d:r.d,k:r.k||"",o:r.o||"",n:r.n});
+          });
+          shown.forEach(function(g){
+            var seenM={},im=(g.imgs||[]).filter(function(m){var q=m.x+"|"+m.y;if(seenM[q]||(m.n||0)<g.mx-12)return false;seenM[q]=1;return true}).sort(function(p0,q0){return (q0.n||0)-(p0.n||0)}).slice(0,12);
+            if(!im.length)im=(g.best||[]).map(function(m){return{x:m.x,y:m.y,d:100-(m.n||0),k:"",o:"",n:m.n}});
+            g.imgs=im;
+          });
+          res.forEach(function(r){delete r.det});
+          var parts=res.map(function(x){return x.th+"→"+x.housePairs});
+          var noiseNote=noiseMark?" · Nhiễu từ "+noiseMark+"%":"";
+          var refTxt=ref?" · Giữ đủ "+ref.goal+"/"+ref.total+" cặp đã xác nhận cần ≤"+ref.minTh+"%":"";
+          var txt="Cặp theo ngưỡng (%): "+parts.join(" · ")+refTxt+noiseNote+" · Gợi ý: "+best+"%";
+          smInfNeg=null;
+          return{ok:true,imgs:allJ.length,houses:nH,tiers:res,steps:steps,noiseOnset:noiseMark,recommended:best,summary:txt,ref:ref,refNote:refNote,gray:shown,grayTotal:totalCand,hasMore:hasMore,autoNeg:autoNeg,auto:{pos:infPos,inf:0,clr:skipSt.clr,dom:skipSt.dom,weak:skipSt.weak,mm:skipSt.mm,mmOk:skipSt.mmOk}};
+        }
+        /* Xác minh thị giác sâu (Patch MaxSim + Spatial + Trung tâm + CSLS) cho ứng viên vùng xám trước khi hỏi */
+        if(!opts.fast&&MM_MODE!==0&&gray.length){
+          var visInfo={},snapV=smSnap();
+          function runVisPass(cands){
+            if(!cands.length)return Promise.resolve();
+            var candMap={};cands.forEach(function(g){candMap[g.k]=g});
+            var candRaw=raw.filter(function(r){
+              var lo=r.a.id<r.b.id?r.a.id:r.b.id,hi=r.a.id<r.b.id?r.b.id:r.a.id,k=lo+"|"+hi;
+              return !!candMap[k]&&r.n>=Math.max(FLOOR,best-6);
+            });
+            if(!candRaw.length)return Promise.resolve();
+            return verifyGrayZonePairs(candRaw,false,best,{preSrc:src,preTMap:tMap,visInfo:visInfo});
+          }
+          function filterVisList(list){
+            var outVis=[];
+            list.forEach(function(g){
+              var vi=visInfo[g.k];
+              if(vi&&vi.checked&&vi.hasVis&&vi.kept===0){
+                skipSt.mm++;
+                if(g.side==="above"&&!autoSeen[g.k]&&!ignored[g.k]){autoSeen[g.k]=1;autoNeg.push(g.k)}
+                return;
+              }
+              if(vi&&vi.strongOk>0&&!g.conf&&(g.nImg>=2||g.sup>=1||g.tx>=1)&&vi.maxEns>=Math.max(84,best+2)){
+                if(g.side==="above"){skipSt.mmOk++;return}   /* đã đồng thuận mạnh cả thị giác + ngữ cảnh: không cần hỏi lại */
+                if(vi.maxEns>g.mx)g.mx=vi.maxEns;
+              }
+              outVis.push(g);
+            });
+            return outVis;
+          }
+          var visCands=gray.slice(0,36).filter(function(g){return !g.ex});
+          if(visCands.length){
+            return runVisPass(visCands).then(function(){
+              var fg=filterVisList(gray);
+              var extra=fg.slice(0,6).filter(function(g){return !g.ex&&!visInfo[g.k]});
+              if(!extra.length){smBack(snapV);return finalizeGray(fg)}
+              return runVisPass(extra).then(function(){
+                smBack(snapV);
+                return finalizeGray(filterVisList(fg));
+              });
+            },function(){
+              smBack(snapV);
+              return finalizeGray(gray);
+            });
+          }
+        }
+        return finalizeGray(gray);
       }
       return tierStep();
-    }
-    return Promise.resolve().then(step);
+    });
   });
 }
 function open(nt){
@@ -3521,10 +3731,12 @@ function sync(){
   clearTimeout(syncT);syncT=setTimeout(function(){
     items=N().items();cleanImgPairs();
     loadIgnored();
+    smRawCache=null;
     if(items.length){   /* danh sách rỗng/chưa nạp thì không dọn; chỉ ẩn trên máy, máy chủ tự xóa cặp khi xóa căn (như pullIgnored) */
       var byId={},chg=false;items.forEach(function(it){byId[it.id]=1});
       Object.keys(ignored).forEach(function(k){var ids=k.split("|");if(!byId[ids[0]]||!byId[ids[1]]){delete ignored[k];delete ignDirty[k];chg=true}});
-      if(chg)ignWriteLs()}
+      if(chg)ignWriteLs();
+      cleanSmartPos(byId)}
     render();
     if(cacheLoaded&&!scanning)autoScan()
   },120)}
