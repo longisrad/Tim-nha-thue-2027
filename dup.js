@@ -162,24 +162,41 @@ var CSS2=[
 ".dpst{margin:4px 0 0}",
 ".dpan{font-size:var(--fs-s);margin-top:6px}",
 ".dpan-h{display:flex;align-items:center;justify-content:space-between;gap:8px;position:sticky;top:0;z-index:1;background:var(--bg);padding:4px 0;border-bottom:1px solid var(--line)}",
-".dpan-f{display:flex;justify-content:flex-end;margin-top:8px}",
-".dpan table{width:100%;border-collapse:collapse;font-size:12px}",
-".dpan th,.dpan td{padding:3px 4px;text-align:right;border-bottom:1px solid var(--line)}",
-".dpan th:first-child,.dpan td:first-child{text-align:left}",
-".dpan tr.best td{font-weight:700}",
-".dpan tr.noise td{color:#c0392b}",
-".dpan tr.lost td{opacity:.5}",
-".dpan details{margin-top:6px;border:1px solid var(--line);border-radius:8px;padding:4px 8px}",
-".dpan summary{cursor:pointer;font-weight:600}",
+".dpan-c{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:10px;background:var(--surface)}",
+".dpan-c h4{margin:0 0 8px;font-size:var(--fs-s);color:var(--mute);font-weight:600}",
+".dpan-c p{margin:0}",
+".dpan-sum{display:flex;align-items:center;gap:14px;flex-wrap:wrap}",
+".dpan-big{font-size:30px;font-weight:700;line-height:1;color:var(--accent)}",
+".dpan-big small{display:block;font-size:11px;font-weight:400;color:var(--mute);margin-top:5px}",
+".dpan-chips{display:flex;flex-wrap:wrap;gap:6px}",
+".dpan-chips span{padding:2px 9px;border:1px solid var(--line);border-radius:999px;font-size:12px}",
+".dpan-chips .bad{color:var(--danger,#c0392b);border-color:var(--danger,#c0392b)}",
+".dpan-tr{display:grid;grid-template-columns:54px 1fr 34px;column-gap:8px;align-items:center;padding:4px 0}",
+".dpan-th{font-size:12px}",
+".dpan-tr.best .dpan-th{font-weight:700;color:var(--accent)}",
+".dpan-tr.noise .dpan-th{color:var(--danger,#c0392b)}",
+".dpan-tr.lost{opacity:.5}",
+".dpan-tr b{text-align:right;font-weight:600}",
+".dpan-bar{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--line)}",
+".dpan-bar i{display:block;height:100%}",
+".dpan-bar .g{background:#1e8449}",
+".dpan-bar .n{background:#9aa0a6}",
+".dpan-bar .x{background:var(--danger,#c0392b)}",
+".dpan-sub{grid-column:2/4;color:var(--mute);font-size:11px}",
+".dpan-lg{display:flex;gap:12px;flex-wrap:wrap;color:var(--mute);font-size:11px;margin-top:8px}",
+".dpan-s{border-top:1px solid var(--line);padding:6px 0}",
+".dpan-s>summary{cursor:pointer;font-weight:600}",
+".dpan-s>summary em{font-style:normal;color:var(--mute);font-weight:400;margin-left:6px}",
+".dpan-g{margin:6px 0 0 4px}",
+".dpan-g>summary{cursor:pointer;font-size:12px;color:var(--mute)}",
+".dpan-g.c>summary,.dpan-g.r>summary{color:var(--danger,#c0392b)}",
 ".dpan-r{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}",
-".dpan-t{flex:1;min-width:140px}",
-".dpan-t small{display:block;color:var(--mute)}",
+".dpan-rt{flex:1;min-width:140px}",
+".dpan-rt small{display:block;color:var(--mute)}",
 ".dpan-i{display:flex;gap:6px;flex-wrap:wrap}",
 ".dpan-i a{display:flex;gap:2px}",
 ".dpan-i img{width:64px;height:48px;object-fit:cover;border-radius:4px;background:var(--line);display:block}",
-".dpan-b{display:inline-block;padding:0 6px;border-radius:8px;font-size:11px;border:1px solid var(--line);margin-right:4px}",
-".dpan-b.c,.dpan-b.r{color:#c0392b;border-color:#c0392b}",
-".dpan-b.t{color:#1e8449;border-color:#1e8449}",
+".dpan-f{display:flex;justify-content:flex-end;margin-top:10px}",
 ".dpundo{left:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));transform:none;gap:5px;max-width:min(245px,calc(100vw - 104px));border-radius:9px;padding:4px 5px 4px 9px;box-shadow:0 4px 14px rgba(0,0,0,.26);font-size:11.5px;line-height:1.25}",
 ".dpundo:not([hidden]){animation:dpup .18s cubic-bezier(.16,1,.3,1)}",
 ".dpundo button{border-radius:6px;min-height:24px;padding:2px 8px;font-size:11.5px}",
@@ -195,20 +212,48 @@ var CSS2=[
 ".dpclusthdr{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:12px 0 4px;padding:5px 10px;border-radius:9px;background:var(--bg);border:1px solid var(--line);font-size:var(--fs-s)}",
 ".dpclusthdr:first-child{margin-top:4px}",
 ".dpclusthdr b{color:var(--ink);font-weight:700}",
-".dpclusthdr span{color:var(--mute);font-size:11.5px;font-weight:600;white-space:nowrap}",
-".dpclcard{border:1px solid var(--line);border-left:4px solid var(--danger);border-radius:12px;padding:8px 10px;margin-top:8px;background:var(--surface)}",
-".dpclhead{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:6px;border-bottom:1px solid var(--line);margin-bottom:4px}",
-".dpclhead b{font-size:var(--fs-s);color:var(--danger)}",
-".dpclhead span{font-size:11.5px;color:var(--mute);font-weight:600}",
-".dpadj{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:5px 8px;margin:2px 0 4px;border-radius:8px;background:var(--bg);border:1px dashed var(--line)}",
-".dpadj-l{display:flex;align-items:center;gap:6px;min-width:0;flex:1;font-size:11.5px;font-weight:700;color:var(--danger)}",
-".dpadj-thumbs{display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap;flex:none}",
-".dpadj-pair{display:inline-grid;grid-template-columns:1fr 1fr;gap:2px;cursor:zoom-in;border-radius:5px}",
-".dpadj-thumbs img{width:34px;height:26px;object-fit:cover;border-radius:4px;background:var(--line);display:block}",
-".dpadj-act{display:inline-flex;align-items:center;gap:5px;flex:none}",
-".dpclchords{margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);display:grid;gap:4px}",
-".dpclchord{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:11.5px;color:var(--mute)}",
-".dpclchord b{color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
+".dpclusthdr span{display:inline-flex;align-items:center;gap:6px;color:var(--mute);font-size:11.5px;font-weight:600;white-space:nowrap}",
+".dpsim{display:inline-block;padding:0 7px;border-radius:999px;font-size:11px;font-weight:700;line-height:1.6;border:1px solid currentColor}",
+".dpsim.hi{color:var(--danger,#c0392b)}",
+".dpsim.mid{color:#b9770e}",
+".dpsim.lo{color:var(--mute)}",
+".dpclcard{border:1px solid var(--line);border-left:4px solid var(--mute);border-radius:14px;margin-top:12px;background:var(--surface);overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04)}",
+".dpclcard.hi{border-left-color:var(--danger,#c0392b)}",
+".dpclcard.mid{border-left-color:#b9770e}",
+".dpclhead{display:flex;align-items:center;gap:10px;cursor:pointer;list-style:none;padding:10px 12px;background:var(--bg);-webkit-tap-highlight-color:transparent}",
+".dpclhead::-webkit-details-marker{display:none}",
+".dpclhead::before{content:\"\\u25B8\";flex:none;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:var(--surface);border:1px solid var(--line);color:var(--mute);font-size:10px;transition:transform .15s ease}",
+".dpclcard[open]>.dpclhead::before{transform:rotate(90deg)}",
+".dpclcard[open]>.dpclhead{border-bottom:1px solid var(--line)}",
+".dpclt{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}",
+".dpclt b{font-size:var(--fs-b);font-weight:800;color:var(--ink)}",
+".dpclt small{font-size:11.5px;color:var(--mute);font-weight:600}",
+".dpclm{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--mute);font-weight:600;flex:none}",
+".dpclm>span:first-child{padding:1px 8px;border-radius:999px;background:var(--surface);border:1px solid var(--line)}",
+".dpclchain{position:relative;counter-reset:dpn;margin:10px 10px 10px 12px;padding-left:30px}",
+".dpclchain::before{content:\"\";position:absolute;left:11px;top:16px;bottom:16px;width:2px;border-radius:2px;background:repeating-linear-gradient(to bottom,var(--line) 0 6px,transparent 6px 10px)}",
+".dpclchain>.dprow{position:relative;counter-increment:dpn;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:0 8px 0 10px}",
+".dpclchain>.dprow::before{content:counter(dpn);position:absolute;left:-30px;top:50%;width:24px;height:24px;margin-top:-12px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--surface);border:2px solid var(--mute);color:var(--ink);font-size:11px;font-weight:800;box-sizing:border-box;z-index:1}",
+".dpclcard.hi .dpclchain>.dprow::before{border-color:var(--danger,#c0392b)}",
+".dpclcard.mid .dpclchain>.dprow::before{border-color:#b9770e}",
+".dpadj{position:relative;display:grid;gap:8px;padding:8px 10px;margin:8px 0 8px 6px;border-radius:10px;background:var(--surface);border:1px dashed var(--line)}",
+".dpadj::before{content:\"\";position:absolute;left:-25px;top:50%;width:10px;height:10px;margin-top:-5px;border-radius:50%;background:var(--line);box-sizing:border-box;border:2px solid var(--surface);z-index:1}",
+".dpadj-top{display:flex;align-items:center;justify-content:space-between;gap:8px}",
+".dpadj-l{font-size:11.5px;font-weight:700;color:var(--mute);text-transform:none}",
+".dpadj-bot{display:grid;gap:8px}",
+".dpadj-thumbs{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}",
+".dpadj-pair{display:inline-grid;grid-template-columns:1fr 1fr;gap:2px;cursor:zoom-in;padding:2px;border-radius:8px;background:var(--bg);border:1px solid var(--line)}",
+".dpadj-thumbs img{width:48px;height:38px;object-fit:cover;border-radius:5px;background:var(--line);display:block}",
+".dpadj-more{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:30px;padding:0 6px;border-radius:999px;background:var(--bg);border:1px solid var(--line);font-size:11px;color:var(--mute);font-weight:700}",
+".dpadj-act{display:flex;align-items:center;gap:6px;flex-wrap:wrap}",
+".dpadj-act .dpimgbtn,.dpadj-act .dpno{flex:1 1 0;justify-content:center;min-width:96px}",
+".dpclchords{margin:0 10px 12px;padding:8px 10px;border-radius:10px;background:var(--bg);border:1px solid var(--line);display:grid;gap:8px}",
+".dpclchords h5{margin:0;font-size:11.5px;color:var(--mute);font-weight:700}",
+".dpclchord{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11.5px;color:var(--mute);padding-top:8px;border-top:1px dashed var(--line)}",
+".dpclchords h5+.dpclchord{padding-top:0;border-top:0}",
+".dpclchord-n{flex:1 1 100%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
+".dpclchord-n+.dpsim{margin-right:auto}",
+".dpclchord b{color:var(--ink);font-weight:600}",
 ".dpanact{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0}",
 ".dpanact[hidden]{display:none}",
 ".dpanact .btn{min-height:32px;padding:4px 12px;font-size:var(--fs-s);white-space:nowrap}",
@@ -882,6 +927,10 @@ function ignStat(r){
     if(shown[k]){ok++;return}
     if(skipOut&&((A.st||"new")==="out"||(B.st||"new")==="out"))out++;else none++});
   return{total:keys.length,shown:ok,out:out,none:none,img:imgPairs!==null}}
+/* Mức giống của cụm/cặp: hi ≥88 · mid ≥80 · lo còn lại (đổi màu viền thẻ và huy hiệu %) */
+function simTone(n){return n>=88?"hi":n>=80?"mid":"lo"}
+function simBadge(n){return '<span class="dpsim '+simTone(n)+'">'+n+'%</span>'}
+/* Thẻ cụm: tiêu đề thu gọn được · chuỗi các căn liền kề nối nhau bằng thanh dọc · cặp trùng chéo (không liền kề) tách thành mục riêng */
 function clusterCardsH(graph){
   var cls=((graph&&graph.clusters)||[]).filter(function(cl){return cl.nodes&&cl.nodes.length>=3}),allowDel=canWrite();
   if(!cls.length)return '<p class="dpmess">Chưa có cụm nào từ 3 căn trở lên trùng chéo ảnh. Hãy bấm «Quét ảnh trùng» hoặc chuyển sang «Theo cặp».</p>';
@@ -901,7 +950,7 @@ function clusterCardsH(graph){
       return{idx:0,side:"a"};
     }
     var usedEdge={},i;
-    h+='<div class="dpclcard"><div class="dpclhead"><b>Cụm ảnh #'+cl.id+' · '+cl.nodes.length+' căn liền kề</b><span>'+cl.pairs.length+' cặp trùng ảnh · max '+cl.maxSim+'%</span></div>';
+    h+='<details class="dpclcard '+simTone(cl.maxSim)+'" open><summary class="dpclhead"><span class="dpclt"><b>Cụm #'+cl.id+'</b><small>'+cl.nodes.length+' căn liền kề</small></span><span class="dpclm"><span>'+cl.pairs.length+' cặp</span>'+simBadge(cl.maxSim)+'</span></summary><div class="dpclchain">';
     for(i=0;i<cl.nodes.length;i++){
       var it=cl.nodes[i],rf=refForNode(it.id);
       h+=rowH(it,rf.idx,rf.side,allowDel);
@@ -910,21 +959,22 @@ function clusterCardsH(graph){
         if(ep&&idxByPairKey[pk]!==undefined){
           usedEdge[pk]=1;
           var eIdx=idxByPairKey[pk],em=graph.pairMeta[pk]||{maxSim:0,nImg:ep.img.length};
-          var thumbs=ep.img.slice(0,3).map(function(m,mi){return '<span class="dpadj-pair" data-zoom="'+eIdx+':'+mi+'" title="Bấm để phóng to"><img alt="Ảnh căn 1" loading="lazy" src="'+esc(imgSrc(m.x,200))+'"><img alt="Ảnh căn 2" loading="lazy" src="'+esc(imgSrc(m.y,200))+'"></span>'}).join("");
-          h+='<div class="dpadj"><span class="dpadj-l">↕ Liền kề · Trùng '+ep.img.length+' ảnh ('+em.maxSim+'%)</span><span class="dpadj-thumbs">'+thumbs+'</span><span class="dpadj-act"><button type="button" class="dpimgbtn" data-cmpfull="'+eIdx+'">So sánh</button><button type="button" class="dpno" data-ign="'+eIdx+'">Không trùng</button></span></div>';
+          var thumbs=ep.img.slice(0,3).map(function(m,mi){return '<span class="dpadj-pair" data-zoom="'+eIdx+':'+mi+'" title="Bấm để phóng to"><img alt="Ảnh căn 1" loading="lazy" src="'+esc(imgSrc(m.x,200))+'"><img alt="Ảnh căn 2" loading="lazy" src="'+esc(imgSrc(m.y,200))+'"></span>'}).join(""),more=ep.img.length>3?'<span class="dpadj-more">+'+(ep.img.length-3)+'</span>':"";
+          h+='<div class="dpadj"><div class="dpadj-top"><span class="dpadj-l">Trùng '+ep.img.length+' ảnh</span>'+simBadge(em.maxSim)+'</div><div class="dpadj-bot"><span class="dpadj-thumbs">'+thumbs+more+'</span><span class="dpadj-act"><button type="button" class="dpimgbtn" data-cmpfull="'+eIdx+'">So sánh</button><button type="button" class="dpno" data-ign="'+eIdx+'">Không trùng</button></span></div></div>';
         }
       }
     }
+    h+='</div>';
     var chords=cl.pairs.filter(function(p){return !usedEdge[p.a.id+"|"+p.b.id]});
     if(chords.length){
-      h+='<div class="dpclchords">';
+      h+='<div class="dpclchords"><h5>Trùng chéo, không liền kề · '+chords.length+' cặp</h5>';
       chords.forEach(function(cp){
         var cIdx=idxByPairKey[cp.a.id+"|"+cp.b.id],cm=graph.pairMeta[cp.a.id+"|"+cp.b.id]||{maxSim:0};
-        h+='<div class="dpclchord"><b>'+esc(cp.a.n)+' ↔ '+esc(cp.b.n)+' ('+cp.img.length+' ảnh · '+cm.maxSim+'%)</b><button type="button" class="dpimgbtn" data-cmpfull="'+cIdx+'">So sánh</button></div>';
+        h+='<div class="dpclchord"><span class="dpclchord-n"><b>'+esc(cp.a.n)+'</b> ↔ <b>'+esc(cp.b.n)+'</b> · '+cp.img.length+' ảnh</span>'+simBadge(cm.maxSim)+'<button type="button" class="dpimgbtn" data-cmpfull="'+cIdx+'">So sánh</button><button type="button" class="dpno" data-ign="'+cIdx+'">Không trùng</button></div>';
       });
       h+='</div>';
     }
-    h+='</div>';
+    h+='</details>';
   });
   return h;
 }
@@ -970,7 +1020,7 @@ function render(){
         if(gKey!==prevKey){
           prevKey=gKey;
           if(cl&&cl.nodes.length>=3){
-            hdr='<div class="dpclusthdr"><b>Cụm ảnh #'+o.cid+' · '+cl.nodes.length+' căn liền kề</b><span>'+cl.pairs.length+' cặp ảnh · max '+cl.maxSim+'%</span></div>';
+            hdr='<div class="dpclusthdr"><b>Cụm #'+o.cid+' · '+cl.nodes.length+' căn liền kề</b><span>'+cl.pairs.length+' cặp '+simBadge(cl.maxSim)+'</span></div>';
           }else if(gKey==="p2"){
             hdr='<div class="dpclusthdr"><b>Cặp trùng ảnh (2 căn)</b><span>'+r.strong.filter(function(x){var xc=x.cid>0?r.graph.clusters[x.cid-1]:null;return xc&&xc.nodes.length<3}).length+' cặp</span></div>';
           }else{
@@ -2889,36 +2939,62 @@ function init(nt){
     syncSensDraft();
     applyAndSaveSettings();
   };
-  /* Chi tiết phân tích: bảng số theo tầng + với mỗi bước hạ ngưỡng, danh sách cặp MỚI thêm kèm nhãn của code và ảnh khớp nhất để tự kiểm chứng */
+  /* Bảng phân tích chia thành 4 cụm: Kết luận · Mốc xác nhận · Số cặp theo ngưỡng (thanh tỉ lệ) · Cặp mới thêm ở mỗi bước (gom theo nhãn) */
   function renderAnaDetail(res){
     var pn=G("dupandet");if(!pn)return;
-    var CLOSE='<button type="button" class="btn" data-anclose="1">Đóng</button>';
-    var LBL={t:"Tin cậy",c:"Xung đột",r:"Rủi ro",n:"Trung tính",f:"Đã xác nhận"},ORD={c:0,r:1,n:2,t:3},h="",i;
+    var GRP=["c","r","n","t"],GT={c:"Xung đột — nên xem kỹ",r:"Rủi ro — 1 ảnh lẻ, thiếu ngữ cảnh",n:"Trung tính",t:"Tin cậy / đã xác nhận"};
+    var CLOSE='<button type="button" class="btn" data-anclose="1">Đóng</button>',tiers=res.tiers,mxP=1,rec=null,h="";
+    tiers.forEach(function(t){if(t.housePairs>mxP)mxP=t.housePairs;if(t.th===res.recommended)rec=t});
     h+='<div class="dpan-h"><b>Phân tích đa ngưỡng</b>'+CLOSE+'</div>';
-    if(res.ref)h+='<p class="dpst">Mốc xác nhận: dùng '+res.ref.total+' cặp trong danh sách hiện tại ('+(res.ref.total-res.ref.goal)+' cặp ngoài tầm 70–90% thô, do xác minh vùng xám hoặc dưới 70%). Giữ đủ '+res.ref.goal+' cặp thì ngưỡng phải ≤ '+res.ref.minTh+'%, gợi ý không đi cao hơn mức đó.</p>';
-    else if(res.refNote)h+='<p class="dpst">'+esc(res.refNote)+'</p>';
-    h+='<table><tr><th>Ngưỡng</th><th>Cặp</th><th>Tin cậy</th><th>Rủi ro</th><th>X.đột</th><th>Đã loại</th>'+(res.ref?'<th>Giữ</th>':'')+'</tr>';
-    res.tiers.forEach(function(t){
-      var cls=t.th===res.recommended?"best":(res.noiseOnset&&t.th<=res.noiseOnset?"noise":(res.ref&&t.posKept<res.ref.goal?"lost":""));
-      h+='<tr class="'+cls+'"><td>'+t.th+'%'+(t.th===res.recommended?' ★':'')+'</td><td>'+t.housePairs+'</td><td>'+t.trustedPairs+'</td><td>'+t.riskyPairs+'</td><td>'+t.conflictPairs+'</td><td>'+t.ignFP+'</td>'+(res.ref?'<td>'+t.posKept+'/'+res.ref.goal+'</td>':'')+'</tr>';
+    /* Cụm 1 · Kết luận */
+    h+='<section class="dpan-c dpan-sum"><div class="dpan-big">'+res.recommended+'%<small>ngưỡng gợi ý</small></div><div class="dpan-chips">';
+    if(rec){
+      var sus=rec.riskyPairs+rec.conflictPairs;
+      h+='<span>'+rec.housePairs+' cặp</span><span>'+rec.trustedPairs+' tin cậy</span>'+(sus?'<span class="bad">'+sus+' đáng ngờ</span>':'')+(rec.ignFP?'<span class="bad">'+rec.ignFP+' cặp đã loại lọt qua</span>':'');
+    }
+    h+=res.noiseOnset?'<span class="bad">nhiễu từ '+res.noiseOnset+'%</span>':'<span>chưa thấy nhiễu</span>';
+    h+='</div></section>';
+    /* Cụm 2 · Mốc xác nhận */
+    if(res.ref)h+='<section class="dpan-c"><h4>Mốc xác nhận</h4><p>Dùng '+res.ref.total+' cặp trong danh sách hiện tại làm cặp đúng. Giữ đủ '+res.ref.goal+' cặp thì ngưỡng phải ≤ '+res.ref.minTh+'%, gợi ý không cao hơn mức đó.'+(res.ref.total>res.ref.goal?' '+(res.ref.total-res.ref.goal)+' cặp nằm ngoài tầm 70–90% thô (được cứu nhờ xác minh vùng xám hoặc dưới 70%) nên không tính.':'')+'</p></section>';
+    else if(res.refNote)h+='<section class="dpan-c"><h4>Mốc xác nhận</h4><p>'+esc(res.refNote)+'</p></section>';
+    /* Cụm 3 · Số cặp theo ngưỡng */
+    h+='<section class="dpan-c"><h4>Số cặp theo ngưỡng</h4>';
+    tiers.forEach(function(t){
+      var cls=t.th===res.recommended?" best":(res.noiseOnset&&t.th<=res.noiseOnset?" noise":(res.ref&&t.posKept<res.ref.goal?" lost":""));
+      var bad=t.riskyPairs+t.conflictPairs,neu=Math.max(0,t.housePairs-t.trustedPairs-bad);
+      h+='<div class="dpan-tr'+cls+'"><span class="dpan-th">'+t.th+'%'+(t.th===res.recommended?' ★':'')+'</span><span class="dpan-bar"><i class="g" data-w="'+(t.trustedPairs/mxP*100)+'"></i><i class="n" data-w="'+(neu/mxP*100)+'"></i><i class="x" data-w="'+(bad/mxP*100)+'"></i></span><b>'+t.housePairs+'</b>'
+        +'<span class="dpan-sub">'+t.trustedPairs+' tin cậy · '+neu+' trung tính · '+t.riskyPairs+' rủi ro · '+t.conflictPairs+' xung đột'+(t.ignFP?' · '+t.ignFP+' đã loại':'')+(res.ref?' · giữ '+t.posKept+'/'+res.ref.goal:'')+'</span></div>';
     });
-    h+='</table><p class="dpst">★ gợi ý · đỏ = từ điểm nhiễu trở xuống · mờ = mất cặp đã xác nhận. «Đã loại» = cặp bạn từng bấm Không phải trùng mà hiện lại.</p>';
-    res.steps.forEach(function(st){
-      if(!st.add.length)return;
-      var cnt={t:0,c:0,r:0,n:0};st.add.forEach(function(d){cnt[d.lbl]++});
-      var add=st.add.slice().sort(function(p,q){return (ORD[p.lbl]-ORD[q.lbl])||(q.mx-p.mx)});
-      var open=res.noiseOnset&&st.to===res.noiseOnset;
-      h+='<details'+(open?' open':'')+'><summary>'+st.from+'→'+st.to+'%: +'+add.length+' cặp ('+cnt.t+' tin cậy · '+cnt.n+' trung tính · '+cnt.r+' rủi ro · '+cnt.c+' xung đột)</summary>';
-      add.slice(0,40).forEach(function(d){
-        var ctxT=(d.dd?"khác quận":d.sd?"cùng quận":"không rõ quận")+(d.pd!=null?" · giá lệch "+Math.round(d.pd*100)+"%":"")+" · hỗ trợ "+d.sup+(d.tx>=1?" · trùng văn bản":"");
-        var th=d.best.map(function(m){return '<a href="'+esc(imgSrc(m.x,(N()&&N().VW)||VW))+'" target="_blank" rel="noopener" title="'+(m.n!=null?m.n+'%':'')+'"><img alt="Ảnh căn 1" loading="lazy" src="'+esc(imgSrc(m.x,200))+'"><img alt="Ảnh căn 2" loading="lazy" src="'+esc(imgSrc(m.y,200))+'"></a>'}).join("");
-        h+='<div class="dpan-r"><div class="dpan-t"><span class="dpan-b '+(d.cf?'t':d.lbl)+'">'+LBL[d.cf?'f':d.lbl]+'</span><b>'+esc(d.a.n)+' ↔ '+esc(d.b.n)+'</b><small>max '+d.mx+'% · '+d.nImg+' ảnh khớp · '+ctxT+'</small></div><div class="dpan-i">'+th+'</div></div>';
+    h+='<div class="dpan-lg"><span>■ tin cậy</span><span>■ trung tính</span><span>■ đáng ngờ</span><span>★ gợi ý</span></div></section>';
+    /* Cụm 4 · Cặp mới thêm ở mỗi bước hạ ngưỡng, gom theo nhãn */
+    var steps=res.steps.filter(function(st){return st.add.length});
+    if(steps.length){
+      h+='<section class="dpan-c"><h4>Cặp mới thêm ở mỗi bước hạ ngưỡng</h4>';
+      steps.forEach(function(st){
+        var grp={c:[],r:[],n:[],t:[]};
+        st.add.forEach(function(d){grp[d.cf?"t":d.lbl].push(d)});
+        var sus=grp.c.length+grp.r.length;
+        h+='<details class="dpan-s"'+(res.noiseOnset&&st.to===res.noiseOnset?' open':'')+'><summary>'+st.from+'→'+st.to+'%<em>+'+st.add.length+' cặp'+(sus?' · '+sus+' đáng ngờ':'')+'</em></summary>';
+        GRP.forEach(function(g){
+          var L=grp[g];if(!L.length)return;
+          L.sort(function(p,q){return q.mx-p.mx});
+          h+='<details class="dpan-g '+g+'"'+(g==="t"?'':' open')+'><summary>'+GT[g]+' ('+L.length+')</summary>';
+          L.slice(0,40).forEach(function(d){
+            var ctxT=(d.dd?"khác quận":d.sd?"cùng quận":"không rõ quận")+(d.pd!=null?" · giá lệch "+Math.round(d.pd*100)+"%":"")+" · hỗ trợ "+d.sup+(d.tx>=1?" · trùng văn bản":"")+(d.cf?" · đã xác nhận":"");
+            var th=d.best.map(function(m){return '<a href="'+esc(imgSrc(m.x,(N()&&N().VW)||VW))+'" target="_blank" rel="noopener" title="'+(m.n!=null?m.n+'%':'')+'"><img alt="Ảnh căn 1" loading="lazy" src="'+esc(imgSrc(m.x,200))+'"><img alt="Ảnh căn 2" loading="lazy" src="'+esc(imgSrc(m.y,200))+'"></a>'}).join("");
+            h+='<div class="dpan-r"><div class="dpan-rt"><b>'+esc(d.a.n)+' ↔ '+esc(d.b.n)+'</b><small>max '+d.mx+'% · '+d.nImg+' ảnh khớp · '+ctxT+'</small></div><div class="dpan-i">'+th+'</div></div>';
+          });
+          if(L.length>40)h+='<p class="dpst">… còn '+(L.length-40)+' cặp nữa.</p>';
+          h+='</details>';
+        });
+        h+='</details>';
       });
-      if(add.length>40)h+='<p class="dpst">… còn '+(add.length-40)+' cặp nữa (đã xếp xung đột/rủi ro lên trước).</p>';
-      h+='</details>';
-    });
+      h+='</section>';
+    }
     h+='<div class="dpan-f">'+CLOSE+'</div>';
     pn.innerHTML=h;pn.hidden=false;
+    var ws=pn.querySelectorAll("[data-w]"),wi;
+    for(wi=0;wi<ws.length;wi++)ws[wi].style.width=ws[wi].getAttribute("data-w")+"%";
     pn.onclick=function(e){if(e.target.closest&&e.target.closest("[data-anclose]")){pn.hidden=true;pn.innerHTML="";pn.onclick=null}};
   }
   G("dupanalyze").onclick=function(){
