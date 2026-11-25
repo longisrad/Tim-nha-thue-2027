@@ -3103,15 +3103,14 @@ function init(nt){
   }
   function smWaitScan(){return new Promise(function(r){if(scanning)scanDoneWaiters.push(r);else r()})}
   /* Một vòng: phân tích ngưỡng → hiện cặp vùng xám. Có «Không phải trùng» thì smApply áp ngưỡng gợi ý mới, quét lại rồi lặp vòng kế tiếp
-   (hiện bảng mới); tất cả đều «Trùng» thì áp ngưỡng gợi ý rồi dừng. Hết cặp vùng xám cũng dừng. Tối đa 10 vòng. */
+   (hiện bảng mới); tất cả đều «Trùng» thì áp ngưỡng gợi ý rồi dừng. Hết cặp vùng xám cũng dừng. Không giới hạn số vòng. */
   function smRound(){
-    if(smRoundN>=10){smRunning=false;smPanel("");msg("Đã dừng sau 10 vòng quét thông minh.");return Promise.resolve()}
     smRoundN++;smRunning=true;
     smPanel('<div class="dpsm-h"><b>Quét thông minh'+(smRoundN>1?' · vòng '+smRoundN:'')+'</b></div><p class="dpsm-p" id="dupsmst">Đang tìm ngưỡng phù hợp…</p>');
     return analyzeThresholds().then(function(res){
       smRunning=false;
       if(!res||!res.ok){smPanel("");msg((res&&res.msg)||"Chưa phân tích được.",1);return}
-      smRes={recommended:res.recommended};smGray=res.gray||[];
+      smRes={recommended:res.recommended};smGray=(res.gray||[]).slice().sort(function(x,y){return((x.mx||0)-(y.mx||0))||(x.nImg||0)-(y.nImg||0)});
       if(!smGray.length){
         smPanel("");smRes=null;
         if(res.recommended!==TH){
