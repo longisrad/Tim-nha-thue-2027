@@ -45,9 +45,12 @@ jobs:
 
       - uses: actions/configure-pages@v5
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v4
         with:
           path: dist
+
+      - name: Chờ đồng bộ artifact
+        run: sleep 10
 
       - name: Đăng lên Pages
         id: deployment
