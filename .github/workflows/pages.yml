@@ -1,0 +1,54 @@
+name: Deploy Pages (PWA)
+
+# Build bản gộp (app.js) rồi đưa lên GitHub Pages.
+# Cần bật 1 lần: Settings -> Pages -> Build and deployment -> Source = "GitHub Actions".
+on:
+  push:
+    branches: [main, master]
+    paths-ignore:
+      - 'android-res/**'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Cài gói
+        run: |
+          if [ -f package-lock.json ]; then npm ci || npm install; else npm install; fi
+
+      - name: Build
+        run: npm run build
+
+      - name: Ghi thông tin bản build
+        run: echo "{\"build\":${GITHUB_RUN_NUMBER},\"sha\":\"${GITHUB_SHA::7}\"}" > dist/version.json
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Đăng lên Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
