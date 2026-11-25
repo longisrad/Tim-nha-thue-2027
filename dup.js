@@ -302,7 +302,6 @@ function shareArr(a,b){for(var i=0;i<a.length;i++)if(b.indexOf(a[i])>=0)return t
 function ln(u){u=su(u);if(!u)return"";u=u.toLowerCase().replace(/^https?:\/\/(www\.|m\.)?/,"").replace(/#.*$/,"");var p=u.split("?"),b=p[0].replace(/\/+$/,""),q=(p[1]||"").split("&").filter(function(x){return x&&!/^(utm_|fbclid|gclid|zarsrc|ref=)/.test(x)}).sort().join("&");return b+(q?"?"+q:"")}
 /* mã tin: cùng website + cùng dãy số dài cuối đường dẫn (khác slug vẫn nhận ra) */
 function lidOf(u){if(!u)return"";var h=u.split("/")[0],m=u.split("?")[0].match(/\d{6,}/g);return m?h+"#"+m[m.length-1]:""}
-function lid(u){return lidOf(ln(u))}
 function nw(s){return nd(s).replace(/^(thanh pho|thi xa|thi tran|phuong|quan|huyen|xa|tp|p|q)(?=\s|\d|$)\s*/,"").replace(/^0+(?=\d)/,"")}
 var STOP={so:1,nha:1,duong:1,d:1,hem:1,ngo:1,ngach:1,kiet:1,p:1,phuong:1,q:1,quan:1,xa:1,hcm:1,tphcm:1,tp:1};
 function addrKey(it){var t=nd(it.a).replace(/\b(thanh pho ho chi minh|tp ho chi minh|ho chi minh)\b/g," ").replace(/\b([pq])0*(\d+)\b/g,"$2").replace(/\b0+(?=\d)/g,"").split(" ").filter(function(w){return w&&!STOP[w]});
@@ -1499,7 +1498,6 @@ function hsApply(rows){
     hs.k[id]=1;
     if(cache[id]===undefined){cache[id]=h;delete sigMemo[id];add++}
     else if(cache[id]!==h){cache[id]=h;delete sigMemo[id];chg++}});
-  if(add||chg)SM.key="";   /* hash đổi: tính lại ngưỡng thông minh */
   return{add:add,chg:chg}}
 function hsRefresh(r){
   if(!(r.add||r.chg))return;
@@ -1928,21 +1926,21 @@ function parseSig(raw){
   return{ori:p[0].charAt(1),v:v,t:t}}
 function dotV(a,b){var s0=0,s1=0,s2=0,s3=0,i;for(i=0;i<DIM;i+=4){s0+=a[i]*b[i];s1+=a[i+1]*b[i+1];s2+=a[i+2]*b[i+2];s3+=a[i+3]*b[i+3]}return s0+s1+s2+s3}
 /* th: ngưỡng cosine theo %. Trả về {d,k,o,n}: n = độ giống %, d = 100-n (giữ tên trường cũ cho phần hiển thị/lưu trữ) */
-/* 4 mức độ nhạy: 87 Ít nhầm · 80 Bình thường (mặc định) · 77 Nhạy · 73 Rất nhạy. Giá trị cũ đã lưu (kể cả 81, 92/88/85/82) được đổi sang mức gần nhất. */
-function thNorm(t){t=Math.round(+t);return(t>=60&&t<=99)?t:80}   /* ngưỡng tự do 60–99% (4 mức có sẵn là 73/77/80/87) */
+/* 4 mức độ nhạy có sẵn: 87 Ít nhầm · 80 Vừa (mặc định) · 77 Nhạy · 73 Rất nhạy; ngoài ra nhập tự do 60–99%. */
+function thNorm(t){t=Math.round(+t);return(t>=60&&t<=99)?t:80}
 function thUi(){var a=G("dupsens"),i=G("dupth");if(a)a.value=(TH===87||TH===80||TH===77||TH===73)?String(TH):"custom";if(i)i.value=String(TH);cfgTagUi(false)}
 /* ===== Bộ lọc đa tầng: khớp 1-1 + độ nổi bật + ngữ cảnh căn =====
    Ngưỡng chính ts = độ nhạy chọn (mặc định 80%). Ngưỡng trung bình mid = ts - 3. Ngưỡng sàn tl = ts - 6 (tối thiểu 60%).
    Ảnh mỗi cặp căn được ghép 1-1 theo điểm cao nhất (tránh 1 ảnh trùng lặp nhiều góc bên kia tạo điểm ảo),
    sau đó kiểm tra kết hợp ngữ cảnh (phường/quận, giá, diện tích, thông tin trùng) trước khi giữ hoặc loại. */
-var SM={ts:80,mid:77,tl:74,strong:86,cal:0,np:0,lv:0,key:"",kept:0,cut:0,dedupCut:0,ctxCut:0,mmChecked:0,mmCut:0,mmBoost:0,spChecked:0,spCut:0,spSave:0};
+var SM={ts:80,mid:77,tl:74,strong:86,cal:0,kept:0,cut:0,dedupCut:0,ctxCut:0,mmChecked:0,mmCut:0,mmBoost:0,spChecked:0,spCut:0,spSave:0};
 function smartCalc(thOv){
   var t=thOv!=null?thOv:TH;
   SM.ts=t;
   SM.mid=Math.max(60,t-3);
   SM.tl=Math.max(60,t-6);
   SM.strong=Math.max(Math.min(93,t+6),Math.min(99,t+1));   /* luôn > ts, kể cả khi ts ≥ 93 */
-  SM.cal=0;SM.np=0;SM.lv=0;
+  SM.cal=0;
   return SM}
 function textScoreMap(src){
   var m={};
@@ -1991,7 +1989,7 @@ function smartFilter(list,thOv,preSrc,preTMap){
       SM.cut+=m1.length;
     }
   });
-  out.rej=0;return out}
+  return out}
 function cmpRaw(a,b){
   if(!a||!b)return 0;
   var m=dotV(a.v,b.v),x;
@@ -2580,13 +2578,6 @@ function autoScan(){
     if(scanning||!d||!d.open)return;
     if(pmStale()||!Object.keys(pm.done).length)return;   /* chỉ tự chạy sau khi đã quét thủ công một lần */
     if(pendingItems().length>0)scan(true)})}
-function rescanFromCache(){
-  if(scanning||imgPairs===null)return;
-  Promise.all([loadCache(),loadPm()]).then(function(){
-    if(pmStale()){scan();return}
-    pairsFromPm();
-    render();var np=pendingItems().length;
-    msg(imgPairs.length+" cặp ảnh giống"+(np?" · "+np+" căn chưa so":""))})}
 var scanDoneWaiters=[];
 function waitScanStop(){if(!scanning)return Promise.resolve();stopScan();return new Promise(function(r){scanDoneWaiters.push(r)})}
 function scan(auto){
@@ -2655,7 +2646,7 @@ function scan(auto){
   if(hsPhase&&navigator.onLine!==false)msg("Đang đồng bộ hash…");
   Promise.all([loadCache(),loadPm(),navigator.onLine===false?Promise.resolve():Promise.race([hsWait(),stopP])]).then(function(){
     if(stopFlag)return;
-    SM.key="";if(hsPendR){if(hsPendR.chg){pm=pmEmpty();savePm()}hsPendR=null}   // hash vừa đổi theo máy chủ: quét lại từ hash mới
+    if(hsPendR){if(hsPendR.chg){pm=pmEmpty();savePm()}hsPendR=null}   // hash vừa đổi theo máy chủ: quét lại từ hash mới
     if(pmStale()){pm=pmEmpty();savePm()}
     if(!auto)pm.fail={};
     var pendList=pendingItems(),total=pendList.length;
@@ -2819,7 +2810,7 @@ function init(nt){
       cacheLoaded=false;cacheP=null;cache={};
       pmLoaded=false;pmP=null;pm=null;
       imgPairs=null;sigMemo={};
-      hs=null;hsP=null;hsPendR=null;SM.key="";
+      hs=null;hsP=null;hsPendR=null;
     }
     if(f16Changed){
       wipeP=clearPrecisionCache(oldCacheKey,oldPmKey,newCacheKey,newPmKey,oldF16);
@@ -2854,7 +2845,7 @@ function init(nt){
       thUi();
       var engInfo=applyEngineSettings(newEng);
       engUi();
-      openImgSet={};pairImgMode={};limMain=LIMIT;SM.key="";items=N().items();
+      openImgSet={};pairImgMode={};limMain=LIMIT;items=N().items();
       if(sb)sb.disabled=false;
       return (engInfo.wipeP||Promise.resolve()).then(function(){
         if(engInfo.keyChanged)hsPull();
@@ -3046,10 +3037,10 @@ function evalPairsAtTh(rawList,ignRawList,ts,src,byId,tMap,pos){
     o.img.push(sw?{x:r.y,y:r.x,d:r.d,k:r.k||"",o:r.o||"",n:r.n}:{x:r.x,y:r.y,d:r.d,k:r.k||"",o:r.o||"",n:r.n});
   });
   filterGenericImgs(P,src.length,ts);
-  var imgHousePairs=0,totalImgEdges=0,trustedPairs=0,riskyPairs=0,conflictPairs=0,det=[];
+  var imgHousePairs=0,trustedPairs=0,riskyPairs=0,conflictPairs=0,det=[];
   Object.keys(P).forEach(function(k){
     var o=P[k];if(!o.img.length)return;
-    imgHousePairs++;totalImgEdges+=o.img.length;
+    imgHousePairs++;
     var tsText=tMap[k]||0,ctx=pairCtx(o.a,o.b,tsText),nImg=o.img.length;
     var mx=0,hasExact=false,i;
     for(i=0;i<nImg;i++){
@@ -3076,14 +3067,14 @@ function evalPairsAtTh(rawList,ignRawList,ts,src,byId,tMap,pos){
       if(!ignSeen[pk]){ignSeen[pk]=1;ignFP++}
     });
   }
-  return{th:ts,housePairs:imgHousePairs,imgPairs:totalImgEdges,trustedPairs:trustedPairs,riskyPairs:riskyPairs,conflictPairs:conflictPairs,ignFP:ignFP,maxComp:maxCompSizeOf(P),det:det};
+  return{th:ts,housePairs:imgHousePairs,trustedPairs:trustedPairs,riskyPairs:riskyPairs,conflictPairs:conflictPairs,ignFP:ignFP,maxComp:maxCompSizeOf(P),det:det};
 }
 function analyzeThresholds(){
   items=N().items();
   loadIgnored();
   return loadCache().then(function(){
     var src=items.filter(function(it){return (it.st||"new")!=="out"});
-    var outCnt=items.length-src.length,byId={},allJ=[],A=[];
+    var byId={},allJ=[],A=[];
     src.forEach(function(it){
       byId[it.id]=it;
       (it.im||[]).forEach(function(s){
@@ -3109,7 +3100,7 @@ function analyzeThresholds(){
       build().strong.forEach(function(o){if(ih(o)&&byId[o.a.id]&&byId[o.b.id]&&!pos[o.a.id+"|"+o.b.id]){pos[o.a.id+"|"+o.b.id]=1;posN++}});
       if(!posN)refNote="Chưa có danh sách ảnh hiện tại — hãy «Quét ảnh trùng» trước để dùng làm mốc xác nhận."
     }else if(refWant)refNote="Chưa có cặp «Không phải trùng» nào nên chưa dùng danh sách hiện tại làm mốc xác nhận.";
-    var tMap=textScoreMap(src),raw=[],ignRaw=[],seen={},ignSeen={},ignOver75={},p=0,FLOOR=64;
+    var tMap=textScoreMap(src),raw=[],ignRaw=[],seen={},ignSeen={},p=0,FLOOR=64;
     function step(){
       var end=Math.min(p+25,allJ.length),j,a,b,m,k,loId,hiId,pk,isIgn;
       for(;p<end;p++){
@@ -3123,8 +3114,7 @@ function analyzeThresholds(){
           if(m){
             k=a.it.id+"|"+b.it.id+"|"+a.s+"|"+b.s;
             if(isIgn){
-              /* giữ cả cặp đã loại giống 64–75% để ignFP không bị đếm thiếu ở các tầng thấp; ignOver75 vẫn chỉ đếm >75% */
-              if(m.n>75)ignOver75[pk]=1;
+              /* giữ cả cặp đã loại giống 64–75% để ignFP không bị đếm thiếu ở các tầng thấp */
               if(!ignSeen[k]){ignSeen[k]=1;ignRaw.push({a:a.it,b:b.it,x:a.s,y:b.s,d:m.d,k:m.k,o:m.o||"",n:m.n})}
             }else if(!seen[k]){
               seen[k]=1;raw.push({a:a.it,b:b.it,x:a.s,y:b.s,d:m.d,k:m.k,o:m.o||"",n:m.n});
@@ -3133,7 +3123,6 @@ function analyzeThresholds(){
         }
       }
       if(p<allJ.length)return new Promise(function(r){setTimeout(r,0)}).then(step);
-      var ignOver75Cnt=Object.keys(ignOver75).length;
       var tiers=[90,88,86,84,82,80,78,76,74,72,70],res=[],ti=0,snap=smSnap(),nH=Math.max(1,src.length);
       /* mỗi tầng đo xong thì trả lại SM (smartFilter(thOv) ghi đè ts/mid/tl/strong + bộ đếm) và nhường nhịp để không đơ giao diện hay lệch lượt quét đang chạy */
       function tierStep(){
@@ -3146,12 +3135,12 @@ function analyzeThresholds(){
       smartCalc();
       var ref=null,minIdx=0;
       if(posN){
-        var reachK={},reachN=0,mxKept=0;
-        res.forEach(function(r){r.posKept=0;r.det.forEach(function(d){if(d.cf){r.posKept++;if(!reachK[d.k]){reachK[d.k]=1;reachN++}}});if(r.posKept>mxKept)mxKept=r.posKept});
+        var mxKept=0;
+        res.forEach(function(r){r.posKept=0;r.det.forEach(function(d){if(d.cf)r.posKept++});if(r.posKept>mxKept)mxKept=r.posKept});
         var goal=mxKept;   /* số cặp đã xác nhận mà phân tích thô với được (cặp được cứu nhờ xác minh vùng xám nằm ngoài tầm) */
         if(goal>0){
           for(var ri=0;ri<res.length;ri++)if(res[ri].posKept>=goal){minIdx=ri;break}
-          ref={total:posN,reach:reachN,goal:goal,minTh:res[minIdx].th};
+          ref={total:posN,goal:goal,minTh:res[minIdx].th};
         }else refNote="Không cặp nào trong danh sách hiện tại nằm trong khoảng 70–90% thô nên chưa dùng làm mốc xác nhận.";
       }
       var pk=pickThreshold(res,nH,minIdx),best=pk.best,noiseMark=pk.noiseMark;
@@ -3165,7 +3154,7 @@ function analyzeThresholds(){
       var noiseNote=noiseMark?" · Nhiễu từ "+noiseMark+"%":"";
       var refTxt=ref?" · Giữ đủ "+ref.goal+"/"+ref.total+" cặp đã xác nhận cần ≤"+ref.minTh+"%":"";
       var txt="Cặp theo ngưỡng (%): "+parts.join(" · ")+refTxt+noiseNote+" · Gợi ý: "+best+"%";
-      return{ok:true,imgs:allJ.length,houses:nH,excludedOut:outCnt,excludedIgnored:ignActiveCnt,ignoredOver75:ignOver75Cnt,rawEdges:raw.length,tiers:res,steps:steps,noiseOnset:noiseMark,recommended:best,summary:txt,ref:ref,refNote:refNote};
+      return{ok:true,imgs:allJ.length,houses:nH,tiers:res,steps:steps,noiseOnset:noiseMark,recommended:best,summary:txt,ref:ref,refNote:refNote};
       }
       return tierStep();
     }
@@ -3210,7 +3199,7 @@ function sync(){
     if(cacheLoaded&&!scanning)autoScan()
   },120)}
 
-window.Dup={retire:function(){return retList().map(function(x){return x.c})},ignStat:function(){return ignStat()},smart:function(){loadImgMode();var s=smartCalc();return{th:TH,ts:s.ts,mid:s.mid,tl:s.tl,strong:s.strong,algo:ALGO_VER,mm:MM_MODE,np:s.np,lv:s.lv,cal:s.cal,kept:s.kept,cut:s.cut,dedupCut:s.dedupCut,ctxCut:s.ctxCut,mmChecked:s.mmChecked,mmCut:s.mmCut,mmBoost:s.mmBoost,spChecked:s.spChecked,spCut:s.spCut,spSave:s.spSave,clusters:lastGraph?lastGraph.stats.clusterCount:0}},clusters:function(customImgPairs,customItems){if(customItems)items=customItems;else if(N())items=N().items();if(customImgPairs){imgPairs=customImgPairs}var r=build();return r.graph},sortAdjacent:function(list,customImgPairs){if(customImgPairs)imgPairs=customImgPairs;var srcList=list||(N()?N().items():items);if(!items.length&&srcList.length)items=srcList;var r=build();return sortHousesAdjacent(srcList,r.graph)},analyze:analyzeThresholds,keys:function(){return{h:CACHE_KEY,p:PM_KEY}},cached:function(){return cacheLoaded?Object.keys(cache).length:-1},dino:function(){
+window.Dup={retire:function(){return retList().map(function(x){return x.c})},ignStat:function(){return ignStat()},smart:function(){loadImgMode();var s=smartCalc();return{th:TH,ts:s.ts,mid:s.mid,tl:s.tl,strong:s.strong,algo:ALGO_VER,mm:MM_MODE,cal:s.cal,kept:s.kept,cut:s.cut,dedupCut:s.dedupCut,ctxCut:s.ctxCut,mmChecked:s.mmChecked,mmCut:s.mmCut,mmBoost:s.mmBoost,spChecked:s.spChecked,spCut:s.spCut,spSave:s.spSave,clusters:lastGraph?lastGraph.stats.clusterCount:0}},clusters:function(customImgPairs,customItems){if(customItems)items=customItems;else if(N())items=N().items();if(customImgPairs){imgPairs=customImgPairs}var r=build();return r.graph},sortAdjacent:function(list,customImgPairs){if(customImgPairs)imgPairs=customImgPairs;var srcList=list||(N()?N().items():items);if(!items.length&&srcList.length)items=srcList;var r=build();return sortHousesAdjacent(srcList,r.graph)},analyze:analyzeThresholds,keys:function(){return{h:CACHE_KEY,p:PM_KEY}},cached:function(){return cacheLoaded?Object.keys(cache).length:-1},dino:function(){
     if(DW.w)return"worker/"+DW.dev+" x"+BN+" res"+DS;
     if(DINO.m)return"main/wasm x"+BN+" res"+DS;
     if(DINO.p)return"đang tải";
