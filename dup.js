@@ -2945,7 +2945,7 @@ function maxCompSizeOf(P){
   return mx;
 }
 /* Mốc tuyệt đối để chấm nhãn cặp khi phân tích đa ngưỡng: trust = 1 ảnh đủ tin · ctxSim = cùng quận, không xung đột · risk = 1 ảnh lẻ, không ngữ cảnh hỗ trợ dưới mốc này bị coi là rủi ro */
-var LB={trust:88,ctxSim:78,risk:84};
+var LB={trust:88,ctxSim:78,risk:80};
 function smSnap(){var o={},k;for(k in SM)o[k]=SM[k];return o}
 function smBack(o){var k;for(k in o)SM[k]=o[k]}
 /* Chọn ngưỡng từ các tầng đã đo (res đi từ ngưỡng cao → thấp).
@@ -2953,7 +2953,7 @@ function smBack(o){var k;for(k in o)SM[k]=o[k]}
    2) Nhiễu bắt đầu khi bước hạ ngưỡng thêm nhiều cặp bẩn hơn cặp tin cậy; xét cả cửa sổ 2 bước vì lưới 2% mịn, nhiễu hay tích dần.
    3) Trong vùng sạch chọn tầng điểm cao nhất; phạt "sát vực" (bước kế tiếp mà bẩn → lùi 1 nấc) thay cho "+4" cố định cũ. */
 function pickThreshold(res,nH){
-  var n=res.length,i,minNoise=Math.max(2,Math.min(5,Math.ceil(nH*0.03)));
+  var n=res.length,i,minNoise=Math.max(3,Math.min(5,Math.ceil(nH*0.03)));   /* ≥3 cặp bẩn mới coi là nhiễu: 2 cặp lẻ chưa đủ mẫu */
   function bw(r){return r.riskyPairs+r.conflictPairs*1.5+r.ignFP*2}
   var st=[];
   for(i=0;i<n-1;i++){
