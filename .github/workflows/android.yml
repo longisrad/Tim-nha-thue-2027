@@ -10,9 +10,14 @@ on:
 permissions:
   contents: write   # cần để tạo Release
 
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   apk:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -38,20 +43,40 @@ jobs:
             gradle-${{ runner.os }}-
 
       - name: Cài gói
-        run: npm install
+        # Có package-lock.json (nên commit) thì cài đúng phiên bản đã khóa, build lặp lại được.
+        run: |
+          if [ -f package-lock.json ]; then npm ci || npm install; else npm install; fi
 
-      - name: Chép file web vào www
+      - name: Build web (gộp app.js) vào www
         run: npm run prepare-www
 
       - name: Kiểm tra file trong www
+        # scripts/prepare-www.js đã tự đối chiếu index.html với www/. Ở đây chỉ kiểm file bắt buộc.
         run: |
           ls -l www
-          for f in index.html sw.js manifest.webmanifest ck.js img.js dup.js bk.js dbg.js; do
-            test -f "www/$f" || { echo "::error::Thiếu www/$f. Hãy thêm vào script prepare-www trong package.json"; exit 1; }
+          for f in index.html app.js sw.js manifest.webmanifest; do
+            test -f "www/$f" || { echo "::error::Thiếu www/$f"; exit 1; }
           done
 
       - name: Tạo project Android
         run: npx cap add android
+
+      - name: Đặt phiên bản (versionCode / versionName)
+        id: ver
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            TAG="$GITHUB_REF_NAME"
+          else
+            VER=$(node -p "require('./package.json').version")
+            TAG="v${VER%.*}.${GITHUB_RUN_NUMBER}"
+          fi
+          NAME="${TAG#v}"
+          GRADLE=android/app/build.gradle
+          sed -i "s/versionCode [0-9]\+/versionCode ${GITHUB_RUN_NUMBER}/; s/versionName \"[^\"]*\"/versionName \"${NAME}\"/" "$GRADLE"
+          grep -n "versionCode\|versionName" "$GRADLE"
+          grep -q "versionCode ${GITHUB_RUN_NUMBER}" "$GRADLE" || { echo "::error::Không đặt được versionCode trong build.gradle"; exit 1; }
+          echo "{\"version\":\"${NAME}\",\"build\":${GITHUB_RUN_NUMBER}}" > www/version.json
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Tạo icon Android
         run: npx capacitor-assets generate --android
@@ -167,12 +192,7 @@ jobs:
             echo "::error::Thiếu secret ký APK (RELEASE_KEYSTORE_B64, RELEASE_KEYSTORE_PASSWORD, RELEASE_KEY_ALIAS, RELEASE_KEY_PASSWORD). Xem hướng dẫn tạo khóa."
             exit 1
           fi
-          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
-            TAG="$GITHUB_REF_NAME"
-          else
-            VER=$(node -p "require('./package.json').version")
-            TAG="v${VER%.*}.${GITHUB_RUN_NUMBER}"
-          fi
+          TAG="${{ steps.ver.outputs.tag }}"
           APK="Tim-nha-thue-${TAG}.apk"
           echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
           BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n1)
@@ -184,19 +204,26 @@ jobs:
             --out "$APK" "$RUNNER_TEMP/aligned.apk"
           "$BT/apksigner" verify "$APK"
           rm -f "$RUNNER_TEMP/release.jks"
+          sha256sum "$APK" > "$APK.sha256"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "apk=$APK" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@v4
         with:
           name: Tim-nha-thue-${{ steps.v.outputs.tag }}
-          path: ${{ steps.v.outputs.apk }}
+          path: |
+            ${{ steps.v.outputs.apk }}
+            ${{ steps.v.outputs.apk }}.sha256
 
       - name: Tạo Release trên GitHub
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${{ steps.v.outputs.tag }}" "${{ steps.v.outputs.apk }}" \
+          # Chạy tay (không phải đẩy tag) -> đánh dấu bản thử, không lẫn với bản chính thức
+          PRE=""
+          [[ "$GITHUB_REF" == refs/tags/* ]] || PRE="--prerelease"
+          gh release create "${{ steps.v.outputs.tag }}" \
+            "${{ steps.v.outputs.apk }}" "${{ steps.v.outputs.apk }}.sha256" \
             --target "$GITHUB_SHA" \
             --title "Tìm nhà thuê ${{ steps.v.outputs.tag }}" \
-            --generate-notes
+            --generate-notes $PRE
