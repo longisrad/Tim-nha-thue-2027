@@ -161,6 +161,8 @@ var CSS2=[
 ".dpm img{height:56px}",
 ".dpst{margin:4px 0 0}",
 ".dpan{font-size:var(--fs-s);margin-top:6px}",
+".dpan-h{display:flex;align-items:center;justify-content:space-between;gap:8px;position:sticky;top:0;z-index:1;background:var(--bg);padding:4px 0;border-bottom:1px solid var(--line)}",
+".dpan-f{display:flex;justify-content:flex-end;margin-top:8px}",
 ".dpan table{width:100%;border-collapse:collapse;font-size:12px}",
 ".dpan th,.dpan td{padding:3px 4px;text-align:right;border-bottom:1px solid var(--line)}",
 ".dpan th:first-child,.dpan td:first-child{text-align:left}",
@@ -2890,7 +2892,9 @@ function init(nt){
   /* Chi tiết phân tích: bảng số theo tầng + với mỗi bước hạ ngưỡng, danh sách cặp MỚI thêm kèm nhãn của code và ảnh khớp nhất để tự kiểm chứng */
   function renderAnaDetail(res){
     var pn=G("dupandet");if(!pn)return;
+    var CLOSE='<button type="button" class="btn" data-anclose="1">Đóng</button>';
     var LBL={t:"Tin cậy",c:"Xung đột",r:"Rủi ro",n:"Trung tính",f:"Đã xác nhận"},ORD={c:0,r:1,n:2,t:3},h="",i;
+    h+='<div class="dpan-h"><b>Phân tích đa ngưỡng</b>'+CLOSE+'</div>';
     if(res.ref)h+='<p class="dpst">Mốc xác nhận: dùng '+res.ref.total+' cặp trong danh sách hiện tại ('+(res.ref.total-res.ref.goal)+' cặp ngoài tầm 70–90% thô, do xác minh vùng xám hoặc dưới 70%). Giữ đủ '+res.ref.goal+' cặp thì ngưỡng phải ≤ '+res.ref.minTh+'%, gợi ý không đi cao hơn mức đó.</p>';
     else if(res.refNote)h+='<p class="dpst">'+esc(res.refNote)+'</p>';
     h+='<table><tr><th>Ngưỡng</th><th>Cặp</th><th>Tin cậy</th><th>Rủi ro</th><th>X.đột</th><th>Đã loại</th>'+(res.ref?'<th>Giữ</th>':'')+'</tr>';
@@ -2913,7 +2917,9 @@ function init(nt){
       if(add.length>40)h+='<p class="dpst">… còn '+(add.length-40)+' cặp nữa (đã xếp xung đột/rủi ro lên trước).</p>';
       h+='</details>';
     });
+    h+='<div class="dpan-f">'+CLOSE+'</div>';
     pn.innerHTML=h;pn.hidden=false;
+    pn.onclick=function(e){if(e.target.closest&&e.target.closest("[data-anclose]")){pn.hidden=true;pn.innerHTML="";pn.onclick=null}};
   }
   G("dupanalyze").onclick=function(){
     var ab=G("dupanalyze"),pn0=G("dupandet");if(pn0){pn0.hidden=true;pn0.innerHTML=""}
