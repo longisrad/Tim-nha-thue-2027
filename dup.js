@@ -3061,7 +3061,7 @@ function init(nt){
   function smClose(){smTok++;smCalc=false;smRes=null;smGray=[];smView=[];closeZoom();smPanel("")}
   function smRefresh(){
     var tok=++smTok;smCalc=true;smPaint();
-    analyzeThresholds().then(function(res){
+    analyzeThresholds(true).then(function(res){
       if(tok!==smTok)return;
       smCalc=false;
       if(res&&res.ok&&smRes)smRes.recommended=res.recommended;
@@ -3108,7 +3108,7 @@ function init(nt){
     if(smRoundN>=10){smRunning=false;smPanel("");msg("Đã dừng sau 10 vòng quét thông minh.");return Promise.resolve()}
     smRoundN++;smRunning=true;
     smPanel('<div class="dpsm-h"><b>Quét thông minh'+(smRoundN>1?' · vòng '+smRoundN:'')+'</b></div><p class="dpsm-p" id="dupsmst">Đang tìm ngưỡng phù hợp…</p>');
-    return analyzeThresholds().then(function(res){
+    return analyzeThresholds(true).then(function(res){
       smRunning=false;
       if(!res||!res.ok){smPanel("");msg((res&&res.msg)||"Chưa phân tích được.",1);return}
       smRes={recommended:res.recommended};smGray=res.gray||[];
@@ -3303,7 +3303,7 @@ function evalPairsAtTh(rawList,ignRawList,ts,src,byId,tMap,pos){
   }
   return{th:ts,housePairs:imgHousePairs,trustedPairs:trustedPairs,riskyPairs:riskyPairs,conflictPairs:conflictPairs,ignFP:ignFP,maxComp:maxCompSizeOf(P),det:det};
 }
-function analyzeThresholds(){
+function analyzeThresholds(smartMode){   /* smartMode: luồng Quét thông minh, chỉ lấy cặp đã bấm «Trùng» làm mốc, KHÔNG coi cặp chưa duyệt trong danh sách là đúng */
   items=N().items();
   loadIgnored();
   return loadCache().then(function(){
@@ -3329,7 +3329,7 @@ function analyzeThresholds(){
     });
     /* Mốc xác nhận: sau khi người dùng đã duyệt và loại các cặp sai thì danh sách ảnh hiện tại chỉ còn cặp đúng.
        Chỉ dùng khi đã có ≥1 cặp «Không phải trùng» (chứng tỏ có duyệt), nếu không danh sách chưa xác nhận sẽ khóa gợi ý ≤ ngưỡng đang dùng. */
-    var refBox=G("dupanref"),refWant=!refBox||refBox.checked,pos={},posN=0,refNote="";
+    var refBox=G("dupanref"),refWant=!smartMode&&(!refBox||refBox.checked),pos={},posN=0,refNote="";
     if(refWant&&ignActiveCnt>0){
       build().strong.forEach(function(o){if(ih(o)&&byId[o.a.id]&&byId[o.b.id]&&!pos[o.a.id+"|"+o.b.id]){pos[o.a.id+"|"+o.b.id]=1;posN++}});
       if(!posN)refNote="Chưa có danh sách ảnh hiện tại — hãy «Quét ảnh trùng» trước để dùng làm mốc xác nhận."
