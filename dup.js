@@ -1923,7 +1923,7 @@ function smartCalc(thOv){
   SM.ts=t;
   SM.mid=Math.max(60,t-3);
   SM.tl=Math.max(60,t-6);
-  SM.strong=Math.min(93,t+6);
+  SM.strong=Math.max(Math.min(93,t+6),Math.min(99,t+1));   /* luôn > ts, kể cả khi ts ≥ 93 */
   SM.cal=0;SM.np=0;SM.lv=0;
   return SM}
 function textScoreMap(src){
@@ -2944,6 +2944,49 @@ function maxCompSizeOf(P){
   });
   return mx;
 }
+/* Mốc tuyệt đối để chấm nhãn cặp khi phân tích đa ngưỡng: trust = 1 ảnh đủ tin · ctxSim = cùng quận, không xung đột · risk = 1 ảnh lẻ, không ngữ cảnh hỗ trợ dưới mốc này bị coi là rủi ro */
+var LB={trust:88,ctxSim:78,risk:84};
+function smSnap(){var o={},k;for(k in SM)o[k]=SM[k];return o}
+function smBack(o){var k;for(k in o)SM[k]=o[k]}
+/* Chọn ngưỡng từ các tầng đã đo (res đi từ ngưỡng cao → thấp).
+   1) Điểm nhiễu "đã quy đổi": risky + 1.5×conflict + 2×ignFP (cặp người dùng đã bấm "Không phải trùng" mà hiện lại = nhãn âm thật).
+   2) Nhiễu bắt đầu khi bước hạ ngưỡng thêm nhiều cặp bẩn hơn cặp tin cậy; xét cả cửa sổ 2 bước vì lưới 2% mịn, nhiễu hay tích dần.
+   3) Trong vùng sạch chọn tầng điểm cao nhất; phạt "sát vực" (bước kế tiếp mà bẩn → lùi 1 nấc) thay cho "+4" cố định cũ. */
+function pickThreshold(res,nH){
+  var n=res.length,i,minNoise=Math.max(2,Math.min(5,Math.ceil(nH*0.03)));
+  function bw(r){return r.riskyPairs+r.conflictPairs*1.5+r.ignFP*2}
+  var st=[];
+  for(i=0;i<n-1;i++){
+    var c=res[i],x=res[i+1];
+    st.push({pairs:x.housePairs-c.housePairs,good:Math.max(0,x.trustedPairs-c.trustedPairs),bad:Math.max(0,bw(x)-bw(c)),conf:Math.max(0,x.conflictPairs-c.conflictPairs)});
+  }
+  var maxCand=n-1,noiseMark=null;
+  for(i=0;i<n-1;i++){
+    var s1=st[i],c1=res[i],x1=res[i+1],w2=i<n-2?st[i+1]:null;
+    if(s1.pairs<=0&&!(w2&&w2.pairs>0))continue;
+    var highOk=x1.th<84||s1.conf>=minNoise||(s1.bad>=minNoise+1&&s1.bad>s1.good);
+    var jump=x1.housePairs>=Math.max(c1.housePairs*1.9,c1.housePairs+Math.max(5,Math.ceil(nH*0.15)));
+    var comp=c1.maxComp>=2&&x1.maxComp>=Math.max(c1.maxComp*2,c1.maxComp+Math.max(4,Math.ceil(nH*0.12)));
+    var one=s1.pairs>0&&highOk&&((s1.bad>=minNoise&&s1.bad>s1.good*0.8)||(s1.bad>=2&&s1.bad>=s1.good&&(jump||comp)));
+    var two=!one&&!!w2&&x1.th<=84&&s1.bad>0&&w2.bad>0&&(s1.bad+w2.bad)>=minNoise+1&&(s1.bad+w2.bad)>(s1.good+w2.good)*1.2;
+    if(one){noiseMark=x1.th;maxCand=i;break}
+    if(two){noiseMark=res[i+2].th;maxCand=i+1;break}   /* nhiễu tích dần qua 2 bước: đánh dấu ở cuối cửa sổ */
+  }
+  if(res[n-1].housePairs===0)return{best:80,noiseMark:null};
+  var best=res[maxCand].th,bestScore=-1e9;
+  var pairCap=Math.max(2,nH*0.35),compCap=Math.max(3,Math.round(nH*0.25));
+  function softPen(cnt,firstW,restW){return cnt<=0?0:cnt===1?firstW:firstW+(cnt-1)*restW}
+  for(i=0;i<=maxCand;i++){
+    var r=res[i],neutral=Math.max(0,r.housePairs-r.trustedPairs-r.riskyPairs-r.conflictPairs);
+    var pairExcess=Math.max(0,r.housePairs-pairCap),compExcess=Math.max(0,r.maxComp-compCap);
+    var bloat=pairExcess*(2.6+Math.min(3.0,(r.housePairs/nH)*2.5))+compExcess*(2.2+(r.maxComp/nH)*4.0);
+    var cliff=i<n-1?0.5*st[i].bad:0;
+    var sc2=r.trustedPairs*2.2+neutral*0.85-softPen(r.riskyPairs,0.1,1.1)-softPen(r.conflictPairs,0.15,2.6)-softPen(r.ignFP,0.05,0.65)-bloat-cliff-0.06*Math.abs(r.th-80);
+    if(r.housePairs===0&&res[maxCand].housePairs>0)sc2-=50;
+    if(sc2>bestScore){bestScore=sc2;best=r.th}
+  }
+  return{best:best,noiseMark:noiseMark};
+}
 function evalPairsAtTh(rawList,ignRawList,ts,src,byId,tMap){
   var filtered=smartFilter(rawList,ts,src,tMap),P={};
   filtered.forEach(function(r){
@@ -2966,9 +3009,11 @@ function evalPairsAtTh(rawList,ignRawList,ts,src,byId,tMap){
       var s=o.img[i].n!=null?o.img[i].n:Math.max(0,100-o.img[i].d);
       if(s>mx)mx=s;
     }
-    if(hasExact||nImg>=2||(ctx.sameDist&&!ctx.conflict&&(mx>=Math.max(76,ts+2)||tsText>=1))||mx>=Math.min(92,Math.max(85,ts+7)))trustedPairs++;
-    if(nImg===1&&ctx.conflict)conflictPairs++;
-    else if(nImg===1&&!ctx.support&&tsText<1&&mx<ts+3)riskyPairs++;
+    /* Nhãn dùng mốc TUYỆT ĐỐI (LB), không tính theo ts: nếu mốc trượt theo ts thì ngưỡng thấp tự thấy mình "sạch hơn" → chấm điểm lệch.
+       Các nhãn loại trừ nhau (trước đây 1 cặp có thể vừa "tin cậy" vừa "xung đột"). */
+    if(hasExact||mx>=LB.trust||(nImg>=2&&!ctx.conflict)||(ctx.sameDist&&!ctx.conflict&&(mx>=LB.ctxSim||tsText>=1)))trustedPairs++;
+    else if(ctx.conflict){if(nImg===1)conflictPairs++;else riskyPairs++}
+    else if(nImg===1&&!ctx.support&&tsText<1&&mx<LB.risk)riskyPairs++;
   });
   var ignFP=0;
   if(ignRawList&&ignRawList.length){
@@ -3030,59 +3075,23 @@ function analyzeThresholds(){
       }
       if(p<allJ.length)return new Promise(function(r){setTimeout(r,0)}).then(step);
       var ignOver75Cnt=Object.keys(ignOver75).length;
-      var tiers=[87,84,80,77,73,70],res=[];
-      tiers.forEach(function(t){res.push(evalPairsAtTh(raw,ignRaw,t,src,byId,tMap))});
+      var tiers=[90,88,86,84,82,80,78,76,74,72,70],res=[],ti=0,snap=smSnap(),nH=Math.max(1,src.length);
+      /* mỗi tầng đo xong thì trả lại SM (smartFilter(thOv) ghi đè ts/mid/tl/strong + bộ đếm) và nhường nhịp để không đơ giao diện hay lệch lượt quét đang chạy */
+      function tierStep(){
+        var t0=Date.now();
+        while(ti<tiers.length&&Date.now()-t0<30){res.push(evalPairsAtTh(raw,ignRaw,tiers[ti],src,byId,tMap));smBack(snap);ti++}
+        if(ti<tiers.length)return new Promise(function(r){setTimeout(r,0)}).then(tierStep);
+        return finish();
+      }
+      function finish(){
       smartCalc();
-      var nH=Math.max(1,src.length),minManyNoise=Math.max(2,Math.min(5,Math.ceil(nH*0.03)));
-      var baseBad=res[0].conflictPairs+res[0].riskyPairs;
-      var noiseMark=null,maxCandIdx=res.length-1,i;
-      for(i=0;i<res.length-1;i++){
-        var cur=res[i],nxt=res[i+1];
-        var dPairs=nxt.housePairs-cur.housePairs;
-        var dTrusted=Math.max(0,nxt.trustedPairs-cur.trustedPairs);
-        var dConflict=Math.max(0,nxt.conflictPairs-cur.conflictPairs);
-        var dRisky=Math.max(0,nxt.riskyPairs-cur.riskyPairs);
-        var dBad=dConflict+dRisky;
-        var addedBad=Math.max(0,(nxt.conflictPairs+nxt.riskyPairs)-baseBad);
-        var dRisk=dRisky+dConflict*1.5;
-        var highOk=nxt.th<84||dConflict>=minManyNoise||(dBad>=minManyNoise+1&&dBad>dTrusted);
-        var manyNoise=highOk&&dPairs>0&&(
-          (dBad>=minManyNoise&&dRisk>dTrusted*1.2)
-          ||(nxt.th<=80&&addedBad>=minManyNoise&&dBad>=2&&(dConflict>=1||dRisk>dTrusted))
-          ||(dBad>=2&&nxt.housePairs>=Math.max(cur.housePairs*1.9,cur.housePairs+Math.max(5,Math.ceil(nH*0.15)))&&dRisk>=dTrusted)
-          ||(dBad>=2&&cur.maxComp>=2&&nxt.maxComp>=Math.max(cur.maxComp*2,cur.maxComp+Math.max(4,Math.ceil(nH*0.12)))&&dRisk>=dTrusted)
-        );
-        if(manyNoise){
-          noiseMark=nxt.th;maxCandIdx=i;break;
-        }
-      }
-      var best=80,bestScore=-1e9;
-      if(noiseMark!==null){
-        best=Math.min(99,noiseMark+4);
-      }else if(res[res.length-1].housePairs===0){
-        best=80;
-      }else{
-        var pref={80:0.45,77:0.35,84:0.25,87:0.1,73:0.05,70:0};
-        var pairCap=Math.max(2,nH*0.35),compCap=Math.max(3,Math.round(nH*0.25));
-        function softPen(cnt,firstW,restW){return cnt<=0?0:cnt===1?firstW:firstW+(cnt-1)*restW}
-        for(i=0;i<=maxCandIdx;i++){
-          var r=res[i],neutral=Math.max(0,r.housePairs-r.trustedPairs-r.riskyPairs-r.conflictPairs);
-          var pairExcess=Math.max(0,r.housePairs-pairCap),compExcess=Math.max(0,r.maxComp-compCap);
-          var bloatPen=pairExcess*(2.6+Math.min(3.0,(r.housePairs/nH)*2.5))+compExcess*(2.2+(r.maxComp/nH)*4.0);
-          var sc2=r.trustedPairs*2.2+neutral*0.85
-            -softPen(r.riskyPairs,0.1,1.1)
-            -softPen(r.conflictPairs,0.15,2.6)
-            -softPen(r.ignFP,0.05,0.65)
-            -bloatPen
-            -(r.th<77?1.5:0)+(pref[r.th]||0);
-          if(r.housePairs===0&&res[maxCandIdx].housePairs>0)sc2-=50;
-          if(sc2>bestScore){bestScore=sc2;best=r.th}
-        }
-      }
-      var parts=res.map(function(x){return x.th+"%: "+x.housePairs});
-      var noiseNote=noiseMark?" · Nhiễu ≤"+noiseMark+"%":"";
-      var txt=parts.join(" · ")+" cặp"+noiseNote+" · Gợi ý: "+best+"%";
+      var pk=pickThreshold(res,nH),best=pk.best,noiseMark=pk.noiseMark;
+      var parts=res.map(function(x){return x.th+"→"+x.housePairs});
+      var noiseNote=noiseMark?" · Nhiễu từ "+noiseMark+"%":"";
+      var txt="Cặp theo ngưỡng (%): "+parts.join(" · ")+noiseNote+" · Gợi ý: "+best+"%";
       return{ok:true,imgs:allJ.length,houses:nH,excludedOut:outCnt,excludedIgnored:ignActiveCnt,ignoredOver75:ignOver75Cnt,rawEdges:raw.length,tiers:res,noiseOnset:noiseMark,recommended:best,summary:txt};
+      }
+      return tierStep();
     }
     return Promise.resolve().then(step);
   });
