@@ -3110,7 +3110,7 @@ function init(nt){
     return analyzeThresholds().then(function(res){
       smRunning=false;
       if(!res||!res.ok){smPanel("");msg((res&&res.msg)||"Chưa phân tích được.",1);return}
-      smRes={recommended:res.recommended};smGray=(res.gray||[]).slice().sort(function(x,y){return((x.mx||0)-(y.mx||0))||(x.nImg||0)-(y.nImg||0)});
+      smRes={recommended:res.recommended};smGray=(res.gray||[]).slice().sort(function(x,y){return((y.mx||0)-(x.mx||0))||(y.nImg||0)-(x.nImg||0)});
       if(!smGray.length){
         smPanel("");smRes=null;
         if(res.recommended!==TH){
