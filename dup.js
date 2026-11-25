@@ -3383,6 +3383,7 @@ function analyzeThresholds(){
         Object.keys(first).forEach(function(k){
           var f=first[k],d=f.d;
           if(d.cf||smartPos[k])return;
+          if(d.mx<best-6)return;   /* chỉ hỏi cặp có ảnh giống nhất ≥ ngưỡng gợi ý − 6 (tránh cặp 64-67% lọt vào nhờ bằng chứng phụ) */
           var below=f.th<best&&f.th>=lo,above=f.th>=best&&d.lbl!=="t";
           if(below||above)out.push({k:k,a:d.a,b:d.b,mx:d.mx,nImg:d.nImg,lbl:d.lbl,th:f.th,side:below?"below":"above",best:d.best});
         });
