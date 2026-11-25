@@ -2,9 +2,13 @@
   "name": "tim-nha-thue-2027-android",
   "version": "1.0.0",
   "private": true,
-  "description": "Bản app Android (Capacitor) của Tìm nhà thuê 2027",
+  "description": "Bản app Android (Capacitor) và PWA của Tìm nhà thuê 2027",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "prepare-www": "node -e \"const fs=require('fs');fs.rmSync('www',{recursive:true,force:true});fs.mkdirSync('www');for(const f of ['index.html','dup.js','ck.js','img.js','dbg.js','bk.js','manifest.webmanifest','sw.js']){if(fs.existsSync(f))fs.copyFileSync(f,'www/'+f)}for(const d of ['icons','fonts']){if(fs.existsSync(d))fs.cpSync(d,'www/'+d,{recursive:true})}\"",
+    "build": "node scripts/build.js dist",
+    "prepare-www": "node scripts/build.js www --no-map",
     "sync": "npm run prepare-www && npx cap sync android"
   },
   "dependencies": {
@@ -17,7 +21,8 @@
     "@capacitor/status-bar": "^6.0.1"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^6.1.2",
-    "@capacitor/assets": "^3.0.5"
+    "esbuild": "^0.25.0"
   }
 }
