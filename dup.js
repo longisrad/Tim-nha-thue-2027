@@ -267,7 +267,7 @@ var DLG="<dialog id=\"dupd\"><div class=\"form\" id=\"dupmain\">\n  <div class=\
 var TH=80,VL=1,ALGO_VER=7,MIN=2,imgPairs=null,scanning=false,stopFlag=false,cache={},cacheLoaded=false,cacheP=null,inflight={},LIMIT=50,limMain=50,limIgn=50,memo=null,syncT=0,showOne=false,showIgn=false,skipOut=true,skipLoaded=false,imgAutoMode="manual",imgModeLoaded=false,viewList=[],openSet={},openImgSet={},pairImgMode={},ignored={},ignLoaded=false,pairImgMsg={},zoomCmp=null,viewMode="pairs",lastGraph=null,lastRecTh=null;
 
 /* ---------- Lưu danh sách "không phải trùng" vào localStorage ---------- */
-var undoSt=[],zlay=null,cmpAll={},smartPos={},smView=[],smHook=null;
+var undoSt=[],zlay=null,cmpAll={},smartPos={},smartImg={},smView=[],smHook=null;
 function undoUi(){var b=G("dupundo"),u=undoSt[undoSt.length-1];if(!b)return;b.hidden=!u;if(u){G("dupundot").textContent=u.l;G("dupundob").textContent="↶ Hoàn tác"+(undoSt.length>1?" ("+undoSt.length+")":"")}}
 function undoPush(l,a){if(!a||!a.length)return;undoSt.push({l:l,a:a});if(undoSt.length>30)undoSt.shift();undoUi()}
 var ignDirty={},dsBusy=false,dsAgain=false,dsT=0,pullP=null,lastPull=0,ignIdbDone=false;
@@ -777,6 +777,16 @@ function build(){
   textPairs(src).forEach(function(t){var a=byId[t.a],b=byId[t.b];if(a&&b)P[t.a+"|"+t.b]={a:a,b:b,why:t.why.slice(),img:[]}});
   if(imgPairs)imgPairs.forEach(function(r){var a=byId[r.a.id],b=byId[r.b.id];if(!a||!b)return;var o=addP(P,a,b,"img");if(!o)return;var sw=o.a.id!==r.a.id;o.img.push(sw?{x:r.y,y:r.x,d:r.d,k:r.k||"",o:r.o||"",n:r.n}:{x:r.x,y:r.y,d:r.d,k:r.k||"",o:r.o||"",n:r.n})});
   filterGenericImgs(P,src.length);
+  /* Cặp đã xác nhận «Trùng» (quét thông minh) là danh sách đúng: luôn giữ, không qua smartFilter/xác minh vùng xám. Ảnh phải còn thuộc đúng căn. */
+  Object.keys(smartPos).forEach(function(k){
+    var ids=k.split("|"),a=byId[ids[0]],b=byId[ids[1]],ims=smartImg[k];
+    if(!a||!b||ignored[k]||!ims||!ims.length)return;
+    var ha=a.im||[],hb=b.im||[];
+    var ok=ims.filter(function(m){return ha.indexOf(m.x)>=0&&hb.indexOf(m.y)>=0});
+    if(!ok.length)return;
+    var o=addP(P,a,b,"img");if(!o)return;
+    ok.forEach(function(m){if(!o.img.some(function(q){return q.x===m.x&&q.y===m.y}))o.img.push({x:m.x,y:m.y,d:m.d,k:m.k||"",o:m.o||"",n:m.n})});
+  });
   var all=Object.keys(P).map(function(k){var o=P[k];o.sc=sc(o);return o}).sort(function(a,b){return(ih(b)?1:0)-(ih(a)?1:0)||b.sc-a.sc||b.img.length-a.img.length});
   var active=[],ign=[];
   all.forEach(function(p){
@@ -2992,7 +3002,8 @@ function init(nt){
      Trạng thái từng cặp lấy thẳng từ danh sách «Không phải trùng» (ignored) và smartPos nên đồng bộ cả khi đánh dấu từ khung so sánh lớn. */
   var smRes=null,smGray=[],smRunning=false,smCalc=false,smTok=0,smSig="",smRoundN=0;
   try{(JSON.parse(ls("dsp1")||"[]")||[]).forEach(function(k){smartPos[k]=1})}catch(e){}
-  function saveSmartPos(){try{ls("dsp1",JSON.stringify(Object.keys(smartPos).slice(-300)))}catch(e){}}
+  try{var _si=JSON.parse(ls("dsp2")||"{}")||{};Object.keys(_si).forEach(function(k){if(smartPos[k]&&Array.isArray(_si[k]))smartImg[k]=_si[k]})}catch(e){}
+  function saveSmartPos(){try{var ks=Object.keys(smartPos).slice(-300),im={};ks.forEach(function(k){if(smartImg[k])im[k]=smartImg[k]});ls("dsp1",JSON.stringify(ks));ls("dsp2",JSON.stringify(im))}catch(e){}}
   function ignActiveCount(){
     loadIgnored();
     var byId={},n=0;
@@ -3043,7 +3054,7 @@ function init(nt){
     if(!smRes||!smGray.length)return;
     loadIgnored();
     var ch=false;
-    smGray.forEach(function(g){if(ignored[g.k]&&smartPos[g.k]){delete smartPos[g.k];ch=true}});
+    smGray.forEach(function(g){if(ignored[g.k]&&smartPos[g.k]){delete smartPos[g.k];delete smartImg[g.k];ch=true}});
     if(ch)saveSmartPos();
     var sg=smSigOf();
     if(sg!==smSig){smSig=sg;smRefresh()}else smPaint();
@@ -3054,9 +3065,9 @@ function init(nt){
     var prev=smSt(k);
     if(prev===v)v="";
     if(prev==="n"){delete ignored[k];ignDirty[k]=0}
-    if(prev==="y")delete smartPos[k];
+    if(prev==="y"){delete smartPos[k];delete smartImg[k]}
     if(v==="n"){var ts=Date.now();ignored[k]=ts;ignDirty[k]=ts;delete openSet[k];delete openImgSet[k]}
-    if(v==="y")smartPos[k]=1;
+    if(v==="y"){smartPos[k]=1;var _g=smGray.filter(function(x){return x.k===k})[0];if(_g&&_g.imgs&&_g.imgs.length)smartImg[k]=_g.imgs.map(function(m){return{x:m.x,y:m.y,d:m.d,k:m.k||"",o:m.o||"",n:m.n}})}
     saveIgnored();saveSmartPos();
     render();smSync();
   }
