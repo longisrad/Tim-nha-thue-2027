@@ -1702,7 +1702,7 @@ function hsFlush(){if(hsT){clearTimeout(hsT);hsT=0}hsPush()}
    Chuỗi lưu: "E<L|P>:<vec>" hoặc "E<L|P>:<vec>:<vec cắt viền>" (ảnh chụp màn hình có viền đen/trắng thì nhúng thêm bản đã cắt viền).
    Chuỗi rỗng "" = ảnh trơn/ít chi tiết (bỏ qua); null = không đọc được ảnh.
    Mô hình chạy ngay trong máy bằng transformers.js (WebGPU fp16/fp32 hoặc WASM fp32), tải lần đầu từ CDN rồi được trình duyệt lưu lại. */
-var DINO_LIB="https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0",DINO_ID="olinesn/dinov3-vits16-lucid",DINO_LOCAL="models/",DINO_GPU=window.DUP_DINO_GPU!==undefined?window.DUP_DINO_GPU!==false:ENG.dev!=="cpu",FETCH_CONC=6;
+var DINO_LIB="https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0",DINO_ID="olinesn/dinov3-vits16-lucid",DINO_LOCAL="models/",DINO_GPU=window.DUP_DINO_GPU!==undefined?window.DUP_DINO_GPU!==false:ENG.dev!=="cpu",FETCH_CONC=6,IS_APK=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());   /* trong APK mô hình đã nằm sẵn trong gói app: không chép thêm vào Cache Storage */
 var DIM=384,DINO={p:null,m:null,T:null,err:null},dinoErr=null,DW={w:null,url:"",dev:"",gpu:false,seq:0,pend:{},q:[],busy:false,tm:0},BN=window.DUP_DINO_BN>0?Math.min(8,+window.DUP_DINO_BN|0):(ENG.bn===0?(DS<=160?4:(DS<=224?2:1)):(ENG.bn>0?Math.min(8,ENG.bn|0):4)),PACE=window.DUP_DINO_PACE>=0?+window.DUP_DINO_PACE:(ENG.pace>=0?+ENG.pace:0.6),PACE_MAX=250;
 /* Worker (nhúng bằng Blob, không cần file riêng): WebGPU fp16 nếu có shader-f16, không thì WebGPU fp32, không có WebGPU thì WASM fp32 (đa luồng khi crossOriginIsolated).
    Có kiểm tra thử 1 lần lúc khởi tạo; lỗi/NaN trên WebGPU tự hạ cấp fp16 -> fp32 -> WASM. Có thể tự host model tại ./models/olinesn/dinov3-vits16-lucid/ (kèm LICENSE của DINOv3) */
@@ -1811,6 +1811,7 @@ function dinoWorkerMain(){
       return probe(c)}).then(function(loc){
       L.env.allowLocalModels=!!loc;
       if(loc)L.env.localModelPath=c.localBase;
+      if(loc&&c.nocache)L.env.useBrowserCache=false;
       return gpuOk(c)}).then(function(g){
       if(!g)return wasm();
       var t=(g.f16&&c.f16!==false)?"fp16":"fp32";
@@ -1847,13 +1848,16 @@ function loadWorker(){
       else if(m.t==="ready"){done=true;revokeUrl();DW.w=w;DW.dev=m.dev+(m.dt?"-"+m.dt:"");DW.gpu=m.dev==="webgpu";w.onmessage=onWorkerMsg;w.onerror=onWorkerErr;ok(w)}
       else if(m.t==="initerr"){done=true;revokeUrl();try{w.terminate()}catch(_){}bad(new Error(m.msg))}};
     w.onerror=function(e){if(done)return;done=true;revokeUrl();try{w.terminate()}catch(_){}bad(new Error(e&&e.message||"worker lỗi"))};
-    w.postMessage({t:"init",cfg:{lib:DINO_LIB,id:DINO_ID,S:DS,gpu:DINO_GPU,f16:F16,localBase:new URL(DINO_LOCAL,location.href).href}})})}
+    w.postMessage({t:"init",cfg:{lib:DINO_LIB,id:DINO_ID,S:DS,gpu:DINO_GPU,f16:F16,localBase:new URL(DINO_LOCAL,location.href).href,nocache:IS_APK}})})}
 function loadMain(){
+  var base=new URL(DINO_LOCAL,location.href).href;
   return import(DINO_LIB).then(function(L){
-    L.env.allowLocalModels=false;
-    return L.AutoModel.from_pretrained(DINO_ID,{dtype:"fp32",device:"wasm",progress_callback:function(p){
-      if(p&&p.status==="progress"&&/\.onnx$/.test(p.file||"")&&!(scanning&&stopFlag))msg("Đang tải DINOv3… "+Math.round(p.progress||0)+"%")}
-    }).then(function(m){DINO.m=m;DINO.T=L.Tensor;return m})})}
+    return fetch(base+DINO_ID+"/config.json").then(function(r){return r.ok?r.json().then(function(){return true},function(){return false}):false},function(){return false}).then(function(loc){
+      L.env.allowLocalModels=!!loc;
+      if(loc){L.env.localModelPath=base;if(IS_APK)L.env.useBrowserCache=false}
+      return L.AutoModel.from_pretrained(DINO_ID,{dtype:"fp32",device:"wasm",progress_callback:function(p){
+        if(p&&p.status==="progress"&&/\.onnx$/.test(p.file||"")&&!(scanning&&stopFlag))msg("Đang tải DINOv3… "+Math.round(p.progress||0)+"%")}
+      })}).then(function(m){DINO.m=m;DINO.T=L.Tensor;return m})})}
 function dinoLoad(){
   if(DINO.p)return DINO.p;
   msg("Đang tải DINOv3 (lần đầu ~45–90 MB)…");
