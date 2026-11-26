@@ -1450,7 +1450,8 @@ function wClick(e){
 function wTest(){
   setTimeout(function(){throw new Error("Lỗi thử nghiệm từ Dbg.test(): nếu thấy thanh này là cơ chế cảnh báo hoạt động")},0);
   return "Đã phát lỗi thử, thanh cảnh báo sẽ hiện trong ~1 giây"}
-setInterval(wPoll,1000);wPoll();
+var pkT=0;function pokeNow(){if(document.body)wPoll();else document.addEventListener("DOMContentLoaded",wPoll,{once:true})}
+B.poke=function(){clearTimeout(pkT);pkT=setTimeout(pokeNow,300)};pokeNow();   // không còn setInterval 1 giây: index.html gọi B.poke khi có lỗi mới
 function badge(){
   var b=G("dbgb"),n=cnt("bad"),hide=false;
   try{hide=sessionStorage.getItem("dbg-hide")==="1"}catch(e){}
@@ -1583,7 +1584,9 @@ function start(){
   var go=function(){
     run().then(function(){return autoHealSilent()}).then(function(){
       if(/[?&]debug=1/.test(location.search))show()})};
-  setTimeout(function(){if(window.requestIdleCallback)requestIdleCallback(go,{timeout:4000});else go()},3000)}
+  if(B.open){B.open=0;show();run().then(function(){return autoHealSilent()});return}   // mở thủ công (chạm tiêu đề / ?debug=1): hiện bảng ngay
+  var dl=B.why?600:3000;   // được gọi do lỗi / kiểm tra hằng ngày thì chạy sớm
+  setTimeout(function(){if(window.requestIdleCallback)requestIdleCallback(go,{timeout:4000});else go()},dl)}
 if(document.readyState==="complete")start();else window.addEventListener("load",start);
 window.Dbg={
   run:function(){return run(true)},
