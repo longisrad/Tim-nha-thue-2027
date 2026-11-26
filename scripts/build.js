@@ -33,11 +33,16 @@ try { esbuild = require('esbuild'); } catch (e) {}
 let code = joined, map = null;
 if (esbuild) {
   // Chỉ nén khoảng trắng + cú pháp, KHÔNG đổi tên biến: dup.js tạo Web Worker từ mã hàm (toString), đổi tên dễ làm hỏng.
-  const r = esbuild.transformSync(joined, {
-    loader: 'js', minifyWhitespace: true, minifySyntax: true, minifyIdentifiers: false,
-    legalComments: 'none', sourcefile: 'app.src.js', sourcemap: WANT_MAP ? 'external' : false
-  });
-  code = r.code; map = r.map || null;
+  try {
+    const r = esbuild.transformSync(joined, {
+      loader: 'js', minifyWhitespace: true, minifySyntax: true, minifyIdentifiers: false,
+      legalComments: 'none', sourcefile: 'app.src.js', sourcemap: WANT_MAP ? 'external' : false
+    });
+    code = r.code; map = r.map || null;
+  } catch (e) {
+    console.warn('Cảnh báo: esbuild không nén được app.js, dùng bản nối chưa nén. Lý do: ' + String(e.message).split('\n')[0]);
+    esbuild = null; code = joined; map = null;
+  }
 } else if (process.env.CI) {
   fail('Thiếu esbuild trong CI (chạy npm ci / npm install).');
 } else {
@@ -48,10 +53,47 @@ for (const g of ['window.Ck=', 'window.Img=', 'window.Dup=', 'window.Bk=']) if (
 if (map) { code += '//# sourceMappingURL=app.js.map\n'; write('app.js.map', map); write('app.src.js', joined); }
 write('app.js', code);
 
-// ---------- 2. index.html: 4 thẻ script -> 1 thẻ ----------
+// ---------- 2. index.html: 4 thẻ script -> 1 thẻ, rồi nén khoảng trắng ----------
+// Nén an toàn: script/style đi qua esbuild (không đổi tên biến), phần HTML chỉ bỏ thụt đầu dòng, khoảng trắng cuối dòng và dòng trống.
+// Giữ nguyên <pre>, <textarea>. Khối nào nén lỗi thì giữ bản gốc, không làm hỏng build.
+function minJs(code) {
+  if (!esbuild) return code;
+  try {
+    const o = esbuild.transformSync(code, { loader: 'js', minifyWhitespace: true, minifySyntax: true, minifyIdentifiers: false, legalComments: 'none' }).code.trim();
+    if (/<\/script/i.test(o)) return code;
+    new vm.Script(o);
+    return o.length < code.length ? o : code;
+  } catch (e) { console.warn('Không nén được 1 khối script, giữ nguyên: ' + String(e.message).split('\n')[0]); return code; }
+}
+function minCss(code) {
+  if (!esbuild) return code;
+  try {
+    const o = esbuild.transformSync(code, { loader: 'css', minifyWhitespace: true, legalComments: 'none' }).code.trim();
+    return o && o.length < code.length ? o : code;
+  } catch (e) { console.warn('Không nén được 1 khối style, giữ nguyên: ' + String(e.message).split('\n')[0]); return code; }
+}
+function minifyHtml(src) {
+  const parts = src.split(/(<script\b[^>]*>[\s\S]*?<\/script>|<style\b[^>]*>[\s\S]*?<\/style>|<pre\b[\s\S]*?<\/pre>|<textarea\b[\s\S]*?<\/textarea>)/i);
+  return parts.map((p, i) => {
+    if (i % 2 === 0) return p.replace(/[ \t]+$/gm, '').replace(/^[ \t]+/gm, '').replace(/\n{2,}/g, '\n');
+    const m = /^(<(script|style)\b[^>]*>)([\s\S]*?)(<\/\2>)$/i.exec(p);
+    if (!m) return p;
+    const tag = m[2].toLowerCase(), open = m[1];
+    if (tag === 'script') {
+      if (/\bsrc\s*=/i.test(open)) return p;
+      const ty = /\btype\s*=\s*["']?([^"'\s>]+)/i.exec(open);
+      if (ty && !/^(text\/javascript|module)$/i.test(ty[1])) return p;      // JSON, template... giữ nguyên
+      return open + minJs(m[3]) + m[4];
+    }
+    return open + minCss(m[3]) + m[4];
+  }).join('');
+}
+
 let html = read('index.html');
 const tags = BUNDLE.map(f => '<script src="' + f + '" defer></script>');
 html = swap(html.replace(/\r\n/g, '\n'), tags.join('\n'), '<script src="app.js" defer></script>', 'thẻ script trong index.html');
+const htmlBefore = Buffer.byteLength(html);
+html = minifyHtml(html);
 write('index.html', html);
 
 // ---------- 3. sw.js: danh sách file của vỏ app ----------
@@ -77,4 +119,4 @@ const missing = refs.filter(r => !fs.existsSync(path.join(OUT, r)));
 if (missing.length) fail('index.html tham chiếu file không có trong ' + OUT + ': ' + missing.join(', '));
 const kb = f => (fs.statSync(path.join(OUT, f)).size / 1024).toFixed(0) + ' KB';
 console.log('Build OK -> ' + OUT + '/  app.js ' + kb('app.js') + (esbuild ? ' (đã nén)' : ' (chưa nén)') +
-  ' · index.html ' + kb('index.html') + ' · dbg.js ' + kb('dbg.js'));
+  ' · index.html ' + (htmlBefore / 1024).toFixed(0) + ' -> ' + kb('index.html') + ' · dbg.js ' + kb('dbg.js'));
