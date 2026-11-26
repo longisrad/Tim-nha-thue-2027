@@ -1574,7 +1574,7 @@ window.addEventListener("popstate",function(e){
   if(!ckLeave(function(){ckHist=false;closeCkNow()}))ckHistOn();
 });
 function setTab(t,keep,force){
-  var same=t===tab;
+  var same=t===tab,from=tab;
   closeMenus();
   if(same&&!keep){jumpTop();return}
   if(!force&&tab==="ck"&&t!=="ck"){ckLeave(function(){setTab(t,keep,true)});return}
@@ -1591,7 +1591,11 @@ function setTab(t,keep,force){
   if(t==="list"||t==="fav"||t==="real")render();
   if(t==="ck")ckLoad(CS.id);
   if(t==="sum")renderSum();
-  if(!keep&&!same)pageIn()
+  if(!keep&&!same){
+    var isL=function(x){return x==="list"||x==="fav"||x==="real"};
+    if(isL(t)&&isL(from))enterAnim();   // Danh sách <-> Yêu thích <-> Thực tế: chỉ động 6 thẻ đầu, không làm mờ cả khối hàng trăm thẻ
+    else pageIn()
+  }
 }
 function ckSaveOff(id,cur){var it=findItem(id);if(!it||!canW)return;var x=ckSnap(cur);
   CS.saveN++;CS.q=CS.q.then(function(){var curIt=findItem(id);if(!curIt)return null;return ckPersist(id,curIt,x)}).then(function(d){CS.saveN=Math.max(0,CS.saveN-1);ckSyncUi();return d},function(e){CS.saveN=Math.max(0,CS.saveN-1);ckSyncUi();fail(e)})}
