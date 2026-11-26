@@ -555,8 +555,9 @@ details.sec summary::-webkit-details-marker{display:none}
   <div><label for="lk">Link tin đăng</label><input autocomplete="off" data-lpignore="true" data-1p-ignore id="lk" type="url" placeholder="https://"></div>
   <div class="g2 gat">
     <div><label for="a">Địa chỉ</label><input autocomplete="off" data-lpignore="true" data-1p-ignore id="a" placeholder="Số nhà, đường"></div>
-    <div><label for="tw">Tòa</label><input autocomplete="off" data-lpignore="true" data-1p-ignore id="tw" placeholder="VD: A1, Block B"></div>
+    <div><label for="tsel">Tòa</label><select id="tsel"></select></div>
   </div>
+  <div id="tnew" style="display:none"><label for="tw">Tên tòa mới</label><input autocomplete="off" data-lpignore="true" data-1p-ignore id="tw" placeholder="VD: A1, Block B"></div>
   <div class="g2">
     <div><label for="wsel">Phường</label><select id="wsel"></select></div>
     <div><label for="dsel">Quận / khu vực</label><select id="dsel"></select></div>
@@ -1208,7 +1209,7 @@ function openForm(id){
   $("del").hidden=!id;
   var map={n:"n",a:"a",tw:"tw",d:"d",w:"w",st:"st",p:"p",ar:"ar",dp:"dp",u:"u",sv:"fe",ph:"ph",on:"on",sn:"sn",sp:"sp",mp:"mp",vd:"vd",lh:"lh",lk:"lk"};
   for(var k in map){var v=it[k];$(map[k]).value=v==null?"":v}
-  buildSales(it);buildAreas(it);buildWards(it);syncSt();
+  buildSales(it);buildAreas(it);buildTowers(it);buildWards(it);syncSt();
   formTok++;upQ=[];pvEls={};pvNm={};editDr=it.dr||"";editIm=(it.im||[]).slice();origIm=editIm.slice();formTrash=[];$("im").value="";setIms("");svLock();renderPv();if(!$("dlg").open)$("dlg").showModal();
 }
 var WARDS=[];
@@ -1232,6 +1233,25 @@ $("wsel").onchange=function(){
   var x=WARDS[+v];$("w").value=x.w;
   if(x.d){var ai=-1;AREAS.forEach(function(l,i){if(dkey(l)===dkey(x.d))ai=i});
     if(ai>=0){$("dsel").value=String(ai);$("d").value=AREAS[ai];showNewArea(false)}}
+};
+var TOWERS=[];
+function showNewTower(on){$("tnew").style.display=on?"":"none"}
+function buildTowers(cur){
+  var seen={};TOWERS=[];
+  items.forEach(function(x){var l=(x.tw||"").trim(),k=dkey(l);if(!k||seen[k])return;seen[k]=1;TOWERS.push(l)});
+  TOWERS.sort(cmpVi);
+  var ck=cur&&cur.tw?dkey(cur.tw):"",sel=-1;
+  var o='<option value="">— Chưa ghi tòa —</option>';
+  TOWERS.forEach(function(l,i){if(ck&&dkey(l)===ck)sel=i;o+='<option value="'+i+'">'+esc(twLbl(l))+'</option>'});
+  o+='<option value="__new">＋ Thêm tòa mới…</option>';
+  $("tsel").innerHTML=o;$("tsel").value=sel>=0?String(sel):"";showNewTower(false);
+  $("tw").value=sel>=0?TOWERS[sel]:"";
+}
+$("tsel").onchange=function(){
+  var v=this.value;
+  if(v==="__new"){$("tw").value="";showNewTower(true);$("tw").focus();return}
+  showNewTower(false);
+  $("tw").value=v===""?"":TOWERS[+v];
 };
 var SALES=[];
 function skey(n,p){return (n||"").trim().toLowerCase()+"|"+(p||"").replace(/\D/g,"")}
