@@ -47,6 +47,11 @@ jobs:
         run: |
           if [ -f package-lock.json ]; then npm ci || npm install; else npm install; fi
 
+      - name: Tải mô hình DINOv3 (nhúng sẵn, dùng offline)
+        # Lỗi mạng ở bước này không chặn build: app sẽ tự tải mô hình từ HuggingFace như trước.
+        continue-on-error: true
+        run: bash scripts/fetch-model.sh
+
       - name: Build web (gộp app.js) vào www
         run: npm run prepare-www
 
