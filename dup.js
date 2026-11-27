@@ -61,6 +61,10 @@ var CSS2=[
 ".dpimgs.dpopen{animation:dpslide .2s cubic-bezier(.16,1,.3,1)}",
 ".dpz:not([hidden]){animation:dpfade .18s ease}",
 ".dpz:not([hidden]) .dpzb{animation:dpzin .22s cubic-bezier(.16,1,.3,1)}",
+"@keyframes dpripple{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 50%,transparent)}100%{box-shadow:0 0 0 14px transparent}}",
+".dpbtn:active{transform:scale(.93);background:color-mix(in srgb,var(--accent) 14%,var(--surface));border-color:var(--accent);color:var(--accent)}",
+".dpbtn.dpgo{animation:dpripple .5s ease-out}",
+"@supports (transition-behavior:allow-discrete){.dpz{transition:opacity .16s ease-in,display .16s allow-discrete}.dpzb{transition:transform .16s ease-in,opacity .16s ease-in}.dpz[hidden]{opacity:0;pointer-events:none}.dpz[hidden] .dpzb{opacity:0;transform:translateY(14px) scale(.98)}}",
 ".dpzm{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 0 8px;padding-bottom:2px}",
 ".dpzm::-webkit-scrollbar{display:none}",
 ".dpzm[hidden]{display:none}",
@@ -3030,6 +3034,9 @@ function init(nt){
   }else{
     b.className="dpbtn";
   }
+  /* Nhấn nút: lan một vòng sáng màu chủ đạo ngay lúc chạm (trước khi hộp thoại mở) */
+  b.addEventListener("pointerdown",function(){b.classList.remove("dpgo");void b.offsetWidth;b.classList.add("dpgo")},{passive:true});
+  b.addEventListener("animationend",function(e){if(e.animationName==="dpripple")b.classList.remove("dpgo")});
   if(h1&&h1.parentNode){
     var hdr=h1.parentNode;
     if(!hdr.classList.contains("dphdr")){

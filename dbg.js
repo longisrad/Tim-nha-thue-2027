@@ -1292,7 +1292,8 @@ var CSS="#dbgd .form{gap:10px}"+
 "#dbgw button{border:1px solid var(--line,#ccc);background:transparent;color:inherit;border-radius:999px;min-height:28px;padding:2px 10px;font-size:var(--fs-xs,12px);cursor:pointer}"+
 "#dbgw .xc{width:28px;height:28px;min-height:0;padding:0;border:0;background:none;color:var(--mute,#888)}"+
 "#dbgw .dbgwi{display:flex;gap:6px;align-items:flex-start;border-top:1px dashed var(--line,#ccc);padding-top:4px}#dbgw .dbgwi i{flex:none;font-style:normal;width:16px;text-align:center;font-weight:800}#dbgw .dbgwi.bad i{color:var(--danger,#c00)}#dbgw .dbgwi.warn i{color:#b45309}"+
-"#dbgw .dbgwi span{min-width:0;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}#dbgw .dbgwm{color:var(--mute,#666)}";
+"#dbgw .dbgwi span{min-width:0;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}#dbgw .dbgwm{color:var(--mute,#666)}"+
+ "@supports (transition-behavior:allow-discrete){#dbgb,#dbgw{transition:opacity .16s ease-in,translate .16s ease-in,display .16s allow-discrete}#dbgw[hidden]{opacity:0;translate:0 -8px}#dbgb[hidden]{opacity:0;translate:0 8px}}";
 var ICON={ok:"✓",warn:"⚠",bad:"✕",info:"•"};
 var FLT="issues",OPEN={},MSG="",LH="",busy=false;
 function style(){if(G("dbgcss"))return;var st=document.createElement("style");st.id="dbgcss";st.textContent=CSS;document.head.appendChild(st)}
