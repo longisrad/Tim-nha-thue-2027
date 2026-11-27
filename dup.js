@@ -3542,10 +3542,18 @@ function init(nt){
     }
     return finishScan();
   }
+  var SM_BASE_TH=70;   /* ngưỡng quét thường ở bước đầu của Quét thông minh */
   function smStart(){
     if(scanning||smRunning)return;
     smClose();stopFlag=false;smRunning=true;smRoundN=0;smThDirty=false;syncScanUi();
-    smPanel('<div class="dpsm-h"><b>Quét thông minh</b></div><p class="dpsm-p" id="dupsmst">Đang quét ảnh…</p>');
+    /* Bước 1: quét thường ở ngưỡng 70% rồi lấy ngưỡng đó làm nền cho các bước sau (phân tích đa ngưỡng, vùng xám…) */
+    if(TH!==SM_BASE_TH){
+      TH=SM_BASE_TH;
+      var i0=G("dupth");if(i0)i0.value=String(TH);
+      syncSensDraft();thUi();
+      try{ls("dsim",String(TH))}catch(e){}
+    }
+    smPanel('<div class="dpsm-h"><b>Quét thông minh</b></div><p class="dpsm-p" id="dupsmst">Bước 1: quét thường ở '+SM_BASE_TH+'%…</p>');
     smScrollTo(G("dupsmart"));
     scanAwait().then(function(){
       if(stopFlag){smRunning=false;syncScanUi();smPanel("");smScrollTo(0);return}
