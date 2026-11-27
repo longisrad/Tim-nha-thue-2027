@@ -74,7 +74,8 @@ var CSS2=[
 ".dpzstage.busy img{opacity:.55}",
 ".dpzstage img.zm{will-change:transform;cursor:grab}",
 ".dpzstage.zt img{transition:transform .2s ease,opacity .22s ease}",
-".dpzrst{position:absolute;left:8px;bottom:8px;z-index:3;min-height:30px;padding:0 12px;border:0;border-radius:999px;background:rgba(0,0,0,.62);color:#fff;font:inherit;font-size:12px;font-weight:700;cursor:pointer}",
+".dpzrst{position:absolute;right:8px;top:8px;z-index:3;min-height:28px;padding:0 10px;border:0;border-radius:999px;background:rgba(0,0,0,.6);color:#fff;font:inherit;font-size:12px;font-weight:700;line-height:1;cursor:pointer;transition:opacity .15s ease}",
+".dpzstage.zg .dpzrst{opacity:0;pointer-events:none}",
 ".dpzrst[hidden]{display:none}",
 ".dpzstage::after{content:'';position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--accent);opacity:0;pointer-events:none;transition:opacity .2s}",
 ".dpzstage.busy::after{opacity:1;transition-delay:.12s;animation:dpspin .85s linear infinite}",
@@ -1381,11 +1382,11 @@ function zApply(sd,anim){
   if(anim){e.st.classList.add("zt");clearTimeout(z.tt);z.tt=setTimeout(function(){e.st.classList.remove("zt")},240)}
   e.img.style.transform=on?"translate("+z.x.toFixed(1)+"px,"+z.y.toFixed(1)+"px) scale("+z.s.toFixed(3)+")":"";
   e.img.classList.toggle("zm",on);
-  if(e.rb){e.rb.hidden=!on;if(on)e.rb.textContent=(Math.round(z.s*10)/10)+"× · Đặt lại"}}
+  if(e.rb){e.rb.hidden=!on;if(on)e.rb.textContent="↺ "+(Math.round(z.s*10)/10)+"×"}}
 function zReset(sd,anim){var z=zS[sd];z.s=1;z.x=0;z.y=0;try{zApply(sd,anim)}catch(e){}}
 function zInit(sd){
   var e=zEl(sd),st=e.st,img=e.img,z=zS[sd],P={},g=null,tap=null,dbl=null;
-  var rb=document.createElement("button");rb.type="button";rb.className="dpzrst";rb.hidden=true;rb.setAttribute("aria-label","Đặt lại thu phóng");
+  var rb=document.createElement("button");rb.type="button";rb.className="dpzrst";rb.hidden=true;rb.setAttribute("aria-label","Đặt lại thu phóng");rb.title="Đặt lại thu phóng";
   rb.onclick=function(ev){ev.stopPropagation();z.t=Date.now();zReset(sd,true)};st.appendChild(rb);
   function rel(ev){var r=st.getBoundingClientRect();return{x:ev.clientX-r.left-r.width/2,y:ev.clientY-r.top-r.height/2}}
   function list(){return Object.keys(P).map(function(k){return P[k]})}
@@ -1403,7 +1404,7 @@ function zInit(sd){
     try{st.setPointerCapture(ev.pointerId)}catch(x){}
     if(Object.keys(P).length===1)tap={t:Date.now(),x:ev.clientX,y:ev.clientY,mv:false};
     else if(tap)tap.mv=true;
-    base()});
+    st.classList.add("zg");base()});
   st.addEventListener("pointermove",function(ev){
     if(!P[ev.pointerId]||!g)return;
     P[ev.pointerId]=rel(ev);
@@ -1424,6 +1425,7 @@ function zInit(sd){
     try{st.releasePointerCapture(ev.pointerId)}catch(x){}
     if(was>1)z.t=Date.now();
     if(Object.keys(P).length){base();return}
+    st.classList.remove("zg");
     if(z.s<1.05&&z.s>1){z.t=Date.now();zReset(sd,true)}
     if(ev.type==="pointerup"&&tap&&!tap.mv&&Date.now()-tap.t<300&&z.s>1){
       var n=Date.now();

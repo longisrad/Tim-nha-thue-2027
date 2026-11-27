@@ -58,7 +58,7 @@ function lbPre(u,cb){if(!u)return;if(lbDone[u]){if(cb)cb();return}
   function fin(ok){if(ok)lbDone[u]=1;var q=lbWait[u]||[];delete lbWait[u];q.forEach(function(f){f()})}
   p.onload=function(){fin(true)};p.onerror=function(){fin(false)};p.src=u}
 function lbAnim(k){var el=G("lbi");el.classList.remove("a-open","a-next","a-prev");void el.offsetWidth;if(k)el.classList.add("a-"+k)}
-function lbShow(kind){var im=lbL[lbI],big=im.dataset.big||im.src,el=G("lbi"),lb=G("lb"),t=++lbT;
+function lbShow(kind){lbzReset();var im=lbL[lbI],big=im.dataset.big||im.src,el=G("lbi"),lb=G("lb"),t=++lbT;
   G("lbc").textContent=(lbI+1)+" / "+lbL.length;lb.classList.toggle("single",lbL.length<2);
   if(lbDone[big]){el.src=big;lb.classList.remove("busy");lbAnim(kind)}
   else{var lo=im.currentSrc||im.src;
@@ -69,15 +69,95 @@ function lbGo(d){if(lbL.length<2)return;lbI=(lbI+d+lbL.length)%lbL.length;lbShow
 function openLb(img){lbL=Array.prototype.slice.call(img.closest(".ph,.cph,.dvg").querySelectorAll("img")).filter(function(x){return !x.closest(".up")});
   if(!lbL.length)lbL=[img];lbI=Math.max(0,lbL.indexOf(img));lbShow("open");if(!G("lb").open)G("lb").showModal()}
 G("lb").onclick=function(e){var t=e.target;
+  if(t.id==="lbz"){lbZ.t=Date.now();lbzReset(true);return}
+  if((t.id==="lbi"||t===this)&&lbZBlocked())return;
   if(t.id==="lbn"){lbGo(1);return}
   if(t.id==="lbp"){lbGo(-1);return}
   if(t.id==="lbi"){if(lbL.length>1)lbGo(1);else this.close();return}
   this.close()};
 G("lb").addEventListener("keydown",function(e){if(e.key==="ArrowRight")lbGo(1);else if(e.key==="ArrowLeft")lbGo(-1)});
 (function(){var x0=null;var lb=G("lb");
-  lb.addEventListener("touchstart",function(e){x0=e.touches.length===1?e.touches[0].clientX:null},{passive:true});
-  lb.addEventListener("touchend",function(e){if(x0===null)return;var dx=e.changedTouches[0].clientX-x0;x0=null;
+  lb.addEventListener("touchstart",function(e){x0=(e.touches.length===1&&lbZ.s<=1.01)?e.touches[0].clientX:null},{passive:true});
+  lb.addEventListener("touchend",function(e){if(x0===null)return;if(lbZBlocked()){x0=null;return}var dx=e.changedTouches[0].clientX-x0;x0=null;
     if(Math.abs(dx)>50){lbGo(dx<0?1:-1);e.preventDefault()}},{passive:false});
+})();
+
+/* ---------- Thu phóng 2 ngón (pinch) + kéo + lăn chuột cho ảnh trong lightbox ---------- */
+var lbZ={s:1,x:0,y:0,t:0,tt:0},LBZMAX=6;
+function lbzCtr(){var lb=G("lb"),el=G("lbi"),r=lb.getBoundingClientRect();return{x:r.left+el.offsetLeft+el.offsetWidth/2,y:r.top+el.offsetTop+el.offsetHeight/2}}
+function lbzApply(anim){
+  var el=G("lbi"),lb=G("lb"),rb=G("lbz"),z=lbZ;
+  z.s=Math.min(LBZMAX,Math.max(1,z.s));
+  if(z.s<1.02){z.s=1;z.x=0;z.y=0}
+  else{
+    var c=lbzCtr(),w=el.offsetWidth,h=el.offsetHeight,vw=window.innerWidth,vh=window.innerHeight;
+    var lox=vw-c.x-z.s*w/2,hix=z.s*w/2-c.x,loy=vh-c.y-z.s*h/2,hiy=z.s*h/2-c.y;
+    z.x=lox>hix?(lox+hix)/2:Math.min(hix,Math.max(lox,z.x));
+    z.y=loy>hiy?(loy+hiy)/2:Math.min(hiy,Math.max(loy,z.y))}
+  var on=z.s>1;
+  if(anim){lb.classList.add("zt");clearTimeout(z.tt);z.tt=setTimeout(function(){lb.classList.remove("zt")},240)}
+  el.style.transform=on?"translate("+z.x.toFixed(1)+"px,"+z.y.toFixed(1)+"px) scale("+z.s.toFixed(3)+")":"";
+  el.classList.toggle("zm",on);
+  if(rb){rb.hidden=!on;if(on)rb.textContent="↺ "+(Math.round(z.s*10)/10)+"×"}}
+function lbzReset(anim){lbZ.s=1;lbZ.x=0;lbZ.y=0;try{lbzApply(anim)}catch(e){}}
+function lbZBlocked(){return lbZ.s>1||Date.now()-lbZ.t<400}
+(function(){
+  var lb=G("lb"),el=G("lbi"),z=lbZ,P={},g=null,tap=null,dbl=null;
+  var rb=document.createElement("button");rb.type="button";rb.id="lbz";rb.hidden=true;rb.setAttribute("aria-label","Đặt lại thu phóng");rb.title="Đặt lại thu phóng";lb.appendChild(rb);
+  function rel(ev){var c=lbzCtr();return{x:ev.clientX-c.x,y:ev.clientY-c.y}}
+  function list(){return Object.keys(P).map(function(k){return P[k]})}
+  function base(){
+    var p=list();if(!p.length){g=null;return}
+    var two=p.length>1;
+    g={s:z.s,x:z.x,y:z.y,n:two?2:1,
+      m:two?{x:(p[0].x+p[1].x)/2,y:(p[0].y+p[1].y)/2}:p[0],
+      d:two?(Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y)||1):0}}
+  function far(ev){return tap&&(Math.abs(ev.clientX-tap.x)>8||Math.abs(ev.clientY-tap.y)>8)}
+  lb.addEventListener("pointerdown",function(ev){
+    if(ev.target.closest&&ev.target.closest("button"))return;
+    if(!lb.open||Object.keys(P).length>=2)return;
+    P[ev.pointerId]=rel(ev);
+    try{lb.setPointerCapture(ev.pointerId)}catch(x){}
+    if(Object.keys(P).length===1)tap={t:Date.now(),x:ev.clientX,y:ev.clientY,mv:false};
+    else if(tap)tap.mv=true;
+    lb.classList.add("zg");base()});
+  lb.addEventListener("pointermove",function(ev){
+    if(!P[ev.pointerId]||!g)return;
+    P[ev.pointerId]=rel(ev);
+    var p=list();
+    if(g.n===2&&p.length>1){
+      var m={x:(p[0].x+p[1].x)/2,y:(p[0].y+p[1].y)/2},d=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y)||1;
+      var ns=Math.min(LBZMAX,Math.max(1,g.s*d/g.d)),qx=(g.m.x-g.x)/g.s,qy=(g.m.y-g.y)/g.s;
+      z.s=ns;z.x=m.x-ns*qx;z.y=m.y-ns*qy;lbzApply();z.t=Date.now();
+      if(tap)tap.mv=true;
+    }else if(g.n===1&&z.s>1){
+      z.x=g.x+(p[0].x-g.m.x);z.y=g.y+(p[0].y-g.m.y);lbzApply();
+      if(far(ev)){tap.mv=true;z.t=Date.now()}
+    }else if(far(ev))tap.mv=true});
+  function up(ev){
+    if(!P[ev.pointerId])return;
+    var was=Object.keys(P).length;
+    delete P[ev.pointerId];
+    try{lb.releasePointerCapture(ev.pointerId)}catch(x){}
+    if(was>1)z.t=Date.now();
+    if(Object.keys(P).length){base();return}
+    lb.classList.remove("zg");
+    if(z.s<1.05&&z.s>1){z.t=Date.now();lbzReset(true)}
+    if(ev.type==="pointerup"&&tap&&!tap.mv&&Date.now()-tap.t<300&&z.s>1){
+      var n=Date.now();
+      if(dbl&&n-dbl.t<320&&Math.abs(dbl.x-tap.x)<30&&Math.abs(dbl.y-tap.y)<30){dbl=null;z.t=n;lbzReset(true)}
+      else dbl={t:n,x:tap.x,y:tap.y}}
+    tap=null;g=null}
+  lb.addEventListener("pointerup",up);lb.addEventListener("pointercancel",up);
+  lb.addEventListener("wheel",function(ev){
+    if(!lb.open)return;
+    ev.preventDefault();
+    var m=rel(ev),ns=Math.min(LBZMAX,Math.max(1,z.s*Math.exp(-ev.deltaY*(ev.ctrlKey?0.01:0.0015))));
+    if(ns===z.s)return;
+    var qx=(m.x-z.x)/z.s,qy=(m.y-z.y)/z.s;
+    z.s=ns;z.x=m.x-ns*qx;z.y=m.y-ns*qy;lbzApply();z.t=Date.now()},{passive:false});
+  lb.addEventListener("close",function(){lbzReset()});
+  window.addEventListener("resize",function(){lbzReset()});
 })();
 
 /* ===== Tải sẵn ảnh thông minh =====
