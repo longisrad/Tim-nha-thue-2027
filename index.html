@@ -95,7 +95,7 @@ h1+.sub,.dphdr+.sub{color:var(--mute);font-size:var(--fs-s);margin:-6px 0 12px;w
 @media (hover:hover){.rfbtn:hover{border-color:var(--accent);color:var(--accent)}}
 .rfbtn:active{transform:scale(.94)}.rfbtn.spin svg{animation:lbspin .8s linear infinite}
 .pwah{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:8px 10px;margin:0 0 var(--sp-2);font-size:var(--fs-s);color:var(--mute)}
-.pwah span{flex:1;min-width:0}.pwah b{color:var(--ink)}.pwah button{flex:none;width:28px;height:28px;border:0;background:none;color:var(--mute);font-size:18px;line-height:1;cursor:pointer;padding:0;border-radius:50%}
+.pwah span{flex:1;min-width:0}.pwah b{color:var(--ink)}
 .grow{flex:1}
 
 /* ===== Chuyển động (chỉ transform/opacity trên GPU; tự tắt khi máy bật giảm chuyển động) ===== */
@@ -179,6 +179,16 @@ img.ld0{animation:none}
 .btn.p{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .btn.d{color:var(--danger)}
 .ic{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+/* Nút đóng dùng chung (.xc): biểu tượng X bằng SVG mask, 3 biến thể: mặc định / .ov (trên ảnh, nền tối) / .sm (nhỏ, không viền); .lg cho lightbox */
+.xc{flex:none;display:inline-grid;place-items:center;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;padding:0;font:inherit;line-height:0;-webkit-tap-highlight-color:transparent;transition:transform .1s ease,filter .15s ease,background-color .15s ease,color .15s ease}
+.xc::before{content:"";width:16px;height:16px;background:currentColor;-webkit-mask:var(--xic) center/contain no-repeat;mask:var(--xic) center/contain no-repeat}
+:root{--xic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 6l12 12M18 6L6 18' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E")}
+.xc.ov{border:0;background:rgba(0,0,0,.55);color:#fff}
+.xc.sm{width:28px;height:28px;border:0;background:none;color:var(--mute)}.xc.sm::before{width:14px;height:14px}
+.xc.lg{width:44px;height:44px}.xc.lg::before{width:20px;height:20px}
+.xc:disabled{opacity:.5;cursor:wait}.xc:active{transform:scale(.92)}.xc:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (hover:hover){.xc:hover{filter:brightness(.92)}}
+.dh{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2)}
 .ic.i-pin{color:var(--t-fav)}.ic.i-link,.ic.i-ext,.ic.i-check{color:var(--t-ck)}.ic.i-img{color:var(--t-sum)}.ic.i-nav{color:var(--t-list)}.ic.i-edit{color:var(--t-real)}
 .ab{display:inline-flex;align-items:center;gap:5px;min-height:36px;padding:0 13px 0 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:var(--fs-m);font-weight:600;text-decoration:none;cursor:pointer;line-height:1;white-space:nowrap}
 .ab.tel{background:var(--b-won);color:var(--s-won);border-color:transparent}
@@ -308,7 +318,7 @@ body .card.hl,body .sx.hl{border-color:var(--violet);box-shadow:0 0 0 3px var(--
 .dvg{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
 .dvg::-webkit-scrollbar{display:none}
 .dvg img{flex:0 0 100%;width:100%;height:170px;object-fit:cover;scroll-snap-align:center;cursor:pointer;background:var(--line)}
-.dvx{position:absolute;top:8px;right:8px;width:32px;height:32px;border-radius:50%;border:none;background:rgba(0,0,0,.55);color:#fff;font-size:20px;line-height:1;cursor:pointer;padding:0}
+.dvx{position:absolute;top:8px;right:8px}
 .dvst{position:absolute;left:10px;top:9px;box-shadow:0 1px 5px rgba(0,0,0,.25)}
 .dvn{position:absolute;right:12px;bottom:10px;background:rgba(0,0,0,.55);color:#fff;font-size:var(--fs-s);padding:2px 9px;border-radius:12px}
 .dvb{padding:var(--sp-3) var(--sp-3) var(--sp-1);display:grid;gap:10px}
@@ -373,7 +383,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .pv img{width:100%;height:100%;object-fit:cover;border-radius:6px;display:block;background:var(--line)}
 .pv .up img{opacity:.55}
 .pv .up span{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);color:#fff;font-size:var(--fs-xs);text-align:center;border-radius:0 0 6px 6px;padding:2px 0}
-.pv button{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;border:none;background:var(--danger);color:#fff;font-size:var(--fs-b);line-height:1;cursor:pointer;padding:0}
+.pv button{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;border:none;background:var(--danger);color:#fff;font-size:0;line-height:0;cursor:pointer;padding:0;display:inline-grid;place-items:center}.pv button::before{content:"";width:11px;height:11px;background:currentColor;-webkit-mask:var(--xic) center/contain no-repeat;mask:var(--xic) center/contain no-repeat}
 .cph img{cursor:pointer}
 .fab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:5;box-shadow:0 4px 14px rgba(0,0,0,.25);border-radius:50%;width:54px;height:54px;min-height:0;padding:0;justify-content:center}
 .btn.fab{background:var(--fab);background-image:linear-gradient(135deg,var(--g1),var(--g2),var(--g3));background-origin:border-box;background-clip:border-box;color:var(--fab-ink);border:0;box-shadow:0 4px 16px rgba(124,58,237,.45)}
@@ -500,7 +510,7 @@ details.sec summary::-webkit-details-marker{display:none}
   <p class="sub">Lưu, so sánh và theo dõi từng căn đã xem. Dữ liệu lưu trên Google Sheets, ảnh lưu trên Google Drive.</p>
   <p class="pm" id="net" hidden></p>
   <button type="button" class="btn p more" id="upd" hidden>Có bản mới. Chạm để tải lại</button>
-  <div class="pwah" id="pwah" hidden><span>📲 <b>Cài app iPhone:</b> bấm <b>Chia sẻ</b> rồi chọn <b>Thêm vào MH chính</b> để mở nhanh và lưu ảnh offline.</span><button type="button" id="pwahx" aria-label="Ẩn gợi ý">×</button></div>
+  <div class="pwah" id="pwah" hidden><span>📲 <b>Cài app iPhone:</b> bấm <b>Chia sẻ</b> rồi chọn <b>Thêm vào MH chính</b> để mở nhanh và lưu ảnh offline.</span><button type="button" class="xc sm" id="pwahx" aria-label="Ẩn gợi ý"></button></div>
   <div class="tabs"><button class="tab" data-tab="list" aria-pressed="true">Danh sách</button><button class="tab" data-tab="fav" aria-pressed="false">Yêu thích</button><button class="tab" data-tab="real" aria-pressed="false">Thực tế</button><button class="tab" data-tab="ck" aria-pressed="false" hidden>Checklist</button><button class="tab" data-tab="sum" aria-pressed="false">Tổng hợp</button></div>
   <div id="pgList" class="fh">
   <div class="bar">
@@ -547,7 +557,7 @@ details.sec summary::-webkit-details-marker{display:none}
 <button class="btn p fab" id="add" type="button" aria-label="Thêm nhà" title="Thêm nhà"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
 
 <dialog id="dlg"><form class="form" id="f" method="dialog" autocomplete="off">
-  <h2 id="ft">Thêm nhà</h2>
+  <div class="dh"><h2 id="ft">Thêm nhà</h2><button type="button" class="xc" id="dlgx" aria-label="Đóng"></button></div>
   <div><label for="n">Tên / mã *</label><input autocomplete="off" data-lpignore="true" data-1p-ignore id="n" required placeholder="VD: Phòng 2PN hẻm 45 Lê Văn Sỹ"></div>
   <div class="g2">
     <div><label for="lh">Ngày liên hệ</label><input autocomplete="off" data-lpignore="true" data-1p-ignore id="lh" type="date"></div>
@@ -597,7 +607,7 @@ details.sec summary::-webkit-details-marker{display:none}
 </form></dialog>
 
 <dialog id="bd"><div class="form">
-  <h2>Sao lưu / khôi phục</h2>
+  <div class="dh"><h2>Sao lưu / khôi phục</h2><button type="button" class="xc" id="bdx" aria-label="Đóng"></button></div>
   <h3 class="bh">Sao lưu</h3>
   <p class="pm">Lưu thẳng lên Drive của bạn (thư mục “Sao lưu nhà thuê”, giữ 30 bản gần nhất), hoặc tải file về máy. Bản sao lưu chứa dữ liệu các căn và mã ảnh, không chứa ảnh.</p>
   <div class="foot2"><button class="btn p" type="button" id="bnow">Sao lưu lên Drive</button><button class="btn" type="button" id="bdl">Tải file về máy</button></div>
@@ -620,7 +630,7 @@ details.sec summary::-webkit-details-marker{display:none}
 </div></dialog>
 
 <dialog id="sd"><form class="form" id="sf" method="dialog" autocomplete="off">
-  <h2>Kết nối Google Sheets</h2>
+  <div class="dh"><h2>Kết nối Google Sheets</h2><button type="button" class="xc" id="sdx" aria-label="Đóng"></button></div>
   <p class="pm">Dán link Web app (kết thúc bằng /exec) và mã truy cập do chủ danh sách gửi. Mã sửa cho phép chỉnh sửa, mã xem chỉ cho xem.</p>
   <div><label for="su">Link Web app</label><input autocomplete="off" data-lpignore="true" data-1p-ignore id="su" type="url" placeholder="https://script.google.com/macros/s/…/exec"></div>
   <div><label for="sk">Mã truy cập</label><input id="sk" type="password" autocomplete="off"></div>
@@ -629,7 +639,7 @@ details.sec summary::-webkit-details-marker{display:none}
 </form></dialog>
 
 <dialog id="dv"><div class="dvs" id="dvs"></div></dialog>
-<dialog id="lb"><img id="lbi" alt="Ảnh nhà"><div id="lbs" aria-hidden="true"></div><button type="button" id="lbx" aria-label="Đóng">×</button><button type="button" id="lbp" aria-label="Ảnh trước">‹</button><button type="button" id="lbn" aria-label="Ảnh tiếp theo">›</button><span id="lbc"></span></dialog>
+<dialog id="lb"><img id="lbi" alt="Ảnh nhà"><div id="lbs" aria-hidden="true"></div><button type="button" class="xc ov lg" id="lbx" aria-label="Đóng"></button><button type="button" id="lbp" aria-label="Ảnh trước">‹</button><button type="button" id="lbn" aria-label="Ảnh tiếp theo">›</button><span id="lbc"></span></dialog>
 <script>
 /* Kho dự phòng IndexedDB: không chặn lúc mở app nếu localStorage đã có dữ liệu.
    ckc1 đọc ngầm từ IndexedDB sau khi khung đầu tiên đã vẽ xong; chỉ đọc lại nha-thue-* từ IDB nếu localStorage bị mất. */
@@ -1379,7 +1389,7 @@ function dvHead(it){
   var msg=segMsg(cur);
   if(im.length){h+='<div class="dvh"><div class="dvg">'+im.map(function(x,i){return '<img alt="Ảnh nhà" '+(i?'loading="lazy" ':'')+'decoding="async" src="'+esc(imgSrc(x,VW))+'" data-big="'+esc(imgSrc(x,VW))+'">'}).join("")+'</div>'+(im.length>1?'<span class="dvn">1 / '+im.length+'</span>':'')}
   else h+='<div class="dvh dvh0">'+(real?'<p class="dve">'+msg+'</p>':'');
-  h+='<span class="pill dvst">'+stName(k)+'</span><button type="button" class="dvx" data-dvx aria-label="Đóng">×</button></div>';
+  h+='<span class="pill dvst">'+stName(k)+'</span><button type="button" class="xc ov dvx" data-dvx aria-label="Đóng"></button></div>';
   if(real)h+='<div class="dvsg"><div class="rseg" role="tablist">'+SEGL.map(function(x){return '<button type="button" role="tab" class="rs '+x[0]+'" data-dvseg="'+x[0]+'" aria-selected="'+(cur===x[0])+'">'+x[1]+'<b>'+segArr(it,x[0]).length+'</b></button>'}).join("")+'</div></div>';
   return h}
 function bindDvg(){var box=$("dvs"),g=box.querySelector(".dvg");if(!g)return;iwGal(g,0);var scT=0;g.addEventListener("scroll",function(){if(scT)return;scT=1;requestAnimationFrame(function(){scT=0;var i=Math.round(g.scrollLeft/g.clientWidth),c=box.querySelector(".dvn");if(c)c.textContent=(i+1)+" / "+g.children.length;iwGal(g,i)})},{passive:true})}
@@ -1867,6 +1877,7 @@ $("sf").addEventListener("submit",function(e){
   });
 });
 $("scx").onclick=function(){sfTok++;$("ssv").disabled=false;$("sd").close()};
+$("dlgx").onclick=function(){$("cx").click()};$("bdx").onclick=function(){$("bd").close()};$("sdx").onclick=function(){$("scx").click()};
 $("sd").addEventListener("close",function(){sfTok++;$("ssv").disabled=false});
 $("cfg").onclick=function(){openSetup()};
 function poll(){if(!document.hidden&&navigator.onLine!==false&&apiUrl()&&ls(KK)&&!$("dlg").open&&!$("sd").open&&tab!=="ck")refresh(true)}

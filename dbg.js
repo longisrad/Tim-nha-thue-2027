@@ -1254,7 +1254,6 @@ function autoFix(opts){
 var CSS="#dbgd .form{gap:10px}"+
 "#dbgd .dbgst{position:sticky;top:0;z-index:3;margin:calc(-1*var(--sp-4)) calc(-1*var(--sp-4)) 0;padding:var(--sp-4) var(--sp-4) 10px;background:var(--bg);border-bottom:1px solid var(--line)}"+
 "#dbgd .dbgh{display:flex;align-items:center;justify-content:space-between;gap:8px}#dbgd .dbgh h2{margin:0}"+
-"#dbgd .dbgxb{flex:none;width:36px;height:36px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:20px;line-height:1;cursor:pointer;padding:0}"+
 "#dbgd .dbgv{display:flex;align-items:center;gap:10px;margin:10px 0 0}"+
 "#dbgd .big{flex:none;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:#fff;background:var(--mute)}"+
 "#dbgd .big.ok{background:var(--s-won)}#dbgd .big.warn{background:#b45309}#dbgd .big.bad{background:var(--danger)}"+
@@ -1291,6 +1290,7 @@ var CSS="#dbgd .form{gap:10px}"+
 "#dbgw{position:fixed;left:8px;right:8px;top:calc(8px + env(safe-area-inset-top,0px));z-index:24;max-width:640px;margin:0 auto;background:var(--surface,#fff);color:var(--ink,#111);border:1px solid var(--danger,#c00);border-left-width:5px;border-radius:10px;padding:8px 10px;box-shadow:0 4px 16px rgba(0,0,0,.28);font-size:var(--fs-xs,12px);display:grid;gap:4px}#dbgw[hidden]{display:none}"+
 "#dbgw .dbgwh{display:flex;align-items:center;justify-content:space-between;gap:8px}#dbgw .dbgwh b{color:var(--danger,#c00);font-size:var(--fs-s,13px)}#dbgw .dbgwh span{display:flex;gap:6px}"+
 "#dbgw button{border:1px solid var(--line,#ccc);background:transparent;color:inherit;border-radius:999px;min-height:28px;padding:2px 10px;font-size:var(--fs-xs,12px);cursor:pointer}"+
+"#dbgw .xc{width:28px;height:28px;min-height:0;padding:0;border:0;background:none;color:var(--mute,#888)}"+
 "#dbgw .dbgwi{display:flex;gap:6px;align-items:flex-start;border-top:1px dashed var(--line,#ccc);padding-top:4px}#dbgw .dbgwi i{flex:none;font-style:normal;width:16px;text-align:center;font-weight:800}#dbgw .dbgwi.bad i{color:var(--danger,#c00)}#dbgw .dbgwi.warn i{color:#b45309}"+
 "#dbgw .dbgwi span{min-width:0;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}#dbgw .dbgwm{color:var(--mute,#666)}";
 var ICON={ok:"✓",warn:"⚠",bad:"✕",info:"•"};
@@ -1300,7 +1300,7 @@ function panel(){
   var d=G("dbgd");if(d)return d;
   style();
   d=document.createElement("dialog");d.id="dbgd";
-  d.innerHTML='<div class="form"><div class="dbgst"><div class="dbgh"><h2>Kiểm tra hệ thống</h2><button type="button" class="dbgxb" id="dbgx" aria-label="Đóng">×</button></div>'+
+  d.innerHTML='<div class="form"><div class="dbgst"><div class="dbgh"><h2>Kiểm tra hệ thống</h2><button type="button" class="xc" id="dbgx" aria-label="Đóng"></button></div>'+
   '<div class="dbgv"><span class="big" id="dbgbig" aria-hidden="true">•</span><div role="status" aria-live="polite"><b id="dbgt1"></b><small id="dbgt2"></small></div></div>'+
   '<div class="dbgprof" id="dbgprof"></div>'+
   '<div class="dbgbar" id="dbgbar" hidden></div><div class="dbgfl" id="dbgfl"></div></div>'+
@@ -1433,7 +1433,7 @@ function wDraw(){
   var it=wItems(),w=G("dbgw");
   if(!it.length){if(w)w.hidden=true;return}
   if(!w){style();w=document.createElement("div");w.id="dbgw";w.setAttribute("role","alert");w.addEventListener("click",wClick);document.body.appendChild(w)}
-  var h='<div class="dbgwh"><b>⚠ '+it.length+' cảnh báo lỗi</b><span><button type="button" data-w="open">Chi tiết</button><button type="button" data-w="copy">Chép</button><button type="button" data-w="x" aria-label="Ẩn">×</button></span></div>';
+  var h='<div class="dbgwh"><b>⚠ '+it.length+' cảnh báo lỗi</b><span><button type="button" data-w="open">Chi tiết</button><button type="button" data-w="copy">Chép</button><button type="button" class="xc sm" data-w="x" aria-label="Ẩn"></button></span></div>';
   it.slice(-3).reverse().forEach(function(x){
     h+='<div class="dbgwi '+x.lv+'"><i>'+(x.lv==="bad"?"✕":"⚠")+'</i><span>'+esc(x.h)+": "+esc(x.t)+'</span></div>'});
   if(it.length>3)h+='<div class="dbgwm">… và '+(it.length-3)+' mục khác (bấm Chi tiết)</div>';

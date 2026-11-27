@@ -104,7 +104,7 @@ function renderCk(full){
   secEls=[];partEls={};cknEl=null;ckbarEl=null;rtsgEl=null;lastSugH="";
   if(!it){S.cur=null;S.dirty=false;el.className="";el.innerHTML='<div class="empty"><p>'+(K.items.length?"Hãy chọn một căn ở tab Danh sách rồi bấm Checklist.":"Chưa có căn nào. Hãy thêm nhà ở tab Danh sách trước.")+'</p></div>';return}
   S.cur=ckCopy(full);S.cur.rt=it.rt||0;S.cur.pr=it.pr||"";S.cur.co=it.co||"";S.dirty=false;el.className=K.canW?"":"ro";
-  var h='<div class="ckhd"><h2 class="ckt">'+esc(it.n)+'</h2><button type="button" class="ckx" data-ckx>✕ Đóng</button></div><div id="ckst" style="margin:-4px 0 8px">'+rtgH(S.cur.rt)+'</div>'+(K.canW?'<p class="hint">Sau mỗi lần đi xem, chạm từng mục: 1 lần = đạt ✓, 2 lần = có lỗi ✕, 3 lần = bỏ trống. Tự động lưu.</p>':'<p class="pm">Bạn chỉ có quyền xem checklist.</p>');
+  var h='<div class="ckhd"><h2 class="ckt">'+esc(it.n)+'</h2><button type="button" class="xc" data-ckx aria-label="Đóng"></button></div><div id="ckst" style="margin:-4px 0 8px">'+rtgH(S.cur.rt)+'</div>'+(K.canW?'<p class="hint">Sau mỗi lần đi xem, chạm từng mục: 1 lần = đạt ✓, 2 lần = có lỗi ✕, 3 lần = bỏ trống. Tự động lưu.</p>':'<p class="pm">Bạn chỉ có quyền xem checklist.</p>');
   h+='<div class="prog"><div class="pt"><span id="ckn"></span><span class="pm" id="cks"></span></div><div class="pbar"><i id="ckbar"></i></div></div>';
   CK.forEach(function(s,si){
     var np=s.p&&(si===0||CK[si-1].p!==s.p);
@@ -121,7 +121,7 @@ function renderCk(full){
   h+='<div class="fl"><label>Ảnh đi xem (thực tế)</label>'+(K.canW?'<label class="btn upb" for="ckv">📷 Chọn ảnh đi xem từ thiết bị</label><input id="ckv" type="file" accept="image/*" multiple hidden>':'')+'<p class="pm" id="ckvm" style="margin:6px 0 0"></p><div class="pv cph" id="ckvph" style="margin-top:8px"></div><a id="ckvl" class="btn" target="_blank" rel="noopener" hidden style="margin-top:8px">📁 Thư mục ảnh đi xem trên Drive</a></div>';
   h+='<div class="fl"><label>Ảnh lỗi / hư hỏng</label>'+(K.canW?'<label class="btn upb" for="cki">📷 Chọn ảnh hư hỏng từ thiết bị</label><input id="cki" type="file" accept="image/*" multiple hidden>':'')+'<p class="pm" id="ckim" style="margin:6px 0 0"></p><div class="pv cph" id="ckph" style="margin-top:8px"></div><a id="ckil" class="btn" target="_blank" rel="noopener" hidden style="margin-top:8px">📁 Thư mục ảnh lỗi, hư hỏng trên Drive</a></div></div></details>';
   h+='<details class="sec" open><summary><span>Mẹo cuối</span></summary><div class="sb"><ul class="tips">'+TIPS.map(function(t){return '<li>'+esc(t)+'</li>'}).join("")+'</ul></div></details>';
-  h+='<button type="button" class="ckx bt" data-ckx>✕ Đóng checklist</button>';
+  h+='<button type="button" class="ckx bt" data-ckx>Đóng checklist</button>';
   el.innerHTML=h;
   cknEl=$("ckn");ckbarEl=$("ckbar");rtsgEl=$("rtsg");
   Array.prototype.forEach.call(el.querySelectorAll("[data-sec]"),function(n){secEls[+n.dataset.sec]=n});
@@ -133,14 +133,14 @@ function syncUi(){
   if(!K)return;
   var bBusy=(S.upN||0)>0||S.upQ.length>0,sBusy=!!(S.dirty||(S.saveN||0)>0);
   var lock=!!(K.canW&&(bBusy||sBusy));
-  var lblTop=bBusy?"⏳ Đang tải ảnh…":sBusy?"⏳ Đang lưu…":"✕ Đóng";
-  var lblBot=bBusy?"⏳ Đang tải ảnh…":sBusy?"⏳ Đang lưu…":"✕ Đóng checklist";
+  var lblTop=bBusy?"Đang tải ảnh…":sBusy?"Đang lưu…":"Đóng";
+  var lblBot=bBusy?"⏳ Đang tải ảnh…":sBusy?"⏳ Đang lưu…":"Đóng checklist";
   var el=$("ckb");
   if(el){
     var xs=el.querySelectorAll("[data-ckx]");
     for(var i=0;i<xs.length;i++){
       xs[i].disabled=lock;
-      xs[i].textContent=xs[i].classList.contains("bt")?lblBot:lblTop;
+      if(xs[i].classList.contains("bt"))xs[i].textContent=lblBot;else{xs[i].setAttribute("aria-label",lblTop);xs[i].title=lblTop}
     }
   }
   var st=$("cks");
