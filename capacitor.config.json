@@ -2,7 +2,7 @@
   "appId": "io.github.longisrad.timnhathue",
   "appName": "Tìm nhà thuê",
   "webDir": "www",
-  "backgroundColor": "#08051a",
+  "backgroundColor": "#eef1ee",
   "server": {
     "androidScheme": "https"
   },
@@ -11,9 +11,8 @@
   },
   "plugins": {
     "SplashScreen": {
-      "launchShowDuration": 700,
-      "launchAutoHide": true,
-      "backgroundColor": "#08051a",
+      "launchAutoHide": false,
+      "backgroundColor": "#eef1ee",
       "showSpinner": false,
       "androidScaleType": "CENTER_INSIDE"
     }

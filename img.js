@@ -50,21 +50,54 @@ function sweep(root){
 
 /* ---------- Lightbox ---------- */
 var lbL=[],lbI=0;
-var lbT=0,lbDone={};
-var lbWait={};
-function lbPre(u,cb){if(!u)return;if(lbDone[u]){if(cb)cb();return}
-  if(lbWait[u]){if(cb)lbWait[u].push(cb);return}
-  lbWait[u]=cb?[cb]:[];var p=new Image();p.decoding="async";
-  function fin(ok){if(ok)lbDone[u]=1;var q=lbWait[u]||[];delete lbWait[u];q.forEach(function(f){f()})}
-  p.onload=function(){fin(true)};p.onerror=function(){fin(false)};p.src=u}
+var lbT=0;
+/* ---------- Sổ ảnh dùng chung (lightbox ở đây và hộp phóng to của dup.js) ----------
+   pDone: ảnh đã tải (và giải mã) xong · pWait: ảnh đang tải, kèm danh sách callback đang chờ · pQ/pRun: hàng đợi tải nền, tối đa 2 ảnh cùng lúc.
+   pre(url, cb, bg, nd): cb(ok) báo xong/lỗi. bg=true: xếp hàng tải nền, chỉ chạy khi mạng tốt. nd=true: tải ngay nhưng bỏ giải mã nếu chưa ai chờ.
+   Ảnh người dùng đang cần luôn tải ngay (và đẩy lên đầu nếu đang xếp hàng nền). Lỗi thì thử lại 1 lần sau 0,7 giây. */
+var pDone={},pWait={},pQ=[],pRun=0;
+function netOk(){var c=navigator.connection||{};return !(document.hidden||navigator.onLine===false||c.saveData||/2g/.test(c.effectiveType||""))}
+function swCtl(){return !!(navigator.serviceWorker&&navigator.serviceWorker.controller)}
+/* Giải mã sẵn trước khi báo "xong" để lúc đổi src không nháy trắng; chốt 1,5 giây phòng decode() treo, lỗi giải mã vẫn coi là đã tải */
+function pDec(im,cb){
+  var d=0,tm=0;function go(){if(d)return;d=1;clearTimeout(tm);cb()}
+  if(!im.decode){go();return}
+  tm=setTimeout(go,1500);
+  try{im.decode().then(go,go)}catch(e){go()}}
+function pFetch(u,bg,nd,n,done){
+  var im=new Image();im.decoding="async";
+  if(bg){try{im.fetchPriority="low"}catch(e){}}
+  im.onload=function(){im.onload=im.onerror=null;if((bg||nd)&&!(pWait[u]&&pWait[u].length))done(true);else pDec(im,function(){done(true)})};
+  im.onerror=function(){im.onload=im.onerror=null;if(n<1&&(bg?netOk():navigator.onLine!==false))setTimeout(function(){pFetch(u,bg,nd,n+1,done)},700);else done(false)};
+  im.src=u}
+function pStart(u,bg,nd){
+  pFetch(u,bg,nd,0,function(ok){
+    if(ok)pDone[u]=1;
+    var q=pWait[u]||[];delete pWait[u];
+    if(bg){pRun--;setTimeout(pPump,150)}
+    q.forEach(function(f){f(ok)})})}
+function pPump(){
+  if(!netOk())return;
+  while(pRun<2&&pQ.length){var u=pQ.shift();if(pDone[u]||!pWait[u])continue;pRun++;pStart(u,true,false)}}
+function pPre(u,cb,bg,nd){
+  if(!u)return;
+  if(u.indexOf("data:")===0)pDone[u]=1;
+  if(pDone[u]){if(cb)cb(true);return}
+  if(pWait[u]){
+    if(cb)pWait[u].push(cb);
+    if(!bg){var i=pQ.indexOf(u);if(i>=0){pQ.splice(i,1);pStart(u,false,nd)}}
+    return}
+  pWait[u]=cb?[cb]:[];
+  if(bg){pQ.push(u);pPump()}else pStart(u,false,nd)}
 function lbAnim(k){var el=G("lbi");el.classList.remove("a-open","a-next","a-prev");void el.offsetWidth;if(k)el.classList.add("a-"+k)}
 function lbShow(kind){lbzReset();var im=lbL[lbI],big=im.dataset.big||im.src,el=G("lbi"),lb=G("lb"),t=++lbT;
+  el.removeAttribute("data-rt");   // cho phép retryImg thử lại từ đầu với ảnh mới
   G("lbc").textContent=(lbI+1)+" / "+lbL.length;lb.classList.toggle("single",lbL.length<2);
-  if(lbDone[big]){el.src=big;lb.classList.remove("busy");lbAnim(kind)}
+  if(pDone[big]){el.src=big;lb.classList.remove("busy");lbAnim(kind)}
   else{var lo=im.currentSrc||im.src;
-    if(lo&&lo!==big){lb.classList.remove("busy");el.src=lo;lbAnim(kind);lbPre(big,function(){if(t===lbT)el.src=big})}
-    else{lb.classList.add("busy");lbAnim("");lbPre(big,function(){if(t===lbT){el.src=big;lb.classList.remove("busy");lbAnim(kind)}})}}
-  if(lbL.length>1)[1,-1,2,3].forEach(function(d){var n=lbL[(lbI+d+lbL.length)%lbL.length];if(n&&n!==im)lbPre(n.dataset.big||n.src)})}
+    if(lo&&lo!==big){lb.classList.remove("busy");el.src=lo;lbAnim(kind);pPre(big,function(ok){if(t===lbT&&ok)el.src=big})}   // lỗi thì giữ bản nhỏ đang hiện
+    else{lb.classList.add("busy");lbAnim("");pPre(big,function(ok){if(t===lbT){el.src=big;lb.classList.remove("busy");lbAnim(kind)}})}}   // ok=false: vẫn gán src để retryImg đổi nguồn Drive khác
+  if(lbL.length>1)[1,-1,2,3].forEach(function(d){var n=lbL[(lbI+d+lbL.length)%lbL.length];if(n&&n!==im)pPre(n.dataset.big||n.src,null,false,d>1)})}
 function lbGo(d){if(lbL.length<2)return;lbI=(lbI+d+lbL.length)%lbL.length;lbShow(d>0?"next":"prev")}
 function openLb(img){lbL=Array.prototype.slice.call(img.closest(".ph,.cph,.dvg").querySelectorAll("img")).filter(function(x){return !x.closest(".up")});
   if(!lbL.length)lbL=[img];lbI=Math.max(0,lbL.indexOf(img));lbShow("open");if(!G("lb").open)G("lb").showModal()}
@@ -262,6 +295,6 @@ function init(ni){
   if(navigator.serviceWorker)navigator.serviceWorker.addEventListener("controllerchange",function(){iwLater(1500)});
   iwLater(2500);
 }
-window.Img={v:KV,init:init,openLb:openLb,iwGal:iwGal,iwNow:iwNow,iwIntent:iwIntent,iwCkNow:iwCkNow,shrink:shrink,sweep:sweep};
+window.Img={v:KV,pre:pPre,done:function(u){return !!pDone[u]},mark:function(u){pDone[u]=1},busy:function(u){return !!pWait[u]},pump:pPump,netOk:netOk,swCtl:swCtl,init:init,openLb:openLb,iwGal:iwGal,iwNow:iwNow,iwIntent:iwIntent,iwCkNow:iwCkNow,shrink:shrink,sweep:sweep};
 if(window.NI)init(window.NI);
 })();

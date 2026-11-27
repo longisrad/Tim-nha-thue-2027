@@ -67,6 +67,7 @@ window.addEventListener("load",function(){if(/[?&]debug=1/.test(location.search)
   --t-list:#4cc3a3;--t-fav:#ff7aa2;--t-real:#fbbf24;--t-ck:#7fb0ff;--t-sum:#b79cff}}
 *{box-sizing:border-box}
 html.nosm{scroll-behavior:auto!important}
+html.native,html.native body{overscroll-behavior:none;background:var(--bg)}
 html{scroll-padding-top:calc(var(--top) + var(--tabh));-webkit-text-size-adjust:100%;scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--ink);font:var(--fs-b)/1.45 "Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
 /* Bỏ backdrop-filter trên thanh cố định để GPU không phải mờ lại mỗi khung hình khi cuộn */
@@ -99,13 +100,13 @@ h1+.sub,.dphdr+.sub{color:var(--mute);font-size:var(--fs-s);margin:-6px 0 12px;w
 .grow{flex:1}
 
 /* ===== Chuyển động (chỉ transform/opacity trên GPU; tự tắt khi máy bật giảm chuyển động) ===== */
-@keyframes pgin{from{opacity:.45}to{opacity:1}}
-@keyframes pgin2{from{opacity:.45}to{opacity:1}}
+@keyframes pgin{from{opacity:.4;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes pgin2{from{opacity:.4;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes pgfwd{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
 @keyframes pgback{from{opacity:0;transform:translateX(-28px)}to{opacity:1;transform:none}}
 @keyframes imgin{from{opacity:0}to{opacity:1}}
 @keyframes fadein{from{opacity:0}to{opacity:1}}
-@keyframes cardin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes cardin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes dlgin{from{opacity:0;transform:translateY(28px) scale(.97)}to{opacity:1;transform:none}}
 @keyframes slidedn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 @keyframes fabin{from{opacity:0;transform:scale(.86)}to{opacity:1;transform:none}}
@@ -116,12 +117,12 @@ h1+.sub,.dphdr+.sub{color:var(--mute);font-size:var(--fs-s);margin:-6px 0 12px;w
 @keyframes lbprev{from{opacity:.35;transform:translateX(-28px)}to{opacity:1;transform:none}}
 @keyframes lbspin{to{transform:rotate(360deg)}}
 #pgList,#pgSum{contain:layout style}
-.pg-in{animation:pgin .14s cubic-bezier(.16,1,.3,1)}
-.pg-in2{animation:pgin2 .14s cubic-bezier(.16,1,.3,1)}
+.pg-in{animation:pgin .28s cubic-bezier(.22,1,.36,1)}
+.pg-in2{animation:pgin2 .28s cubic-bezier(.22,1,.36,1)}
 .pg-fwd{animation:pgfwd .24s cubic-bezier(.16,1,.3,1) both}
 .pg-back{animation:pgback .22s cubic-bezier(.16,1,.3,1) both}
-#list.enter>:nth-child(-n+6){animation:cardin .22s cubic-bezier(.16,1,.3,1) both}
-#list.enter>:nth-child(2){animation-delay:22ms}#list.enter>:nth-child(3){animation-delay:44ms}#list.enter>:nth-child(4){animation-delay:66ms}#list.enter>:nth-child(5){animation-delay:88ms}#list.enter>:nth-child(6){animation-delay:110ms}
+#list.enter>:nth-child(-n+6){animation:cardin .28s cubic-bezier(.22,1,.36,1) both}
+#list.enter>:nth-child(2){animation-delay:35ms}#list.enter>:nth-child(3){animation-delay:70ms}#list.enter>:nth-child(4){animation-delay:105ms}#list.enter>:nth-child(5){animation-delay:140ms}#list.enter>:nth-child(6){animation-delay:175ms}
 dialog[open]{animation:dlgin .22s cubic-bezier(.16,1,.3,1)}
 dialog[open]::backdrop{animation:fadein .18s ease}
 #lb[open]{animation:fadein .18s ease}
@@ -659,6 +660,7 @@ var idbCkRaw="";
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 /* Đang chạy trong app Android (Capacitor) hay không, và lấy plugin gốc */
 var CAP=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
+if(CAP)document.documentElement.classList.add("native");
 function capP(n){try{return CAP&&window.Capacitor.Plugins&&window.Capacitor.Plugins[n]||null}catch(e){return null}}
 </script>
 <script>
@@ -1520,7 +1522,7 @@ function ckSnap(c){var s=ckCopy(c),r={rt:s.rt||null,pr:(s.pr||"").trim(),co:(s.c
 function ckPersist(id,base,x){return window.Ck?Ck.ckPersist(id,base,x):Promise.resolve(null)}
 function ckFlush(){if(window.Ck)return Ck.ckFlush()}
 var enT=0,favPop="";
-function enterAnim(){var l=$("list");if(!l)return;l.classList.remove("enter");void l.offsetWidth;l.classList.add("enter");clearTimeout(enT);enT=setTimeout(function(){l.classList.remove("enter")},400)}
+function enterAnim(){var l=$("list");if(!l)return;l.classList.remove("enter");void l.offsetWidth;l.classList.add("enter");clearTimeout(enT);enT=setTimeout(function(){l.classList.remove("enter")},520)}
 function instant(fn){var h=document.documentElement;h.style.scrollBehavior="auto";fn();h.style.scrollBehavior=""}
 function jumpTop(){if((window.pageYOffset||window.scrollY||0)>0)instant(function(){window.scrollTo(0,0)})}
 function jumpTo(c){instant(function(){c.scrollIntoView({block:"center"})})}
@@ -1585,6 +1587,7 @@ window.addEventListener("popstate",function(e){
   ckHist=false;
   if(!ckLeave(function(){ckHist=false;closeCkNow()}))ckHistOn();
 });
+var tabY={};   // vị trí cuộn đã nhớ của từng tab (list / fav / real / sum)
 function setTab(t,keep,force){
   var same=t===tab,from=tab;
   closeMenus();
@@ -1593,6 +1596,7 @@ function setTab(t,keep,force){
   if(t==="ck"&&tab!=="ck")ckHistOn();
   if(tab==="ck"&&t!=="ck")ckHistOff();
   if(t==="ck"&&tab!=="ck"){ckPrev=tab;ckY=window.pageYOffset||0}
+  if(!keep&&tab!=="ck")tabY[tab]=window.pageYOffset||0;
   document.body.dataset.tab=t;
   if(tab==="ck"&&t!=="ck")ckFlush();
   tab=t;
@@ -1603,6 +1607,7 @@ function setTab(t,keep,force){
   if(t==="list"||t==="fav"||t==="real")render();
   if(t==="ck")ckLoad(CS.id);
   if(t==="sum")renderSum();
+  if(!keep&&!same){var ry=tabY[t]||0;if(ry>0)instant(function(){window.scrollTo(0,ry)})}
   if(!keep&&!same){
     var isL=function(x){return x==="list"||x==="fav"||x==="real"};
     if(isL(t)&&isL(from))enterAnim();   // Danh sách <-> Yêu thích <-> Thực tế: chỉ động 6 thẻ đầu, không làm mờ cả khối hàng trăm thẻ
@@ -1866,7 +1871,7 @@ $("sf").addEventListener("submit",function(e){
     if(!d||!d.ok){setSm((d&&d.error)||"Sai mã truy cập hoặc không có quyền.",1);return}
     if(!API_URL)ls(UK,u);
     ls(KK,k);
-    if(lcKey()!==oldK){CS.c={};ckP={};knownIds=null;listChunks=null;listRenderedKey="";SUB_DOM={list:null,fav:null,real:null};activeListTab=(tab==="list"||tab==="fav"||tab==="real")?tab:"list";if($("list"))$("list").innerHTML="";lastSumTop="";lastMdlH="";mdlState=null;sumTopRev=-1;sumDetKey="";sumDistRev=-1;sumWardKey="";tabCntRev=-1;galOpen={};realSeg={};sxOpen={};gOpen={};CS.id="";CS.cur=null;CS.dirty=false;CS.upN=0;CS.saveN=0;CS.err=false;ckExitFn=null}
+    if(lcKey()!==oldK){CS.c={};ckP={};knownIds=null;listChunks=null;listRenderedKey="";tabY={};SUB_DOM={list:null,fav:null,real:null};activeListTab=(tab==="list"||tab==="fav"||tab==="real")?tab:"list";if($("list"))$("list").innerHTML="";lastSumTop="";lastMdlH="";mdlState=null;sumTopRev=-1;sumDetKey="";sumDistRev=-1;sumWardKey="";tabCntRev=-1;galOpen={};realSeg={};sxOpen={};gOpen={};CS.id="";CS.cur=null;CS.dirty=false;CS.upN=0;CS.saveN=0;CS.err=false;ckExitFn=null}
     role=d.role;canW=role==="edit";items=nrm(d.items||[]);dataVer=d.ver||"";dataRev++;
     setSm("");$("sd").close();
     enterAnim();applyRole();render();
@@ -1968,6 +1973,12 @@ document.addEventListener("focusin",function(e){var t=e.target;if(!t||!t.closest
     try{SB.setStyle({style:dk?"DARK":"LIGHT"})}catch(e){}
     try{SB.setBackgroundColor({color:dk?"#121a17":"#eef1ee"})}catch(e){}}
   sb();try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",sb)}catch(e){}
+  /* Splash: chỉ ẩn sau khi khung giao diện đã vẽ xong (cần launchAutoHide:false trong capacitor.config.json), có chốt 3,5 giây phòng kẹt */
+  var SP=capP("SplashScreen"),spDone=0;
+  function spHide(){if(spDone||!SP||!SP.hide)return;spDone=1;try{SP.hide({fadeOutDuration:200})}catch(e){}}
+  function spSoon(){requestAnimationFrame(function(){requestAnimationFrame(spHide)})}
+  if(document.readyState==="complete")spSoon();else window.addEventListener("load",spSoon);
+  setTimeout(spHide,3500);
 })();
 (function(){
   var rb=$("refbtn");

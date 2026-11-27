@@ -1303,47 +1303,34 @@ function editItem(id){
    - Chạm vào ảnh là tải ngay (onPairDown); tải nền chỉ chạy khi có mạng tốt, không bật tiết kiệm dữ liệu, tab đang hiện và sw.js đã kiểm soát trang. */
 var VW=(function(){var n=Math.min(screen.width||innerWidth,screen.height||innerHeight)*(window.devicePixelRatio||1)*0.8,a=[640,900,1280];for(var i=0;i<a.length;i++)if(a[i]>=n)return a[i];return 1280})();
 function bigU(s){return imgSrc(s,(N()&&N().VW)||VW)}
-var zDone={},zWait={},zQ=[],zRun=0,zT=0,zt={},zShown={},zLoW=300;
-function netOk(){var c=navigator.connection||{};return !(document.hidden||navigator.onLine===false||c.saveData||/2g/.test(c.effectiveType||""))}
-function swCtl(){return !!(navigator.serviceWorker&&navigator.serviceWorker.controller)}
+var zT=0,zt={},zShown={},zLoW=300;
+/* Tải ảnh lớn dùng chung sổ ảnh của img.js (window.Img.pre/done/mark/pump): ảnh đã tải ở lightbox thì ở đây coi như xong, và ngược lại.
+   Nếu img.js chưa nạp thì dùng bản tối giản bên dưới để hộp phóng to vẫn chạy. */
+var zFb={};
+function IMGX(){return window.Img&&window.Img.pre?window.Img:null}
+function netOk(){var I=IMGX();return I?I.netOk():navigator.onLine!==false}
+function swCtl(){var I=IMGX();return I?I.swCtl():!!(navigator.serviceWorker&&navigator.serviceWorker.controller)}
+function zIsDone(u){var I=IMGX();return I?I.done(u):!!zFb[u]}
+function zIsBusy(u){var I=IMGX();return I?I.busy(u):false}
+function zMark(u){var I=IMGX();if(I)I.mark(u);else zFb[u]=1}
+function zPump(){var I=IMGX();if(I)I.pump()}
+/* zPre(url, callback, nền?): ảnh người dùng đang cần tải ngay, ảnh dự phòng xếp hàng nền */
+function zPre(u,cb,bg){
+  var I=IMGX();if(I){I.pre(u,cb,bg);return}
+  if(!u)return;if(zFb[u]){if(cb)cb(true);return}
+  var im=new Image();im.onload=function(){zFb[u]=1;if(cb)cb(true)};im.onerror=function(){if(cb)cb(false)};im.src=u}
 var zC=null;
 function zCache(){return zC||(zC=caches.open("img-v1").catch(function(e){zC=null;throw e}))}
 function zHas(u){var m=/^(.*=w)(\d+)$/.exec(u);if(!m||!window.caches)return Promise.resolve(false);
   var w=+m[2],ws=[w].concat([200,300,360,640,900,1280].filter(function(x){return x>w&&x<=w*2}));
   return zCache().then(function(c){return Promise.all(ws.map(function(x){return c.match(m[1]+x)}))}).then(function(r){return r.some(Boolean)},function(){return false})}
-function zFetch(u,bg,n,done){
-  var im=new Image();im.decoding="async";
-  if(bg){try{im.fetchPriority="low"}catch(e){}}
-  im.onload=function(){im.onload=im.onerror=null;done(true)};
-  im.onerror=function(){im.onload=im.onerror=null;if(n<1&&netOk())setTimeout(function(){zFetch(u,bg,n+1,done)},700);else done(false)};
-  im.src=u}
-function zStart(u,bg){
-  zFetch(u,bg,0,function(ok){
-    if(ok)zDone[u]=1;
-    var q=zWait[u]||[];delete zWait[u];
-    if(bg){zRun--;setTimeout(zPump,150)}
-    q.forEach(function(f){f(ok)})})}
-function zPump(){
-  if(!netOk())return;
-  while(zRun<2&&zQ.length){var u=zQ.shift();if(zDone[u]||!zWait[u])continue;zRun++;zStart(u,true)}}
-/* zPre(url, callback, nền?): ảnh người dùng đang cần tải ngay, ảnh dự phòng xếp hàng tải 2 ảnh một lúc */
-function zPre(u,cb,bg){
-  if(!u)return;
-  if(u.indexOf("data:")===0)zDone[u]=1;
-  if(zDone[u]){if(cb)cb(true);return}
-  if(zWait[u]){
-    if(cb)zWait[u].push(cb);
-    if(!bg){var i=zQ.indexOf(u);if(i>=0){zQ.splice(i,1);zStart(u,false)}}
-    return}
-  zWait[u]=cb?[cb]:[];
-  if(bg){zQ.push(u);zPump()}else zStart(u,false)}
 function warmPair(o){
   if(!netOk()||!swCtl())return;
   var L=cmpLists(o),us=[];
   [L.A,L.B].forEach(function(arr){arr.slice(0,2).forEach(function(im){us.push(bigU(im.s))})});
   us.forEach(function(u){
-    if(u.indexOf("https://lh3.")!==0||zDone[u]||zWait[u])return;
-    zHas(u).then(function(has){if(has)zDone[u]=1;else zPre(u,null,true)})})}
+    if(u.indexOf("https://lh3.")!==0||zIsDone(u)||zIsBusy(u))return;
+    zHas(u).then(function(has){if(has)zMark(u);else zPre(u,null,true)})})}
 function markImgs(root){
   if(!root)return;
   var l=root.getElementsByTagName("img"),i,m;
@@ -1442,6 +1429,14 @@ function zInit(sd){
     z.s=ns;z.x=m.x-ns*qx;z.y=m.y-ns*qy;zApply(sd);z.t=Date.now()},{passive:false});
   if(sd==="a")window.addEventListener("resize",function(){zReset("a");zReset("b")})}
 function zBlocked(sd){return zS[sd].s>1||Date.now()-zS[sd].t<400}
+/* Tìm trong trang một ảnh thu nhỏ của cùng ảnh gốc đã tải xong (khung danh sách, lưới…), lấy bản có độ phân giải cao nhất */
+function zLoOf(s,except){
+  var m=/lh3\.googleusercontent\.com\/d\/([^=?&]+)=w/.exec(imgSrc(s,zLoW)||"");
+  if(!m||!/^[\w-]+$/.test(m[1]))return null;
+  var best=null,bw=0;
+  try{var l=document.querySelectorAll('img[src*="'+m[1]+'="]'),i,x;
+    for(i=0;i<l.length;i++){x=l[i];if(x!==except&&x.complete&&x.naturalWidth>bw&&x.currentSrc){best=x.currentSrc;bw=x.naturalWidth}}}catch(e){}
+  return best}
 function stageShow(side,s,kind){
   zReset(side);
   var n=side==="a"?1:2,img=G("dupz"+n),emp=G("dupze"+n),st=img.parentNode,t=zt[side]=++zT;
@@ -1449,8 +1444,11 @@ function stageShow(side,s,kind){
   if(!s){img.hidden=true;emp.hidden=false;img.removeAttribute("src");st.classList.remove("busy");return}
   img.hidden=false;emp.hidden=true;
   var big=bigU(s);
-  if(zDone[big]){setSrc(img,big);st.classList.remove("busy");zAnim(img,kind);return}
-  setSrc(img,imgSrc(s,zLoW));zAnim(img,kind);st.classList.add("busy");
+  if(zIsDone(big)){setSrc(img,big);st.classList.remove("busy");zAnim(img,kind);return}
+  /* Giống lightbox của img.js: có khung thu nhỏ đã tải sẵn thì hiện luôn, rõ nét, không mờ/xoay; chưa có mới dựng bản nhỏ và báo bận */
+  var lo=zLoOf(s,img);
+  if(lo){setSrc(img,lo);zAnim(img,kind);st.classList.remove("busy")}
+  else{setSrc(img,imgSrc(s,zLoW));zAnim(img,kind);st.classList.add("busy")}
   zPre(big,function(ok){if(zt[side]!==t)return;st.classList.remove("busy");if(ok)setSrc(img,big)})}
 function markAct(){
   if(!zoomCmp)return;
