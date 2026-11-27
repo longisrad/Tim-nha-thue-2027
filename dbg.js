@@ -632,7 +632,7 @@ function mmRead(){
     var effCurSv=(ramLoaded&&st&&st.cur>0&&curN===0)?ver.sv:curSv;
     var pullErr=(st&&st.pull&&st.pull.ok===false)?String(st.pull.loi||"lỗi kéo MM"):"";
     var pushErr=(st&&st.push&&st.push.ok===false)?String(st.push.loi||"lỗi gửi MM"):"";
-    var ramDiff=!!(st&&!st.busy&&ramLoaded&&(st.mc!==Object.keys(mc).length||st.pair!==mmValid.length||((st.mc>0||st.pair>0||curN>0)&&st.cur!==curN)));
+    var ramDiff=!!(st&&!st.busy&&ramLoaded&&(st.mc!==Object.keys(mc).length||st.pair!==mmValid.length||(curN>0&&st.cur!==curN)));
     return{key:key,ver:ver,algo:algo,mmMode:dc.mm,bad:!!p.bad,stale:stale,blobAlgo:o&&o.algo,blobCk:o&&o.ck,rawIdb:raw,
       mc:mc,ms:ms,mm:mm,mcValid:mcValid,mmValid:mmValid,mcCount:Object.keys(mc).length,mmCount:Object.keys(mm).length,otherModeN:otherModeN,
       idbMcQ:idbMcQ,idbPairQ:idbPairQ,mcQ:mcQ,pairQ:pairQ,curN:effCurN,idbCurN:curN,curSv:effCurSv,rawPairsN:rawPairsN,
@@ -706,7 +706,7 @@ function mmScan(opts){
       var svMismatch=!!(mm.curN>0&&mm.curSv!==sv);
       var shrink=!!(!svMismatch&&mm.curN>srvTotal);
       var onlySrvN=onlySrvC.length+onlySrvP.length;
-      var behind=(onlySrvN>0||(!svMismatch&&srvTotal>mm.curN&&(mm.mcCount+mm.mmCount+mm.rawPairsN>0)))?Math.max(0,srvTotal-(svMismatch?0:mm.curN)):0;
+      var behind=onlySrvN>0?Math.max(0,srvTotal-(svMismatch?0:mm.curN)):0;
       var phantomN=phantomC.length+phantomP.length;
       var onlyLocalN=onlyLocC.length+onlyLocP.length;
       SM.mmBehind=behind;SM.mmShrink=shrink;SM.mmOnlyServer=onlySrvN;SM.mmOnlyLocal=onlyLocalN;SM.mmPhantomSent=phantomN;
