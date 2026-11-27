@@ -1636,7 +1636,7 @@ function clearModelFileCache(){
 function clearPrecisionCache(oldC,oldP,newC,newP,oldF16Flag){
   var keys={};
   function addK(k){if(k)keys[k]=1}
-  addK(oldC);addK(oldP);addK(newC);addK(newP);addK(HS_KEY);
+  addK(oldC);addK(oldP);addK(newC);addK(newP);addK(HS_KEY);if(oldC)addK("dsm1_"+oldC);if(newC)addK("dsm1_"+newC);
   var pend=retList();
   pend.forEach(function(x){
     if(x.c&&((oldF16Flag!==undefined&&keyIsF16(x.c)===oldF16Flag)||x.c===oldC||x.c===newC)){
@@ -2260,8 +2260,8 @@ function cmpSig(a,b,th){
    - Giữ nguyên tỉ lệ ảnh bằng Letterbox + loại patch viền pad.
    - Tối ưu vòng lặp patchMaxSim bằng register blocking 4x4 (d+=2), Float32 scratch buffer & sort in-place không cấp phát rác.
    - Kết hợp CSLS (Cross-domain Similarity Local Scaling) trên mọi kịch bản vùng xám để triệt tiêu hub ảnh phòng chung. */
-var ptCache={},ptOrder=[],PT_CAP=240,mcCache={},mcOrder=[],MC_CAP=600,mmInflight={};
-var smMmPairRes={},smMmOrder=[],SM_MM_CAP=1500,smRawCache=null;
+var ptCache={},ptOrder=[],PT_CAP=240,mcCache={},mcOrder=[],MC_CAP=8000,mmInflight={};
+var smMmPairRes={},smMmOrder=[],SM_MM_CAP=20000,smRawCache=null;
 function putSmMmRes(s,val){
   if(smMmPairRes[s]===undefined){
     smMmOrder.push(s);
@@ -2294,6 +2294,196 @@ function putMcCache(s,val){
     while(mcOrder.length>MC_CAP){var old=mcOrder.shift();delete mcCache[old]}
   }
   mcCache[s]=val}
+/* ===== Lưu bền cho Quét thông minh (IndexedDB): danh sách cặp thô ≥66% (theo chỉ số), vector Multi-crop (int8 base64) và kết quả so sâu từng cặp.
+   Không lưu token Patch (quá nặng). Khóa theo CACHE_KEY (độ phân giải/độ chính xác) + ALGO_VER; danh sách cặp thô còn có chữ ký tập ảnh nên tự bỏ khi ảnh đổi. ===== */
+var SMP_V=1,smpPK="",smpP=null,smpRaw=null,smpRawOf=null,smpT=0,smpBusy=false,smpMcSent={},smpCur={n:0,sv:""},smpPullP=null,smpPullAt=0,smpPullSV="",smpSyncBusy=false,smpLog={pull:null,push:null,srvTotal:null,pulled:0,pushed:0};
+function smpKey(){return "dsm1_"+CACHE_KEY}
+function smpHash(str){var h1=0x811c9dc5,h2=5381,i,c;for(i=0;i<str.length;i++){c=str.charCodeAt(i);h1=Math.imul(h1^c,16777619);h2=(Math.imul(h2,33)^c)|0}return (h1>>>0).toString(36)+"."+(h2>>>0).toString(36)+"."+str.length.toString(36)}
+function smpLoad(){
+  var key=smpKey();
+  if(smpP&&smpPK===key)return smpP;
+  smpPK=key;smpRaw=null;smpRawOf=null;smpMcSent={};smpCur={n:0,sv:""};smpPullP=null;smpPullAt=0;smpLog={pull:null,push:null,srvTotal:null,pulled:0,pushed:0};
+  var idb=N()&&N().idbGet;
+  if(!idb)return(smpP=Promise.resolve());
+  smpP=Promise.resolve().then(function(){return idb(key)}).then(function(raw){
+    if(smpPK!==key||typeof raw!=="string"||!raw)return;
+    var o=null;try{o=JSON.parse(raw)}catch(e){}
+    if(!o||o.v!==SMP_V||o.ck!==CACHE_KEY||o.algo!==ALGO_VER)return;
+    var pre=MM_MODE+"|"+CACHE_KEY+"|";
+    if(o.mc)Object.keys(o.mc).forEach(function(k){if(mcCache[k]===undefined){var v=decVec(o.mc[k]);if(v)putMcCache(k,v)}});
+    if(o.mm)Object.keys(o.mm).forEach(function(k){if(k.indexOf(pre)===0&&smMmPairRes[k]===undefined)putSmMmRes(k,o.mm[k])});
+    if(Array.isArray(o.ms))o.ms.forEach(function(k){smpMcSent[k]=1});
+    if(o.cur&&typeof o.cur==="object")smpCur={n:+o.cur.n||0,sv:String(o.cur.sv||"")};
+    if(o.raw&&o.raw.s&&Array.isArray(o.raw.p)&&Array.isArray(o.raw.h)&&Array.isArray(o.raw.u))smpRaw=o.raw;
+  }).then(null,function(){});
+  return smpP}
+/* Dựng lại danh sách cặp thô từ bản lưu nếu chữ ký tập ảnh khớp; null nếu không dùng được */
+function smpRawList(sig,byId){
+  var R=smpRaw;if(!R||R.s!==smpHash(sig))return null;
+  var out=[],i,q,a,b;
+  for(i=0;i<R.p.length;i++){
+    q=R.p[i];a=byId[R.h[q[0]]];b=byId[R.h[q[1]]];
+    if(!a||!b)return null;
+    out.push({a:a,b:b,x:R.u[q[2]],y:R.u[q[3]],d:q[4],k:q[5],o:q[6],n:q[7]})
+  }
+  return out}
+function smpPackRaw(){
+  if(!smRawCache||!smRawCache.list)return smpRaw;
+  if(smpRawOf===smRawCache&&smpRaw)return smpRaw;
+  var hi={},h=[],ui={},u=[],p=[],L=smRawCache.list,i,r;
+  function H(id){var v=hi[id];if(v===undefined){v=h.length;hi[id]=v;h.push(id)}return v}
+  function U(x){var v=ui[x];if(v===undefined){v=u.length;ui[x]=v;u.push(x)}return v}
+  for(i=0;i<L.length;i++){r=L[i];p.push([H(r.a.id),H(r.b.id),U(r.x),U(r.y),r.d,r.k||"",r.o||"",r.n])}
+  smpRaw={s:smpHash(smRawCache.sig),h:h,u:u,p:p};smpRawOf=smRawCache;
+  return smpRaw}
+function smpSaveSoon(){
+  if(smpT)return;
+  smpT=setTimeout(function(){
+    smpT=0;
+    if(smpBusy)return;
+    var idb=N()&&N().idbSave;if(!idb)return;
+    smpBusy=true;
+    smpLoad().then(function(){
+      var o={v:SMP_V,algo:ALGO_VER,ck:CACHE_KEY},pre=MM_MODE+"|"+CACHE_KEY+"|",mc={},mm={},k,v,n=0;
+      var raw=smpPackRaw();if(raw){o.raw=raw;n++}
+      for(k in mcCache){v=mcCache[k];if(v&&v.length===DIM){try{mc[k]=encVec(v);n++}catch(e){}}}
+      for(k in smMmPairRes){if(k.indexOf(pre)===0){mm[k]=smMmPairRes[k];n++}}
+      if(!n)return;
+      o.mc=mc;o.mm=mm;o.ms=Object.keys(smpMcSent);o.cur=smpCur;
+      return idb(smpKey(),JSON.stringify(o));
+    }).then(function(){smpBusy=false;smpPush()},function(){smpBusy=false})
+  },1500)}
+/* ===== Đồng bộ lên Sheet (tab "MM") để PWA và APK dùng chung: vector Multi-crop theo mã ảnh + kết quả so sâu theo cặp ảnh.
+   Chỉ ghi thêm, máy chủ giữ bản ghi đầu tiên; kéo về theo mốc dòng như hash. Danh sách cặp thô KHÔNG đồng bộ (dựng lại được từ hash). ===== */
+function smpVC(){return "mc|"+ALGO_VER+"|"+CACHE_KEY}
+function smpVP(){return "mm|"+MM_MODE+"|"+ALGO_VER+"|"+CACHE_KEY}
+function smpOk(){return !!(N()&&N().apiGet&&N().apiPost)}
+function smpApply(rows){
+  var c=0,pre=MM_MODE+"|"+CACHE_KEY+"|";
+  (rows||[]).forEach(function(r){
+    var t=r&&r[0],k=r&&r[1],v=r&&r[2];
+    if(!k||typeof v!=="string")return;
+    if(t==="c"){var vec=decVec(v);if(vec){putMcCache(k,vec);smpMcSent[k]=1;c++}}
+    else if(t==="p"){var o=null;try{o=JSON.parse(v)}catch(e){}if(o&&typeof o==="object"){o.s=1;putSmMmRes(pre+k,o);c++}}
+  });
+  return c}
+function smpPull(){
+  if(!smpOk())return Promise.resolve();
+  var t0=Date.now(),pages=0,got=0,err="";
+  return smpLoad().then(function(){
+    var sv=smpVC()+"~"+smpVP();
+    if(smpCur.sv!==sv)smpCur={n:0,sv:sv};
+    function page(){
+      return N().apiGet("&action=mm&vc="+encodeURIComponent(smpVC())+"&vp="+encodeURIComponent(smpVP())+"&from="+smpCur.n,20000).then(function(d){
+        if(!d||!d.ok||typeof d.next!=="number"){err=(d&&d.error)||"máy chủ chưa hỗ trợ action mm (cần triển khai Code.gs mới)";return}
+        pages++;
+        if(d.reset)smpCur.n=0;
+        got+=smpApply(d.rows);smpCur.n=d.next;smpLog.srvTotal=d.total;
+        if(d.more)return page()})}
+    return page().then(function(){if(got)smpSaveSoon()})
+  }).then(null,function(e){err=String(e&&e.message||e)}).then(function(){
+    smpLog.pulled+=got;smpLog.pull={at:Date.now(),ms:Date.now()-t0,ok:!err,pages:pages,got:got,err:err}})}
+/* Kéo về trước khi quét (tối đa ~12 giây; quá thời gian thì chạy tiếp, phần còn lại kéo nền) */
+function smpWait(){
+  if(!smpOk())return Promise.resolve();
+  var sv=smpVC()+"~"+smpVP();
+  if(!(smpPullP&&smpPullSV===sv&&Date.now()-smpPullAt<120000)){smpPullSV=sv;smpPullAt=Date.now();smpPullP=smpPull()}
+  return Promise.race([smpPullP,new Promise(function(r){setTimeout(r,12000)})])}
+function smpPush(){
+  if(!(smpOk()&&canWrite())||smpSyncBusy)return Promise.resolve();
+  smpSyncBusy=true;
+  var pre=MM_MODE+"|"+CACHE_KEY+"|",q=[],sent=0,err="",t0=Date.now(),want=0;
+  Object.keys(mcCache).forEach(function(k){
+    var v=mcCache[k];
+    if(smpMcSent[k]||!/^[\w-]{6,120}$/.test(k)||!v||v.length!==DIM)return;
+    try{q.push(["c",k,encVec(v)])}catch(e){}});
+  Object.keys(smMmPairRes).forEach(function(k){
+    if(k.indexOf(pre)!==0)return;
+    var v=smMmPairRes[k],kk=k.slice(pre.length),j;
+    if(!v||v.s||!/^[\w-]{6,120}\|[\w-]{6,120}$/.test(kk))return;
+    try{j=JSON.stringify(v)}catch(e){return}
+    if(j.length<=1400)q.push(["p",kk,j])});
+  want=q.length;
+  function send(){
+    var ch=q.splice(0,300);if(!ch.length)return;
+    return N().apiPost("mmSet",{vc:smpVC(),vp:smpVP(),add:ch},30000).then(function(d){
+      if(!(d&&typeof d==="object"&&d.ok!==false))throw new Error((d&&d.error)||"máy chủ từ chối mmSet");
+      ch.forEach(function(x){if(x[0]==="c")smpMcSent[x[1]]=1;else{var e=smMmPairRes[pre+x[1]];if(e)e.s=1}});
+      sent+=ch.length;
+      return send()})}
+  return Promise.resolve().then(send).then(null,function(e){err=String(e&&e.message||e)}).then(function(){
+    smpSyncBusy=false;smpLog.pushed+=sent;
+    smpLog.push={at:Date.now(),ms:Date.now()-t0,ok:!err,want:want,sent:sent,err:err};
+    if(sent)smpSaveSoon()})}
+/* ---------- Kiểm / tự sửa đồng bộ Quét thông minh (vector Multi-crop + kết quả so sâu) — dùng bởi dbg.js: Dup.mmState() / Dup.mmResync(mode) ---------- */
+function smpStat(){
+  var pre=MM_MODE+"|"+CACHE_KEY+"|",k,v,mc=0,mcU=0,pr=0,prU=0,ts=function(t){return t?new Date(t).toLocaleTimeString()+" ("+Math.round((Date.now()-t)/1000)+"s trước)":null};
+  for(k in mcCache){v=mcCache[k];if(v&&v.length===DIM){mc++;if(!smpMcSent[k])mcU++}}
+  for(k in smMmPairRes){if(k.indexOf(pre)===0){pr++;if(!smMmPairRes[k].s)prU++}}
+  var P=smpLog.pull,Q=smpLog.push;
+  return{
+    api:{get:!!(N()&&N().apiGet),post:!!(N()&&N().apiPost),canWrite:!!canWrite()},
+    ver:{vc:smpVC(),vp:smpVP()},blobKey:smpKey(),blobLoaded:smpPK===smpKey(),
+    cursor:{n:smpCur.n,serverTotal:smpLog.srvTotal,behind:smpLog.srvTotal==null?null:Math.max(0,smpLog.srvTotal-smpCur.n),sv:smpCur.sv},
+    local:{mc:mc,mcChuaDay:mcU,pairs:pr,pairsChuaDay:prU,rawPairs:smRawCache&&smRawCache.list?smRawCache.list.length:(smpRaw&&smpRaw.p?smpRaw.p.length+" (bản lưu)":0)},
+    daDong:{keo:smpLog.pulled,day:smpLog.pushed},
+    keoCuoi:P?{luc:ts(P.at),ms:P.ms,ok:P.ok,trang:P.pages,nhan:P.got,loi:P.err||null}:null,
+    dayCuoi:Q?{luc:ts(Q.at),ms:Q.ms,ok:Q.ok,canDay:Q.want,daDay:Q.sent,loi:Q.err||null}:null,
+    dangChay:{keo:!!smpPullP&&Date.now()-smpPullAt<12000,day:smpSyncBusy,luu:smpBusy,hen:!!smpT}}}
+function smpState(){
+  var r=smpStat();
+  return{mc:r.local.mc,mcQ:r.local.mcChuaDay,pair:r.local.pairs,pairQ:r.local.pairsChuaDay,cur:smpCur.n,srv:smpLog.srvTotal,behind:r.cursor.behind,
+    ver:r.ver,pull:r.keoCuoi,push:r.dayCuoi,busy:!!(smpSyncBusy||smpBusy||smpT),canW:!!canWrite(),api:smpOk()}}
+function smpIdle(ms){
+  return new Promise(function(res){
+    var t0=Date.now();
+    (function chk(){if((!smpSyncBusy&&!smpBusy&&!smpT)||Date.now()-t0>ms)res();else setTimeout(chk,300)})()})}
+/* mode: "pull" (mặc định) = đọc lại TOÀN BỘ tab MM để biết máy chủ có gì, nhận phần máy chủ có, gỡ cờ "đã gửi" của mục máy chủ thực sự không có (gửi lỗi âm thầm / tab bị xóa) rồi gửi lại;
+         "mirror" = lấy máy chủ làm chuẩn: bỏ các mục chỉ có trên máy. ("repush" coi như "pull"). */
+function smpResync(mode){
+  mode=mode==="mirror"?"mirror":"pull";
+  if(!smpOk())return Promise.resolve({ok:false,msg:"Chưa có API máy chủ"});
+  var r={srv:0,got:0,miss:0,drop:0,pushed:0,rejected:0,left:0},pre=MM_MODE+"|"+CACHE_KEY+"|",srvC={},srvP={};
+  function readAll(){
+    function page(){
+      return N().apiGet("&action=mm&vc="+encodeURIComponent(smpVC())+"&vp="+encodeURIComponent(smpVP())+"&from="+smpCur.n,25000).then(function(d){
+        if(!d||!d.ok||typeof d.next!=="number")throw new Error((d&&d.error)||"máy chủ chưa hỗ trợ action mm (cần triển khai Code.gs mới)");
+        if(d.reset){smpCur.n=0;srvC={};srvP={};r.got=0}
+        (d.rows||[]).forEach(function(x){if(x[0]==="c")srvC[x[1]]=1;else if(x[0]==="p")srvP[x[1]]=1});
+        r.got+=smpApply(d.rows);smpCur.n=d.next;smpLog.srvTotal=d.total;r.srv=d.total;
+        if(d.more)return page()})}
+    return page()}
+  return smpIdle(30000).then(smpLoad).then(function(){
+    smpCur={n:0,sv:smpVC()+"~"+smpVP()};
+    return readAll()
+  }).then(function(){
+    var k,v,kk;
+    for(k in mcCache){
+      if(!/^[\w-]{6,120}$/.test(k))continue;
+      if(srvC[k]){smpMcSent[k]=1;continue}
+      if(mode==="mirror"){delete mcCache[k];delete smpMcSent[k];r.drop++}
+      else if(smpMcSent[k]){delete smpMcSent[k];r.miss++}}
+    for(k in smMmPairRes){
+      if(k.indexOf(pre)!==0)continue;
+      kk=k.slice(pre.length);v=smMmPairRes[k];
+      if(!/^[\w-]{6,120}\|[\w-]{6,120}$/.test(kk))continue;
+      if(srvP[kk]){if(v)v.s=1;continue}
+      if(mode==="mirror"){delete smMmPairRes[k];r.drop++}
+      else if(v&&v.s){delete v.s;r.miss++}}
+    if(mode==="mirror"||!canWrite())return;
+    var before=smpLog.pushed;
+    return smpPush().then(function(){r.pushed=smpLog.pushed-before;return readAll()}).then(function(){
+      /* kiểm lại: mục đã gửi mà máy chủ vẫn không có = bị máy chủ từ chối (khóa/giá trị không hợp lệ) */
+      var kx;
+      for(kx in mcCache){if(smpMcSent[kx]&&/^[\w-]{6,120}$/.test(kx)&&!srvC[kx])r.rejected++}
+      for(kx in smMmPairRes){if(kx.indexOf(pre)===0&&smMmPairRes[kx]&&smMmPairRes[kx].s&&!srvP[kx.slice(pre.length)])r.rejected++}})
+  }).then(function(){
+    var st=smpStat();r.left=st.local.mcChuaDay+st.local.pairsChuaDay;
+    r.ok=!r.rejected&&(mode==="mirror"||!canWrite()||!r.left);
+    r.msg=(mode==="mirror"?"Đã bỏ "+r.drop+" mục chỉ có trên máy (lấy máy chủ làm chuẩn)":"Đã đọc lại máy chủ ("+r.srv+" dòng), nhận "+r.got+" mục"+(r.miss?", phát hiện "+r.miss+" mục máy chủ chưa có":"")+(canWrite()?", gửi lại "+r.pushed:", máy này chỉ xem nên không gửi"))+(r.rejected?" · "+r.rejected+" mục bị máy chủ từ chối":"")+(r.left?" · còn "+r.left+" mục chưa gửi":"");
+    smpSaveSoon();
+    return r
+  },function(e){return{ok:false,msg:"Không đồng bộ được: "+(e&&e.message||e)}})}
 function patchMaxSim(pa,pb){
   var na=pa.n,nb=pb.n,qa=pa.q,qb=pb.q,sa=pa.sc,sb=pb.sc,wa=pa.wt,wb=pb.wt,D=DIM;
   ensurePtBuf(na,nb);
@@ -2924,7 +3114,7 @@ function scan(auto){
   var bar=G("dupbar").firstChild,stopP=new Promise(function(r){stopWaiters=[r]}),badSet={},offErr=false,t={ok:0,bad:0,flat:0,nL:0,nP:0,newPairs:0,căn:0};
   SP.n=0;SP.ms=0;SP.t0=0;modelFail=null;dinoErr=null;bar.style.transition="none";bar.style.width="0";void bar.offsetWidth;bar.style.transition="";
   function end(){
-    savePm();saveCache();hsPushSoon();
+    savePm();saveCache();hsPushSoon();smpSaveSoon();
     scanning=false;stopWaiters=[];syncScanUi();
     pairsFromPm();
     render();
@@ -3462,6 +3652,7 @@ function init(nt){
     smPanel('<div class="dpsm-h"><b>Quét thông minh'+(smRoundN>1?' · vòng '+smRoundN:'')+'</b></div><p class="dpsm-p" id="dupsmst">Đang tìm ngưỡng &amp; xác minh vùng xám…</p>');
     smScrollTo(G("dupsmart"));
     return analyzeThresholds().then(function(res){
+      smpSaveSoon();
       smRunning=false;syncScanUi();
       if(stopFlag){smPanel("");msg((res&&res.msg)||"Đã dừng quét thông minh.");smScrollTo(0);return}
       if(!res||!res.ok){smPanel("");msg((res&&res.msg)||"Chưa phân tích được.",1);smScrollTo(0);return}
@@ -3555,7 +3746,7 @@ function init(nt){
     }
     smPanel('<div class="dpsm-h"><b>Quét thông minh</b></div><p class="dpsm-p" id="dupsmst">Bước 1: quét thường ở '+SM_BASE_TH+'%…</p>');
     smScrollTo(G("dupsmart"));
-    scanAwait().then(function(){
+    smpWait().then(scanAwait).then(function(){
       if(stopFlag){smRunning=false;syncScanUi();smPanel("");smScrollTo(0);return}
       return smRound();
     }).then(null,function(){smRunning=false;syncScanUi();smPanel("");smScrollTo(0)});
@@ -3850,7 +4041,7 @@ function analyzeThresholds(opts){
   opts=opts||{};
   items=N().items();
   loadIgnored();
-  return loadCache().then(function(){
+  return Promise.all([loadCache(),smpLoad()]).then(function(){
     var src=items.filter(function(it){return (it.st||"new")!=="out"});
     var byId={},allJ=[],A=[];
     src.forEach(function(it){
@@ -3871,6 +4062,7 @@ function analyzeThresholds(opts){
     var tMap=textScoreMap(src),FLOOR=TH_MIN;
     var rawSig=CACHE_KEY+"\u0001"+allJ.map(function(x){return x.it.id+":"+x.s}).join("\u0002");
     var allPairs=null,p=0,seen={};
+    if(!(smRawCache&&smRawCache.sig===rawSig)){var rl=smpRawList(rawSig,byId);if(rl)smRawCache={sig:rawSig,list:rl}}
     if(smRawCache&&smRawCache.sig===rawSig){
       allPairs=smRawCache.list;
     }else{
@@ -4304,7 +4496,7 @@ function resyncDup(mode){
       return r})
   },function(e){return{ok:false,msg:"Không kết nối được máy chủ: "+(e&&e.message||e)}})
 }
-window.Dup={v:KV,retire:function(){return retList().map(function(x){return x.c})},ignStat:function(){return ignStat()},smart:function(){loadImgMode();var s=smartCalc();return{th:TH,ts:s.ts,mid:s.mid,tl:s.tl,strong:s.strong,algo:ALGO_VER,mm:MM_MODE,cal:s.cal,kept:s.kept,cut:s.cut,dedupCut:s.dedupCut,ctxCut:s.ctxCut,mmChecked:s.mmChecked,mmCut:s.mmCut,mmBoost:s.mmBoost,spChecked:s.spChecked,spCut:s.spCut,spSave:s.spSave,clusters:lastGraph?lastGraph.stats.clusterCount:0}},clusters:function(customImgPairs,customItems){if(customItems)items=customItems;else if(N())items=N().items();if(customImgPairs){imgPairs=customImgPairs}var r=build();return r.graph},sortAdjacent:function(list,customImgPairs){if(customImgPairs)imgPairs=customImgPairs;var srcList=list||(N()?N().items():items);if(!items.length&&srcList.length)items=srcList;var r=build();return sortHousesAdjacent(srcList,r.graph)},analyze:analyzeThresholds,keys:function(){return{h:CACHE_KEY,p:PM_KEY}},cached:function(){return cacheLoaded?Object.keys(cache).length:-1},dino:function(){
+window.Dup={v:KV,mmState:smpState,mmResync:smpResync,retire:function(){return retList().map(function(x){return x.c})},ignStat:function(){return ignStat()},smart:function(){loadImgMode();var s=smartCalc();return{th:TH,ts:s.ts,mid:s.mid,tl:s.tl,strong:s.strong,algo:ALGO_VER,mm:MM_MODE,cal:s.cal,kept:s.kept,cut:s.cut,dedupCut:s.dedupCut,ctxCut:s.ctxCut,mmChecked:s.mmChecked,mmCut:s.mmCut,mmBoost:s.mmBoost,spChecked:s.spChecked,spCut:s.spCut,spSave:s.spSave,clusters:lastGraph?lastGraph.stats.clusterCount:0}},clusters:function(customImgPairs,customItems){if(customItems)items=customItems;else if(N())items=N().items();if(customImgPairs){imgPairs=customImgPairs}var r=build();return r.graph},sortAdjacent:function(list,customImgPairs){if(customImgPairs)imgPairs=customImgPairs;var srcList=list||(N()?N().items():items);if(!items.length&&srcList.length)items=srcList;var r=build();return sortHousesAdjacent(srcList,r.graph)},analyze:analyzeThresholds,keys:function(){return{h:CACHE_KEY,p:PM_KEY}},cached:function(){return cacheLoaded?Object.keys(cache).length:-1},dino:function(){
     if(DW.w)return"worker/"+DW.dev+" x"+BN+" res"+DS;
     if(DINO.m)return"main/wasm x"+BN+" res"+DS;
     if(DINO.p)return"đang tải";
