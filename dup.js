@@ -2370,7 +2370,22 @@ function smpApply(rows){
     else if(t==="p"){var o=null;try{o=JSON.parse(v)}catch(e){}if(o&&typeof o==="object"){o.s=1;putSmMmRes(pre+k,o);c++}}
   });
   return c}
-function smpGet(q,t){return N().apiGet(q,t).then(null,function(){return new Promise(function(r){setTimeout(r,1500)}).then(function(){return N().apiGet(q,t)})})}
+function smpGet(q,t){
+  /* Thử lại 1 lần; nếu vẫn lỗi thì gọi thêm 1 yêu cầu rất nhẹ để phân biệt: lỗi do phản hồi thật (lớn/chậm) hay do máy chủ/đường truyền/bản Code.gs. */
+  var t0=Date.now();
+  function once(){return N().apiGet(q,t)}
+  return once().then(null,function(){
+    return new Promise(function(r){setTimeout(r,1500)}).then(once).then(null,function(e2){
+      var m=String((e2&&e2.message)||e2||"lỗi"),sec=Math.round((Date.now()-t0)/100)/10;
+      return N().apiGet("&action=mm&vc=x&vp=x&from=0",15000).then(function(d){
+        var dx=(d&&typeof d.total==="number")?"thăm dò nhẹ OK (tab MM "+d.total+" dòng) nên phản hồi thật bị lỗi/quá lớn":"máy chủ chưa hiểu action mm (chưa Deploy bản Code.gs mới?)";
+        throw new Error(m+" · "+sec+"s · URL "+q.length+" ký tự · "+dx)
+      },function(e3){
+        throw new Error(m+" · "+sec+"s · URL "+q.length+" ký tự · thăm dò nhẹ cũng lỗi ("+String((e3&&e3.message)||e3)+") nên do máy chủ/đường truyền")
+      })
+    })
+  })
+}
 function smpPull(){
   if(!smpOk())return Promise.resolve();
   var t0=Date.now(),pages=0,got=0,err="";
