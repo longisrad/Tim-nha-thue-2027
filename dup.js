@@ -2367,6 +2367,7 @@ function smpApply(rows){
     else if(t==="p"){var o=null;try{o=JSON.parse(v)}catch(e){}if(o&&typeof o==="object"){o.s=1;putSmMmRes(pre+k,o);c++}}
   });
   return c}
+function smpGet(q,t){return N().apiGet(q,t).then(null,function(){return new Promise(function(r){setTimeout(r,1500)}).then(function(){return N().apiGet(q,t)})})}
 function smpPull(){
   if(!smpOk())return Promise.resolve();
   var t0=Date.now(),pages=0,got=0,err="";
@@ -2374,7 +2375,7 @@ function smpPull(){
     var sv=smpVC()+"~"+smpVP();
     if(smpCur.sv!==sv)smpCur={n:0,sv:sv};
     function page(){
-      return N().apiGet("&action=mm&vc="+encodeURIComponent(smpVC())+"&vp="+encodeURIComponent(smpVP())+"&from="+smpCur.n,20000).then(function(d){
+      return smpGet("&action=mm&vc="+encodeURIComponent(smpVC())+"&vp="+encodeURIComponent(smpVP())+"&from="+smpCur.n,20000).then(function(d){
         if(!d||!d.ok||typeof d.next!=="number"){err=(d&&d.error)||"máy chủ chưa hỗ trợ action mm (cần triển khai Code.gs mới)";return}
         pages++;
         if(d.reset)smpCur.n=0;
@@ -2446,7 +2447,7 @@ function smpResync(mode){
   var r={srv:0,got:0,miss:0,drop:0,pushed:0,rejected:0,left:0},pre=MM_MODE+"|"+CACHE_KEY+"|",srvC={},srvP={};
   function readAll(){
     function page(){
-      return N().apiGet("&action=mm&vc="+encodeURIComponent(smpVC())+"&vp="+encodeURIComponent(smpVP())+"&from="+smpCur.n,25000).then(function(d){
+      return smpGet("&action=mm&vc="+encodeURIComponent(smpVC())+"&vp="+encodeURIComponent(smpVP())+"&from="+smpCur.n,25000).then(function(d){
         if(!d||!d.ok||typeof d.next!=="number")throw new Error((d&&d.error)||"máy chủ chưa hỗ trợ action mm (cần triển khai Code.gs mới)");
         if(d.reset){smpCur.n=0;srvC={};srvP={};r.got=0}
         (d.rows||[]).forEach(function(x){if(x[0]==="c")srvC[x[1]]=1;else if(x[0]==="p")srvP[x[1]]=1});
@@ -2916,7 +2917,7 @@ function verifyGrayZonePairs(list,isScan,thOv,opts){
         workMap[rk0]=r;
         if(cm){if(cm.pt)ptResults[rk0]=cm.pt;if(cm.sv)spResults[rk0]=cm.sv}
       });
-      /* Chia mẻ: mỗi mẻ tối đa PT_CAP-40 ảnh khác nhau để ảnh đã trích không bị đẩy khỏi cache trước khi chấm điểm */
+      /* Chia đợt: mỗi đợt tối đa PT_CAP-40 ảnh khác nhau để ảnh đã trích không bị đẩy khỏi cache trước khi chấm điểm */
       var batches=[],cur=[],curU={},curN=0,LIM=(canDino&&wantPt)?Math.max(20,PT_CAP-40):1e9;
       extractPairs.forEach(function(r){
         var add=(curU[r.x]?0:1)+((r.y!==r.x&&!curU[r.y])?1:0);
@@ -2961,7 +2962,7 @@ function verifyGrayZonePairs(list,isScan,thOv,opts){
         var bp=batches[bi++],bu=[],bs={},ext,idx=0;
         bp.forEach(function(r){if(!bs[r.x]){bs[r.x]=1;bu.push(r.x)}if(!bs[r.y]){bs[r.y]=1;bu.push(r.y)}});
         if(canDino&&bu.length){
-          if((isScan||smRunning)&&!stopFlag)msg(mmTxt+" ("+extractPairs.length+" cặp vùng xám"+(batches.length>1?" · mẻ "+bi+"/"+batches.length:"")+")…");
+          if((isScan||smRunning)&&!stopFlag)msg(mmTxt+" ("+extractPairs.length+" cặp vùng xám"+(batches.length>1?" · đợt "+bi+"/"+batches.length:"")+")…");
           var w=function(){
             if(isAborted(isScan)||idx>=bu.length)return Promise.resolve();
             var u=bu[idx++];

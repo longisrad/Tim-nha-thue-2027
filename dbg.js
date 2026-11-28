@@ -721,7 +721,7 @@ function mmScan(opts){
       if(phantomN){SM.mmDesync=true;body.push({s:"warn",t:phantomN+" mục đã đánh dấu gửi nhưng không có trên tab MM ("+phantomC.length+" vector, "+phantomP.length+" cặp — lỗi gửi trước đó hoặc tab MM bị xóa)"})}
       if(mm.pullErr)body.push({s:"warn",t:"Lần kéo MM gần nhất lỗi: "+mm.pullErr});
       if(mm.pushErr)body.push({s:"warn",t:"Lần gửi MM gần nhất lỗi: "+mm.pushErr});
-      if(capped)body.push({s:"info",t:"Tab MM quá lớn (vượt 50 trang đọc kiểm tra), chỉ đối chiếu một phần"});
+      if(capped)body.push({s:"info",t:"Tab MM quá lớn (vượt 200 trang đọc kiểm tra), chỉ đối chiếu một phần"});
       var unsentN=unsentC.length+unsentP.length;
       if(unsentN&&canW)body.push({s:"warn",t:unsentC.length+" vector ảnh + "+unsentP.length+" cặp so sâu chưa gửi lên tab MM"});
       if(mm.missingMmApi)body.push({s:"info",t:"dup.js chưa có Dup.mmState/Dup.mmResync nên không thể tự sửa đồng bộ MM"});
@@ -742,7 +742,7 @@ function mmScan(opts){
       var srvC={},srvP={},srvTotal=0,pages=0,cur=0,capped=false;
       function step(){
         if(stopped){add("info",g,"Đối chiếu Quét thông minh: đã dừng theo yêu cầu");return}
-        if(pages>=50){capped=true;return finishCheck(srvC,srvP,srvTotal,true)}
+        if(pages>=200){capped=true;return finishCheck(srvC,srvP,srvTotal,true)}
         return mmApiGet(qUrl(cur)).then(function(d){
           if(!d||!d.ok){add("bad",g,"Máy chủ từ chối dữ liệu Quét thông minh (MM): "+(d&&d.error||"không rõ lý do"));return}
           if(typeof d.next!=="number"||typeof d.total!=="number"){
