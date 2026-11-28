@@ -236,6 +236,9 @@ var CSS2=[
 ".dpsm-h b{font-size:var(--fs-b);color:var(--ink)}",
 ".dpsm-chip{padding:1px 10px;border-radius:999px;border:1px solid var(--accent);color:var(--accent);font-size:var(--fs-s);font-weight:700;white-space:nowrap}",
 ".dpsm-p{margin:0;color:var(--mute);font-size:var(--fs-s)}",
+".dpsm-opt{padding:8px 10px;border-radius:10px;border:1px solid var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--surface));color:var(--ink);font-size:var(--fs-s);line-height:1.4}",
+".dpsm-opt b{color:var(--accent);font-size:var(--fs-b)}",
+".dpsm-opt.dpcalc{opacity:.7}",
 ".dpsm-f{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}",
 ".dpsm-f .btn{min-height:34px}",
 ".dpsc{border:1px solid var(--line);border-left:4px solid #b9770e;border-radius:10px;padding:8px 10px;margin:0;display:grid;gap:6px;background:var(--bg);min-width:0;transition:opacity .15s ease}",
@@ -278,7 +281,7 @@ function syncScanUi(){
 }
 
 /* ---------- Lưu danh sách "không phải trùng" vào localStorage ---------- */
-var undoSt=[],zlay=null,cmpAll={},smartPos={},smartImg={},posLoaded=false,posDirty={},posIdbDone=false,smView=[],smHook=null,smCloseHook=null;
+var undoSt=[],zlay=null,cmpAll={},smartPos={},smartImg={},posLoaded=false,posDirty={},posIdbDone=false,smView=[],smHook=null,smCloseHook=null,smFinNote="";
 function slimImgs(arr){
   if(!Array.isArray(arr))return[];
   return arr.slice(0,12).filter(function(m){return m&&m.x&&m.y}).map(function(m){
@@ -3130,6 +3133,7 @@ function scan(auto){
     else if(t.bad&&t.ok===0)msg("Hầu hết ảnh không đọc được.",1);
     else if(!t["căn"])msg("Không có căn mới · "+imgPairs.length+" cặp ảnh giống"+pendTxt);
     else msg("Đã so "+t["căn"]+" căn mới · "+imgPairs.length+" cặp ảnh giống"+exTxt+pendTxt);
+    if(smFinNote){var fm=G("dupm");if(!stopFlag&&!offErr&&!dinoErr&&!modelFail&&fm&&!/\bbad\b/.test(fm.className))fm.textContent=smFinNote+" · "+fm.textContent;smFinNote=""}
     var sdw=scanDoneWaiters;scanDoneWaiters=[];sdw.forEach(function(f){try{f()}catch(e){}});
     if(hsPendR){var pr=hsPendR;hsPendR=null;hsRefresh(pr)}}
   function runAll(total){
@@ -3566,7 +3570,7 @@ function init(nt){
   function smAskH(){
     var remTxt=(smRes&&smRes.grayTotal>smGray.length)?(" · còn "+smRes.grayTotal+" cặp vùng xám"):"";
     var calNote=(smRes&&smRes.cal&&smRes.cal.active)?(" · đã học "+smRes.cal.posN+" trùng / "+smRes.cal.negN+" loại"):"";
-    return '<div class="dpsm-h"><b>Quét thông minh'+(smRoundN>1?' · vòng '+smRoundN:'')+'</b><span class="dpsm-chip"></span></div><p class="dpsm-p">Ngưỡng đang dùng '+TH+'%'+remTxt+calNote+'. Đánh dấu từng cặp rồi hệ thống tự tinh chỉnh tới khi danh sách cuối chỉ còn các cặp trùng. «Không phải trùng» ẩn cặp đó và đẩy ngưỡng lên, «Trùng» giữ cặp đó làm mốc đúng.</p>'+smGray.map(smCardH).join("")+'<div class="dpsm-f"><button type="button" class="btn" data-sm="skip">Bỏ qua</button><button type="button" class="btn p" data-sm="apply"></button></div>'}
+    return '<div class="dpsm-h"><b>Quét thông minh'+(smRoundN>1?' · vòng '+smRoundN:'')+'</b><span class="dpsm-chip"></span></div><p class="dpsm-p">Ngưỡng đang dùng '+TH+'%'+remTxt+calNote+'. Đánh dấu từng cặp rồi hệ thống tự tinh chỉnh tới khi danh sách cuối chỉ còn các cặp trùng. «Không phải trùng» ẩn cặp đó và đẩy ngưỡng lên, «Trùng» giữ cặp đó làm mốc đúng.</p><div class="dpsm-opt" role="status" aria-live="polite"></div>'+smGray.map(smCardH).join("")+'<div class="dpsm-f"><button type="button" class="btn" data-sm="skip">Bỏ qua</button><button type="button" class="btn p" data-sm="apply"></button></div>'}
   /* cập nhật tại chỗ (không dựng lại thẻ) để ảnh không nháy */
   function smPaint(){
     var p=G("dupsmart");if(!p||p.hidden||!smRes)return;
@@ -3578,7 +3582,9 @@ function init(nt){
       cs[i].querySelector("[data-sa=y]").classList.toggle("on",a==="y");
       cs[i].querySelector("[data-sa=n]").classList.toggle("on",a==="n");
     }
-    var ch=p.querySelector(".dpsm-chip");if(ch)ch.textContent="Gợi ý "+rec+"%"+(smCalc?" …":"");
+    var ch=p.querySelector(".dpsm-chip");if(ch)ch.textContent="Tối ưu "+rec+"%"+(smCalc?" …":"");
+    var op=p.querySelector(".dpsm-opt");
+    if(op){op.className="dpsm-opt"+(smCalc?" dpcalc":"");op.innerHTML=smCalc?"Đang tính lại ngưỡng tối ưu…":"Ngưỡng tối ưu: <b>"+rec+"%</b>"+(rec!==TH?" · đang dùng "+TH+"%, sẽ áp dụng khi bấm tiếp tục":" · trùng với ngưỡng đang dùng")}
     var ap=p.querySelector("[data-sm=apply]");
     if(ap){ap.disabled=smCalc;ap.textContent=rec!==TH?"Áp dụng "+rec+"% & tiếp tục":"Áp dụng & tiếp tục"}
   }
@@ -3677,6 +3683,7 @@ function init(nt){
           var i=G("dupth");if(i)i.value=String(res.recommended);
           syncSensDraft();var dirty=smThDirty;smThDirty=false;
           msg((smRoundN>1?"Đã lọc sạch vùng xám":"Không có cặp vùng xám cần xác nhận")+autoTxt+" · quét lại với ngưỡng tối ưu "+res.recommended+"%…");
+          smFinNote="Quét thông minh hoàn tất · ngưỡng tối ưu "+res.recommended+"%";
           applyAndSaveSettings(dirty);
         }else{
           render();
@@ -3689,7 +3696,7 @@ function init(nt){
       smView=smGray.map(function(g){return{a:g.a,b:g.b,why:["img"],img:g.imgs||[],sc:0}});
       render();
       smPanel(smAskH());smSig=smSigOf();smPaint();
-      msg((smRoundN>1?"Vòng "+smRoundN+": ":"")+"cần xác nhận "+smGray.length+(res.grayTotal>smGray.length?"/"+res.grayTotal:"")+" cặp vùng xám · gợi ý "+res.recommended+"%"+autoTxt+".");
+      msg((smRoundN>1?"Vòng "+smRoundN+": ":"")+"cần xác nhận "+smGray.length+(res.grayTotal>smGray.length?"/"+res.grayTotal:"")+" cặp vùng xám · ngưỡng tối ưu "+res.recommended+"%"+autoTxt+".");
       smScrollTo(G("dupsmart"));
     }).then(null,function(){smRunning=false;syncScanUi();smPanel("");smScrollTo(0)});
   }
@@ -3705,6 +3712,7 @@ function init(nt){
         var i=G("dupth");if(i)i.value=String(rec);
         syncSensDraft();var dirty=smThDirty;smThDirty=false;
         msg((allY?"Tất cả đều trùng · ":"")+"đang hoàn tất quét ở ngưỡng tối ưu "+rec+"%…");
+        smFinNote="Quét thông minh hoàn tất · ngưỡng tối ưu "+rec+"%";
         var r=applyAndSaveSettings(dirty);
         smScrollTo(0);
         return r;
@@ -3737,7 +3745,7 @@ function init(nt){
   var SM_BASE_TH=70;   /* ngưỡng quét thường ở bước đầu của Quét thông minh */
   function smStart(){
     if(scanning||smRunning)return;
-    smClose();stopFlag=false;smRunning=true;smRoundN=0;smThDirty=false;syncScanUi();
+    smClose();stopFlag=false;smRunning=true;smRoundN=0;smThDirty=false;smFinNote="";syncScanUi();
     /* Bước 1: quét thường ở ngưỡng 70% rồi lấy ngưỡng đó làm nền cho các bước sau (phân tích đa ngưỡng, vùng xám…) */
     if(TH!==SM_BASE_TH){
       TH=SM_BASE_TH;
