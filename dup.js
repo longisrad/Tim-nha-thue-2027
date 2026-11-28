@@ -2299,6 +2299,9 @@ function putMcCache(s,val){
   mcCache[s]=val}
 /* ===== Lưu bền cho Quét thông minh (IndexedDB): danh sách cặp thô ≥66% (theo chỉ số), vector Multi-crop (int8 base64) và kết quả so sâu từng cặp.
    Không lưu token Patch (quá nặng). Khóa theo CACHE_KEY (độ phân giải/độ chính xác) + ALGO_VER; danh sách cặp thô còn có chữ ký tập ảnh nên tự bỏ khi ảnh đổi. ===== */
+/* Đo các bước tính nặng (chỉ ghi khi một lượt chạy liền >=40 ms) để Dbg báo đúng chỗ gây đứng giao diện */
+var PERF={};
+function pf(name,ms){if(!(ms>=40))return;var o=PERF[name]||(PERF[name]={n:0,sum:0,max:0});o.n++;o.sum+=ms;if(ms>o.max)o.max=Math.round(ms)}
 var SMP_V=1,smpPK="",smpP=null,smpRaw=null,smpRawOf=null,smpT=0,smpBusy=false,smpMcSent={},smpCur={n:0,sv:""},smpPullP=null,smpPullAt=0,smpPullSV="",smpSyncBusy=false,smpLog={pull:null,push:null,srvTotal:null,pulled:0,pushed:0};
 function smpKey(){return "dsm1_"+CACHE_KEY}
 function smpHash(str){var h1=0x811c9dc5,h2=5381,i,c;for(i=0;i<str.length;i++){c=str.charCodeAt(i);h1=Math.imul(h1^c,16777619);h2=(Math.imul(h2,33)^c)|0}return (h1>>>0).toString(36)+"."+(h2>>>0).toString(36)+"."+str.length.toString(36)}
@@ -2983,6 +2986,7 @@ function verifyGrayZonePairs(list,isScan,thOv,opts){
               if(pr0||mc0!==null)putSmMmRes(mmResKey(r.x,r.y),{pt:pr0,sv:sv0,mc:mc0});
             }
             if(canDino&&wantPt&&wi<bp.length&&(Date.now()-t0>=24)){
+              pf("patchScore",Date.now()-t0);
               if((isScan||smRunning)&&!stopFlag)msg("Đang so Patch MaxSim + Spatial + CSLS ("+doneN+"/"+extractPairs.length+" cặp)…");
               return new Promise(function(ok){setTimeout(ok,0)}).then(chunk);
             }
@@ -3106,20 +3110,25 @@ function pendingItems(skip){
     return ims.every(function(s){return !!pm.done[s]})&&pm.seen[it.id]!==ims.join("|");
   })}
 function matchInc(newJ,oldJ){
-  smartCalc();var allJ=oldJ.concat(newJ),A=allJ.map(function(x){return sigOf(x.s)}),out=[],seen={},p=oldJ.length;
+  smartCalc();var allJ=oldJ.concat(newJ),A=allJ.map(function(x){return sigOf(x.s)}),out=[],seen={},p=oldJ.length,jj=0;
+  /* Mỗi lượt chạy tối đa ~12 ms rồi nhường giao diện (trước đây 25 ảnh/lượt, mỗi lượt có thể đứng ~400 ms trên máy yếu) */
   function step(){
-    var end=Math.min(p+25,allJ.length),j,m,k,a,b;
-    for(;p<end;p++){
+    var t0=Date.now(),cnt=0,j,m,k,a,b;
+    while(p<allJ.length){
       b=allJ[p];
-      for(j=0;j<p;j++){
-        a=allJ[j];
-        if(a.it.id===b.it.id)continue;
-        if(a.s===b.s)m={d:0,n:100,k:"",o:(A[j]||A[p])?(A[j]||A[p]).ori:""};
-        else if(A[j]&&A[p])m=cmpSig(A[j],A[p],SM.tl);else continue;
-        if(m){k=a.it.id+"|"+b.it.id+"|"+a.s+"|"+b.s;if(!seen[k]){seen[k]=1;out.push({a:a.it,b:b.it,x:a.s,y:b.s,d:m.d,k:m.k,o:m.o||"",n:m.n})}}
+      while(jj<p){
+        j=jj++;a=allJ[j];
+        if(a.it.id!==b.it.id){
+          m=null;
+          if(a.s===b.s)m={d:0,n:100,k:"",o:(A[j]||A[p])?(A[j]||A[p]).ori:""};
+          else if(A[j]&&A[p])m=cmpSig(A[j],A[p],SM.tl);
+          if(m){k=a.it.id+"|"+b.it.id+"|"+a.s+"|"+b.s;if(!seen[k]){seen[k]=1;out.push({a:a.it,b:b.it,x:a.s,y:b.s,d:m.d,k:m.k,o:m.o||"",n:m.n})}}
+        }
+        if((++cnt&31)===0&&Date.now()-t0>=12){pf("matchInc",Date.now()-t0);return new Promise(function(r){setTimeout(r,0)}).then(step)}
       }
+      p++;jj=0;
     }
-    if(p<allJ.length)return new Promise(function(r){setTimeout(r,0)}).then(step);
+    pf("matchInc",Date.now()-t0);
     return verifyList(out,true)}
   return Promise.resolve().then(step)}
 function applyCachedPairs(){
@@ -4109,23 +4118,27 @@ function analyzeThresholds(opts){
     }else{
       allPairs=[];
     }
+    var jr=0;
     function buildRawStep(){
       if(isAborted(false))return Promise.resolve();
       if(smRawCache&&smRawCache.sig===rawSig)return Promise.resolve();
-      var end=Math.min(p+25,allJ.length),j,a,b,m,k;
-      for(;p<end;p++){
+      var t0=Date.now(),cnt=0,j,a,b,m,k;
+      while(p<allJ.length){
         b=allJ[p];
-        for(j=0;j<p;j++){
-          a=allJ[j];
-          if(a.it.id===b.it.id)continue;
-          m=a.s===b.s?{d:0,n:100,k:"",o:A[p].ori}:cmpSig(A[j],A[p],FLOOR);
-          if(m){
-            k=a.it.id+"|"+b.it.id+"|"+a.s+"|"+b.s;
-            if(!seen[k]){seen[k]=1;allPairs.push({a:a.it,b:b.it,x:a.s,y:b.s,d:m.d,k:m.k,o:m.o||"",n:m.n})}
+        while(jr<p){
+          j=jr++;a=allJ[j];
+          if(a.it.id!==b.it.id){
+            m=a.s===b.s?{d:0,n:100,k:"",o:A[p].ori}:cmpSig(A[j],A[p],FLOOR);
+            if(m){
+              k=a.it.id+"|"+b.it.id+"|"+a.s+"|"+b.s;
+              if(!seen[k]){seen[k]=1;allPairs.push({a:a.it,b:b.it,x:a.s,y:b.s,d:m.d,k:m.k,o:m.o||"",n:m.n})}
+            }
           }
+          if((++cnt&31)===0&&Date.now()-t0>=12){pf("rawBuild",Date.now()-t0);return new Promise(function(r){setTimeout(r,0)}).then(buildRawStep)}
         }
+        p++;jr=0;
       }
-      if(p<allJ.length)return new Promise(function(r){setTimeout(r,0)}).then(buildRawStep);
+      pf("rawBuild",Date.now()-t0);
       smRawCache={sig:rawSig,list:allPairs};
       return Promise.resolve();
     }
@@ -4272,7 +4285,7 @@ function analyzeThresholds(opts){
         function tierStep(){
           if(isAborted(false)){smBack(snap);return Promise.resolve({ok:false,stopped:true,msg:"Đã dừng quét thông minh."})}
           var t0=Date.now();
-          while(ti<tiers.length&&Date.now()-t0<30){res.push(evalPairsAtTh(rawGrp,ignGrp,tiers[ti],src.length,posN?pos:null,prePairMap,calLB));smBack(snap);ti++}
+          while(ti<tiers.length&&Date.now()-t0<30){var tq=Date.now();res.push(evalPairsAtTh(rawGrp,ignGrp,tiers[ti],src.length,posN?pos:null,prePairMap,calLB));smBack(snap);ti++;pf("tier",Date.now()-tq)}
           if(ti<tiers.length)return new Promise(function(r){setTimeout(r,0)}).then(tierStep);
           return finish();
         }
@@ -4537,7 +4550,7 @@ function resyncDup(mode){
       return r})
   },function(e){return{ok:false,msg:"Không kết nối được máy chủ: "+(e&&e.message||e)}})
 }
-window.Dup={v:KV,mmState:smpState,mmResync:smpResync,retire:function(){return retList().map(function(x){return x.c})},ignStat:function(){return ignStat()},smart:function(){loadImgMode();var s=smartCalc();return{th:TH,ts:s.ts,mid:s.mid,tl:s.tl,strong:s.strong,algo:ALGO_VER,mm:MM_MODE,cal:s.cal,kept:s.kept,cut:s.cut,dedupCut:s.dedupCut,ctxCut:s.ctxCut,mmChecked:s.mmChecked,mmCut:s.mmCut,mmBoost:s.mmBoost,spChecked:s.spChecked,spCut:s.spCut,spSave:s.spSave,clusters:lastGraph?lastGraph.stats.clusterCount:0}},clusters:function(customImgPairs,customItems){if(customItems)items=customItems;else if(N())items=N().items();if(customImgPairs){imgPairs=customImgPairs}var r=build();return r.graph},sortAdjacent:function(list,customImgPairs){if(customImgPairs)imgPairs=customImgPairs;var srcList=list||(N()?N().items():items);if(!items.length&&srcList.length)items=srcList;var r=build();return sortHousesAdjacent(srcList,r.graph)},analyze:analyzeThresholds,keys:function(){return{h:CACHE_KEY,p:PM_KEY}},cached:function(){return cacheLoaded?Object.keys(cache).length:-1},dino:function(){
+window.Dup={v:KV,perf:function(){var o={};Object.keys(PERF).forEach(function(k){o[k]={n:PERF[k].n,max:PERF[k].max,avg:Math.round(PERF[k].sum/PERF[k].n)}});return o},mmState:smpState,mmResync:smpResync,retire:function(){return retList().map(function(x){return x.c})},ignStat:function(){return ignStat()},smart:function(){loadImgMode();var s=smartCalc();return{th:TH,ts:s.ts,mid:s.mid,tl:s.tl,strong:s.strong,algo:ALGO_VER,mm:MM_MODE,cal:s.cal,kept:s.kept,cut:s.cut,dedupCut:s.dedupCut,ctxCut:s.ctxCut,mmChecked:s.mmChecked,mmCut:s.mmCut,mmBoost:s.mmBoost,spChecked:s.spChecked,spCut:s.spCut,spSave:s.spSave,clusters:lastGraph?lastGraph.stats.clusterCount:0}},clusters:function(customImgPairs,customItems){if(customItems)items=customItems;else if(N())items=N().items();if(customImgPairs){imgPairs=customImgPairs}var r=build();return r.graph},sortAdjacent:function(list,customImgPairs){if(customImgPairs)imgPairs=customImgPairs;var srcList=list||(N()?N().items():items);if(!items.length&&srcList.length)items=srcList;var r=build();return sortHousesAdjacent(srcList,r.graph)},analyze:analyzeThresholds,keys:function(){return{h:CACHE_KEY,p:PM_KEY}},cached:function(){return cacheLoaded?Object.keys(cache).length:-1},dino:function(){
     if(DW.w)return"worker/"+DW.dev+" x"+BN+" res"+DS;
     if(DINO.m)return"main/wasm x"+BN+" res"+DS;
     if(DINO.p)return"đang tải";

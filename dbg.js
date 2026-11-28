@@ -344,7 +344,12 @@ function chkPerf(add){
   if(B.laf&&B.laf.length){
     var tl=B.laf.slice().sort(function(a,b){return b.d-a.d}).slice(0,5).map(function(x){return x.d+" ms lúc +"+(x.s/1000).toFixed(1)+"s ("+clk(x.s)+"): "+(x.u||"không có script")+(x.f?" "+x.f+"()":"")+(x.i?" ← "+x.i:"")+" · script "+x.c+" ms · bố cục/vẽ "+x.y+" ms"}).join(" | ");
     add("info",g,"Khung hình nặng nhất theo nguồn: "+tl)}
-  else if(B.laf)add("info",g,"Chưa ghi nhận khung hình nặng nào (trên 50 ms), hoặc trình duyệt không hỗ trợ đo theo nguồn")}
+  else if(B.laf)add("info",g,"Chưa ghi nhận khung hình nặng nào (trên 50 ms), hoặc trình duyệt không hỗ trợ đo theo nguồn");
+  /* Bước tính nặng của Kiểm tra trùng do dup.js tự đo (lượt chạy liền từ 40 ms): chỉ rõ chỗ nào gây đứng giao diện */
+  try{
+    var pfo=window.Dup&&typeof window.Dup.perf==="function"?window.Dup.perf():null,pk=pfo?Object.keys(pfo):[];
+    if(pk.length)add("info",g,"Bước nặng của Kiểm tra trùng: "+pk.map(function(k){return k+" ×"+pfo[k].n+" · tối đa "+pfo[k].max+" ms · TB "+pfo[k].avg+" ms"}).join(" | "))
+  }catch(e){}}
 function mb(n){return (n/1048576).toFixed(n>=104857600?0:1)+" MB"}
 function chkEnv(add){
   var g="Thiết bị & mạng",c=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
