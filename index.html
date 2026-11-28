@@ -1412,8 +1412,10 @@ $("pv").onclick=function(e){var b=e.target.closest("[data-rm]");if(b){var rid=ed
   if(rid){if(origIm.indexOf(rid)>-1)formTrash.push(rid);else trashIds([rid])}}};
 function stars(n){n=Math.round(+n||0);return "★★★★★".slice(0,n)+"☆☆☆☆☆".slice(0,5-n)}
 function curSeg(it){var c=realSeg[it.id];if(!c)c=["g","v","h"].filter(function(k){return segArr(it,k).length})[0]||"g";return c}
+/* Danh sách / Yêu thích: hiện thanh 3 mục ảnh (gốc, đi xem, hư hỏng) như tab Thực tế khi căn có ít nhất một ảnh ở một trong ba mục */
+function dvSegOn(it){return (tab==="list"||tab==="fav")&&(segArr(it,"g").length+segArr(it,"v").length+segArr(it,"h").length)>0}
 function dvHead(it){
-  var k=it.st||"new",real=tab==="real",cur=real?curSeg(it):"g",im=real?segArr(it,cur):(it.im||[]),h="";
+  var k=it.st||"new",real=tab==="real"||dvSegOn(it),cur=real?curSeg(it):"g",im=real?segArr(it,cur):(it.im||[]),h="";
   var msg=segMsg(cur);
   if(im.length){h+='<div class="dvh"><div class="dvg">'+im.map(function(x,i){return '<img alt="Ảnh nhà" '+(i?'loading="lazy" ':'')+'decoding="async" src="'+esc(imgSrc(x,VW))+'" data-big="'+esc(imgSrc(x,VW))+'">'}).join("")+'</div>'+(im.length>1?'<span class="dvn">1 / '+im.length+'</span>':'')}
   else h+='<div class="dvh dvh0">'+(real?'<p class="dve">'+msg+'</p>':'');
