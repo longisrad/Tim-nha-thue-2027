@@ -2397,6 +2397,12 @@ function smpGet(q,t){
     })
   })
 }
+/* Đọc 1 trang tab MM: ưu tiên POST (đường đã chạy ổn với mmSet), nếu máy chủ cũ hoặc POST lỗi thì dùng GET (có chẩn đoán) */
+function smpRead(from,t){
+  var q="&action=mm&vc="+encodeURIComponent(smpVC())+"&vp="+encodeURIComponent(smpVP())+"&from="+from;
+  return N().apiPost("mmRead",{vc:smpVC(),vp:smpVP(),from:from},t).then(null,function(ep){
+    return smpGet(q,t).then(null,function(eg){
+      throw new Error(String((eg&&eg.message)||eg)+" · POST mmRead: "+String((ep&&ep.message)||ep))})})}
 function smpPull(){
   if(!smpOk())return Promise.resolve();
   var t0=Date.now(),pages=0,got=0,err="";
@@ -2404,7 +2410,7 @@ function smpPull(){
     var sv=smpVC()+"~"+smpVP();
     if(smpCur.sv!==sv)smpCur={n:0,sv:sv};
     function page(){
-      return smpGet("&action=mm&vc="+encodeURIComponent(smpVC())+"&vp="+encodeURIComponent(smpVP())+"&from="+smpCur.n,20000).then(function(d){
+      return smpRead(smpCur.n,20000).then(function(d){
         if(!d||!d.ok||typeof d.next!=="number"){err=(d&&d.error)||"máy chủ chưa hỗ trợ action mm (cần triển khai Code.gs mới)";return}
         pages++;
         if(d.reset)smpCur.n=0;
@@ -2476,7 +2482,7 @@ function smpResync(mode){
   var r={srv:0,got:0,miss:0,drop:0,pushed:0,rejected:0,left:0},pre=MM_MODE+"|"+CACHE_KEY+"|",srvC={},srvP={};
   function readAll(){
     function page(){
-      return smpGet("&action=mm&vc="+encodeURIComponent(smpVC())+"&vp="+encodeURIComponent(smpVP())+"&from="+smpCur.n,25000).then(function(d){
+      return smpRead(smpCur.n,25000).then(function(d){
         if(!d||!d.ok||typeof d.next!=="number")throw new Error((d&&d.error)||"máy chủ chưa hỗ trợ action mm (cần triển khai Code.gs mới)");
         if(d.reset){smpCur.n=0;srvC={};srvP={};r.got=0}
         (d.rows||[]).forEach(function(x){if(x[0]==="c")srvC[x[1]]=1;else if(x[0]==="p")srvP[x[1]]=1});
