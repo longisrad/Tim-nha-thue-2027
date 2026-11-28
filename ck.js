@@ -3,8 +3,8 @@
    giúp mỗi lần chạm mục đạt/lỗi phản hồi O(1) không cần querySelector toàn trang. */
 (function(){
 "use strict";
-var K=null,S=null,inited=false,KV=2;   // KV: phiên bản cầu nối NK mà ck.js này cần (index.html phải khớp)
-var $,CK,LP,PARTS,TIPS,VW,ckCopy,ckLiteOf,ckLoad,ckSaveOff,ckSnap,ckStat,ckcSave,closeCk,esc,findItem,imgSrc,jumpTop,openLb,persist,rtgH,runPool,shrink,trashIds,uname,upBusy,upMon,upSafe;
+var K=null,S=null,inited=false,KV=3;   // KV: phiên bản cầu nối NK mà ck.js này cần (index.html phải khớp)
+var $,CK,LP,PARTS,TIPS,VW,ckCopy,ckLiteOf,ckLoad,ckSaveOff,ckSnap,ckStat,ckcSave,closeCk,esc,findItem,imgSrc,jumpTop,openLb,persist,rtgH,trashIds,upBusy;
 var secEls=[],partEls={},cknEl=null,ckbarEl=null,rtsgEl=null,lastSugH="";
 function secHas(s){
   var k,v;
@@ -59,38 +59,13 @@ function updProg(){
   if(partEls[2])partEls[2].textContent=pd2+"/"+pc2;
   updSug();
 }
-var phEls={view:{},damage:{}},phNm={};   // khóa -> ô ảnh đang hiển thị; phNm: id Drive -> tên tệp lúc đang tải (giữ nguyên ô khi tải xong, ảnh không nháy)
-function phTile(){var d=document.createElement("div"),im=document.createElement("img");im.decoding="async";d.appendChild(im);return d}
+var PH={view:{els:{},nm:{}},damage:{els:{},nm:{}}},upBad=[];   // PH: ô ảnh đang hiển thị theo mục (việc vẽ ô do img.js lo); upBad: ảnh tải lỗi, giữ ô đỏ để chạm thử lại hoặc bấm × xóa
 function ckPhR(box,arr,kind,alt){
-  var rm=kind==="view"?"data-vrm":"data-crm",old=phEls[kind],nx={},want=[];
+  var want=[];
   arr.forEach(function(s,i){want.push({k:"i:"+s,id:s,src:imgSrc(s,300),big:imgSrc(s,VW),i:i})});
   S.upQ.filter(function(u){return (u.cur===S.cur||(u.hid&&u.hid===S.id))&&u.k===kind}).forEach(function(u){want.push({k:"u:"+u.name,src:u.src,up:1})});
-  var nodes=want.map(function(w){
-    var d=old[w.k];
-    if(!d&&w.id&&phNm[w.id])d=old["u:"+phNm[w.id]];   // ảnh vừa tải xong: dùng lại đúng ô đang hiện
-    if(!d)d=phTile();
-    nx[w.k]=d;
-    var im=d.firstChild;
-    im.setAttribute("alt",w.up?"":alt);
-    if(im.getAttribute("src")!==w.src)im.setAttribute("src",w.src);
-    if(w.up)im.removeAttribute("data-big");else im.setAttribute("data-big",w.big);
-    var sp=d.querySelector("span"),bt=d.querySelector("button");
-    if(w.up){
-      d.className="up";
-      if(!sp){sp=document.createElement("span");sp.textContent="Đang tải…";d.appendChild(sp)}
-      if(bt)d.removeChild(bt);
-    }else{
-      d.className="";
-      if(sp)d.removeChild(sp);
-      if(K.canW){
-        if(!bt){bt=document.createElement("button");bt.type="button";bt.setAttribute("aria-label","Xóa ảnh");bt.textContent="×";d.appendChild(bt)}
-        bt.removeAttribute("data-vrm");bt.removeAttribute("data-crm");bt.setAttribute(rm,w.i);
-      }else if(bt)d.removeChild(bt);
-    }
-    return d});
-  phEls[kind]=nx;
-  nodes.forEach(function(d,i){if(box.children[i]!==d)box.insertBefore(d,box.children[i]||null)});
-  while(box.children.length>nodes.length)box.removeChild(box.lastChild)}
+  upBad.filter(function(u){return u.hid===S.id&&u.k===kind}).forEach(function(u){want.push({k:"u:"+u.name,src:u.src,er:u})});
+  if(window.Img&&Img.up)Img.up.tiles({box:box,st:PH[kind],want:want,rm:kind==="view"?"data-vrm":"data-crm",alt:alt,big:true,canW:K.canW})}
 function ckPh(){
   var a=$("ckvph"),b=$("ckph");
   if(a)ckPhR(a,S.cur.vi,"view","Ảnh đi xem");
@@ -182,6 +157,47 @@ function skew(v){
   var m="ck.js (cầu nối v"+KV+") không khớp index.html (v"+v+"). Hãy đóng hẳn rồi mở lại app để cập nhật.";
   try{console.error(m);var d=document.createElement("div");d.textContent=m;d.style.cssText="position:fixed;left:0;right:0;top:0;z-index:99999;padding:10px 14px;background:#b3261e;color:#fff;font:14px/1.4 sans-serif";(document.body||document.documentElement).appendChild(d)}catch(e){}
 }
+/* Dòng thông báo dưới nút chọn ảnh của từng mục (đi xem / hư hỏng) */
+function upMsg(kind,txt,isBad){
+  if(!kind)return;var m=$(kind==="view"?"ckvm":"ckim");if(!m)return;
+  if(txt==null){var n=upBad.filter(function(u){return u.hid===S.id&&u.k===kind}).length;
+    txt=n?n+" ảnh lỗi. Chạm vào ảnh viền đỏ để thử lại, hoặc bấm × để xóa.":"";isBad=!!n}
+  m.textContent=txt;m.className="pm"+(isBad?" bad":"")}
+/* Tải một lô ảnh lên Drive (phần nén/tải/thử lại nằm ở img.js). Ảnh lỗi giữ lại thành ô đỏ "Lỗi": chạm để thử lại, bấm × để xóa. */
+function ckUp(kind,fs){
+  if(!(window.Img&&Img.up)){alert("Chưa nạp được img.js (công cụ ảnh). Hãy tải lại trang.");return}
+  var cur=S.cur,fn=(findItem(S.id)||{}).n||"",hid=S.id,total=fs.length;
+  function say(x,isBad){if(S.cur===cur)upMsg(kind,x,isBad)}
+  function dropQ(x){var i=S.upQ.indexOf(x);if(i>-1)S.upQ.splice(i,1)}
+  function tag(x){x.hid=hid;x.cur=cur;x.k=kind}
+  Img.up.run({files:fs,pre:kind==="view"?"xem-":"loi-",
+    payload:function(){var it=findItem(hid)||{};return{folder:fn,area:it.d||"",ward:it.w||"",addr:it.a||"",kind:kind,hid:hid,fid:(kind==="view"?cur.vu:cur.du)||""}},
+    begin:function(){S.upN=(S.upN||0)+total;upBusy(total);syncUi();say("Đang tải ảnh 0/"+total+" lên Drive…")},
+    say:say,
+    queue:function(x){tag(x);S.upQ.push(x);if(S.cur===cur){ckPh();syncUi()}},
+    unq:dropQ,
+    bad:function(x){tag(x);upBad.push(x)},
+    ok:function(x,d,u){
+      LP[d.id]=u;PH[kind].nm[d.id]=x.name;
+      dropQ(x);
+      var tg=(S.id===hid&&S.cur)||cur;
+      if(kind==="view"){tg.vi.push(d.id);if(d.url)tg.vu=d.url}
+      else{tg.im.push(d.id);if(d.url)tg.du=d.url}
+      if(tg!==cur){cur.vi=tg.vi;cur.im=tg.im;cur.vu=tg.vu;cur.du=tg.du}
+      if(S.cur===tg){ckPh();ckSave()}else ckSaveOff(hid,tg)
+    },
+    step:function(done,total2,bad,why){
+      S.upN=Math.max(0,(S.upN||1)-1);upBusy(-1);
+      if(S.cur===cur)ckPh();
+      if(done<total2){say("Đang tải ảnh "+done+"/"+total2+" lên Drive…");syncUi()}
+      else{
+        var nb=upBad.filter(function(u){return u.hid===hid&&u.k===kind}).length;
+        say(nb?nb+" ảnh lỗi ("+why+"). Chạm vào ảnh viền đỏ để thử lại, hoặc bấm × để xóa.":"✓ Đã tải "+total2+" ảnh lên Drive",!!nb);
+        if(S.cur===cur){if(total2>bad||S.dirty)ckFlush();else syncUi()}
+        else ckSaveOff(hid,cur);
+      }
+    }})
+}
 function init(k){
   if(inited||!k)return;
   if(k.v!==KV||!k.S){skew(k.v);return}
@@ -207,13 +223,8 @@ function init(k){
   openLb=K.openLb;
   persist=K.persist;
   rtgH=K.rtgH;
-  runPool=K.runPool;
-  shrink=K.shrink;
   trashIds=K.trashIds;
-  uname=K.uname;
   upBusy=K.upBusy;
-  upMon=K.upMon;
-  upSafe=K.upSafe;
   $("ckb").onclick=function(e){
     if(e.target.closest("#cks")&&S.err&&K.canW){S.dirty=true;ckFlush();return}
     if(e.target.closest("[data-ckx]")){closeCk();return}
@@ -229,6 +240,14 @@ function init(k){
       if(op.dataset.t==="m"){var a=Array.isArray(S.cur.v[f])?S.cur.v[f]:[],k=a.indexOf(o);if(k>-1)a.splice(k,1);else a.push(o);S.cur.v[f]=a;op.setAttribute("aria-pressed",k<0)}
       else{var on=S.cur.v[f]!==o;S.cur.v[f]=on?o:"";Array.prototype.forEach.call(op.parentNode.children,function(b){b.setAttribute("aria-pressed",on&&b===op)})}
       ckSave();return}
+    var bb=e.target.closest("[data-cbad]");
+    if(bb&&K.canW){var nm=bb.dataset.cbad,k0="";
+      upBad=upBad.filter(function(x){if(x.name!==nm)return true;k0=x.k;if(x.src.indexOf("blob:")===0)URL.revokeObjectURL(x.src);return false});
+      ckPh();upMsg(k0);return}
+    var et=e.target.closest(".cph .er");
+    if(et&&K.canW&&S.cur){var nm2=et.dataset.nm,f=null,k1="";
+      upBad=upBad.filter(function(x){if(x.name!==nm2)return true;f=x.file;k1=x.k;if(x.src.indexOf("blob:")===0)URL.revokeObjectURL(x.src);return false});
+      if(f){ckPh();ckUp(k1,[f])}return}
     var im=e.target.closest(".cph img");if(im){openLb(im);return}
     var rm=e.target.closest("[data-crm]");if(rm&&K.canW&&S.cur){S.trashQ.push(S.cur.im.splice(+rm.dataset.crm,1)[0]);if(!S.cur.im.length)S.cur.du="";ckPh();ckSave();return}
     var rv2=e.target.closest("[data-vrm]");if(rv2&&K.canW&&S.cur){S.trashQ.push(S.cur.vi.splice(+rv2.dataset.vrm,1)[0]);if(!S.cur.vi.length)S.cur.vu="";ckPh();ckSave()}
@@ -239,42 +258,8 @@ function init(k){
     else if(t.dataset.nt!=null){S.cur.nt=t.value;ckSave()}};
   $("ckb").onchange=function(e){
     var t=e.target;if((t.id!=="cki"&&t.id!=="ckv")||!K.canW||!S.cur)return;
-    var kind=t.id==="ckv"?"view":"damage",pre=kind==="view"?"xem-":"loi-",mid=kind==="view"?"ckvm":"ckim";
-    var cur=S.cur,fn=(findItem(S.id)||{}).n||"",hid=S.id;
     var fs=Array.prototype.slice.call(t.files);t.value="";if(!fs.length)return;
-    var total=fs.length,done=0,bad=0,why="";
-    function say(x,isBad){if(S.cur===cur){var m=$(mid);if(m){m.textContent=x;m.className="pm"+(isBad?" bad":"")}}}
-    S.upN=(S.upN||0)+total;upBusy(total);syncUi();
-    say("Đang tải ảnh 0/"+total+" lên Drive…");
-    var mon=upMon(function(sec){if(done<total)say("Đang tải ảnh "+done+"/"+total+" lên Drive… ("+sec+"s)")});mon.on();
-    function fin(){
-      done++;S.upN=Math.max(0,(S.upN||1)-1);upBusy(-1);
-      if(done>=total)mon.stop();
-      if(S.cur===cur)ckPh();
-      if(done<total){say("Đang tải ảnh "+done+"/"+total+" lên Drive…");syncUi()}
-      else{
-        say(bad?(total-bad)+"/"+total+" ảnh đã tải. "+bad+" ảnh lỗi ("+why+"), hãy chọn lại ảnh lỗi.":"✓ Đã tải "+total+" ảnh lên Drive",!!bad);
-        if(S.cur===cur){if(total>bad||S.dirty)ckFlush();else syncUi()}
-        else ckSaveOff(hid,cur);
-      }
-    }
-    runPool(fs.map(function(f,k){return function(){
-      return shrink(f).then(function(u){
-        if(!u){bad++;why="không đọc được một số ảnh";return}
-        var x={hid:hid,cur:cur,k:kind,src:u,name:uname(pre,k)};
-        function dropQ(){var i=S.upQ.indexOf(x);if(i>-1)S.upQ.splice(i,1)}
-        S.upQ.push(x);if(S.cur===cur){ckPh();syncUi()}
-        return upSafe({name:x.name,mime:"image/jpeg",folder:fn,area:(findItem(hid)||{}).d||"",ward:(findItem(hid)||{}).w||"",addr:(findItem(hid)||{}).a||"",kind:kind,hid:hid,fid:cur.vu||"",data:u.split(",")[1]}).then(function(d){
-          LP[d.id]=u;phNm[d.id]=x.name;
-          dropQ();
-          var tg=(S.id===hid&&S.cur)||cur;
-          if(kind==="view"){tg.vi.push(d.id);if(d.url)tg.vu=d.url}
-          else{tg.im.push(d.id);if(d.url)tg.du=d.url}
-          if(tg!==cur){cur.vi=tg.vi;cur.im=tg.im;cur.vu=tg.vu;cur.du=tg.du}
-          if(S.cur===tg){ckPh();ckSave()}else ckSaveOff(hid,tg)
-        },function(e2){dropQ();bad++;why=e2&&e2.message?e2.message:"lỗi kết nối"})
-      }).then(fin,fin)
-    }}),3)
+    ckUp(t.id==="ckv"?"view":"damage",fs)
   };
   if(K.tab==="ck"&&S.id)ckLoad(S.id);
 }

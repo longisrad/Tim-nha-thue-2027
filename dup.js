@@ -2024,7 +2024,7 @@ function lumaStats(px,npx){
   var mean=sum/npx;
   return{gray:gray,v:sum2/npx-mean*mean}}
 function detectBars(gray,gw,gh,ori,iw,ih){
-  var i,j,s,s2,cnt,m,v,r0,r1,top,bot;
+  var i,j,s,s2,cnt,m,r0,r1,top,bot;
   if(ori==="P"){
     var rm=[],rv=[];
     for(i=0;i<gh;i++){

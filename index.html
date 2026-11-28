@@ -403,6 +403,8 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .pv div{position:relative;aspect-ratio:1;min-width:0}
 .pv img{width:100%;height:100%;object-fit:cover;border-radius:6px;display:block;background:var(--line)}
 .pv .up img{opacity:.55}
+.pv .er img,.pv .er2 img{opacity:.5;outline:2px solid var(--danger);outline-offset:-2px}.pv .er img{cursor:pointer}.pv .er span{position:absolute;left:0;right:0;bottom:0;background:var(--danger);color:#fff;font-size:var(--fs-xs);text-align:center;border-radius:0 0 6px 6px;padding:2px 0}.pv .er2::after{content:"Ảnh lỗi";position:absolute;left:0;right:0;bottom:0;background:var(--danger);color:#fff;font-size:var(--fs-xs);text-align:center;border-radius:0 0 6px 6px;padding:2px 0;pointer-events:none}
+.tp[data-id]{cursor:pointer;-webkit-tap-highlight-color:transparent}.tp[data-id]:active{transform:scale(.99)}
 .pv .up span{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);color:#fff;font-size:var(--fs-xs);text-align:center;border-radius:0 0 6px 6px;padding:2px 0}
 .pv button{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;border:none;background:var(--danger);color:#fff;font-size:0;line-height:0;cursor:pointer;padding:0;display:inline-grid;place-items:center}.pv button::before{content:"";width:11px;height:11px;background:currentColor;-webkit-mask:var(--xic) center/contain no-repeat;mask:var(--xic) center/contain no-repeat}
 .cph img{cursor:pointer}
@@ -676,7 +678,6 @@ var IDBM=(function(){
     set:function(k,v){return tx("readwrite",function(s){return(v===""||v==null)?s.delete(k):s.put(v,k)})},
     save:function(k,v){clearTimeout(T[k]);T[k]=setTimeout(function(){o.set(k,v).catch(function(){})},700)}
   };return o})();
-var idbCkRaw="";
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 /* Đang chạy trong app Android (Capacitor) hay không, và lấy plugin gốc */
 var CAP=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
@@ -719,7 +720,6 @@ var LP={};
 function imgSrc(s,w){if(String(s).indexOf("data:")===0)return s;if(LP[s])return LP[s];return "https://lh3.googleusercontent.com/d/"+encodeURIComponent(s)+"=w"+w}
 /* Cỡ ảnh khi xem: trang chi tiết và lightbox dùng chung một cỡ theo màn hình, nên mỗi ảnh chỉ tải một lần. VWF càng cao càng nét nhưng nặng. */
 var VWF=0.8,VW=(function(){var n=Math.min(screen.width||innerWidth,screen.height||innerHeight)*(window.devicePixelRatio||1)*VWF,a=[640,900,1280];for(var i=0;i<a.length;i++)if(a[i]>=n)return a[i];return 1280})();
-/* Xử lý lỗi ảnh Drive (retry 3 nguồn), hiện ảnh mượt (.ld) và nén ảnh đã chuyển sang img.js */
 /* ===== Tải ảnh bền khi app chạy nền ===== */
 var vis={seq:0};
 document.addEventListener("visibilitychange",function(){vis.seq++;if(document.hidden){if(CS.dirty)ckFlush()}else{wlOn();if(CS.dirty)ckFlush()}});
@@ -736,23 +736,6 @@ var wl=null,wlN=0;
 function wlOn(){if(wlN<1||wl||!navigator.wakeLock||document.visibilityState!=="visible")return;navigator.wakeLock.request("screen").then(function(l){wl=l;l.addEventListener("release",function(){wl=null})},function(){})}
 function upBusy(d){wlN=Math.max(0,wlN+d);if(wlN>0)wlOn();else if(wl){try{wl.release()}catch(e){}wl=null}}
 window.addEventListener("beforeunload",function(e){if(upl>0||CS.upN>0||CS.upQ.length>0||CS.saveN>0||CS.dirty){e.preventDefault();e.returnValue=""}});
-function upSafe(p){
-  var started=0,fails=0,cuts=0;
-  function find(){return apiPost("find",{name:p.name,folder:p.folder,area:p.area,ward:p.ward,addr:p.addr,kind:p.kind,hid:p.hid,fid:p.fid},20000).then(function(d){return d&&d.id?d:null},function(){return null})}
-  function attempt(){
-    return waitReady().then(function(){
-      var s0=vis.seq,again=started++;
-      return apiPost("upload",again?Object.assign({retry:1},p):p,45000).catch(function(e){
-        var cut=vis.seq!==s0||!pageOk();
-        return waitReady().then(find).then(function(d){
-          if(d)return d;
-          if(cut&&cuts<8){cuts++;return attempt()}
-          if(fails<2){fails++;return new Promise(function(z){setTimeout(z,1200)}).then(attempt)}
-          throw new Error(netMsg(e))})})})}
-  return attempt()}
-function upMon(say){var t0=Date.now(),on=0,tm=setInterval(function(){if(on)say(Math.round((Date.now()-t0)/1000))},1000);
-  return{on:function(){on=1},stop:function(){clearInterval(tm)}}}
-function uname(pre,k){return pre+Date.now().toString(36)+"-"+k+"-"+Math.random().toString(36).slice(2,7)+".jpg"}
 function applyRole(){$("add").hidden=!canW||tab!=="list";$("brs").hidden=!canW;$("bnow").hidden=!canW;banner(canW?"":"Chế độ chỉ xem.")}
 var pend=0,wver=0;
 function hs(s){var h=5381,i=s.length;while(i)h=(h*33)^s.charCodeAt(--i);return(h>>>0).toString(36)}
@@ -864,45 +847,18 @@ function toggleFav(id){var it=findItem(id);if(!it||!canW)return;if(!it.fv){favPo
 function stName(k){for(var i=0;i<ST.length;i++)if(ST[i][0]===k)return ST[i][1];return ST[0][1]}
 $("st").innerHTML=ST.map(function(s){return '<option value="'+s[0]+'">'+s[1]+'</option>'}).join("");
 
-var newId="",editIm=[],upQ=[],formTok=0,editDr="",origIm=[],formTrash=[];
+var newId="",editIm=[],upQ=[],upBad=[],formTok=0,editDr="",origIm=[],formTrash=[];
 function svLock(){var b=upl>0;$("sv").disabled=b;$("sv").textContent=b?"⏳ Đang tải ảnh…":"Lưu";$("cx").disabled=b;$("del").disabled=b}
 function setIms(t,bad){var e=$("ims");if(!e)return;e.textContent=t||"";e.className="pm"+(bad?" bad":"")}
-var pvEls={},pvNm={};   // khóa -> ô ảnh đang hiển thị; pvNm: id Drive -> tên tệp lúc đang tải (để giữ nguyên ô khi tải xong)
-function pvTile(){
-  var d=document.createElement("div"),im=document.createElement("img");
-  im.alt="";im.decoding="async";im.className="ld ld0";   // ld ld0: không chạy hiệu ứng hiện dần, ô được giữ lại nên ảnh không nạp lại
-  d.appendChild(im);return d}
+var PVS={els:{},nm:{}};   // els: khóa -> ô ảnh đang hiển thị; nm: id Drive -> tên tệp lúc đang tải (giữ nguyên ô khi tải xong). Việc vẽ ô do img.js (Img.up.tiles) lo
 function renderPv(){
-  var box=$("pv"),want=[],nx={};
+  if(!(window.Img&&Img.up))return;
+  var want=[];
   editIm.forEach(function(s,i){want.push({k:"i:"+s,id:s,src:imgSrc(s,300),i:i})});
   upQ.forEach(function(u){want.push({k:"u:"+u.name,src:u.src,up:1})});
-  var nodes=want.map(function(w){
-    var d=pvEls[w.k];
-    if(!d&&w.id&&pvNm[w.id])d=pvEls["u:"+pvNm[w.id]];   // ảnh vừa tải xong: dùng lại đúng ô đang hiện
-    if(!d)d=pvTile();
-    nx[w.k]=d;
-    var im=d.firstChild;
-    if(im.getAttribute("src")!==w.src)im.setAttribute("src",w.src);
-    var sp=d.querySelector("span"),bt=d.querySelector("button");
-    if(w.up){
-      d.className="up";
-      if(!sp){sp=document.createElement("span");sp.textContent="Đang tải…";d.appendChild(sp)}
-      if(bt)d.removeChild(bt);
-    }else{
-      d.className="";
-      if(sp)d.removeChild(sp);
-      if(!bt){bt=document.createElement("button");bt.type="button";bt.setAttribute("aria-label","Xóa ảnh");bt.textContent="×";d.appendChild(bt)}
-      bt.setAttribute("data-rm",w.i);
-    }
-    return d});
-  pvEls=nx;
-  nodes.forEach(function(d,i){if(box.children[i]!==d)box.insertBefore(d,box.children[i]||null)});
-  while(box.children.length>nodes.length)box.removeChild(box.lastChild);
+  upBad.forEach(function(u){want.push({k:"u:"+u.name,src:u.src,er:u})});
+  Img.up.tiles({box:$("pv"),st:PVS,want:want,rm:"data-rm",ld:true});
   var dl=$("drl");var showL=editDr&&(editIm.length||upQ.length);if(dl){dl.hidden=!showL;if(showL)dl.href=editDr}}
-function shrink(file){return window.Img&&Img.shrink?Img.shrink(file):Promise.resolve(null)}
-function runPool(tasks,n){var i=0;
-  function next(){if(i>=tasks.length)return Promise.resolve();var t=tasks[i++];return t().then(next,next)}
-  var w=[];for(var k=0;k<Math.min(n,tasks.length);k++)w.push(next());return Promise.all(w)}
 var IC={info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',tel:'<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',chat:'<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>',pin:'<path d="M12 21s7-6.2 7-11a7 7 0 0 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>',ext:'<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',nav:'<path d="M3 11l18-8-8 18-2-8z"/>',link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',img:'<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.5"/><path d="M21 16l-5-5-8 9"/>',check:'<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12l3 3 5-6"/>',edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>'};
 function mb(cls,ic,label,key){return '<button type="button" class="ab '+cls+'" data-menu="'+key+'" aria-label="'+label+'" title="'+label+'" aria-expanded="false"><svg class="ic i-'+ic+'" viewBox="0 0 24 24" aria-hidden="true">'+IC[ic]+'</svg><span>'+label+'</span><svg class="ic cv" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>'}
 function mw(btn,key,inner){return '<span class="mw">'+btn+'<div class="menu" data-m="'+key+'" hidden>'+inner+'</div></span>'}
@@ -1254,7 +1210,7 @@ function openForm(id){
   var map={n:"n",a:"a",tw:"tw",d:"d",w:"w",st:"st",p:"p",ar:"ar",dp:"dp",u:"u",sv:"fe",ph:"ph",on:"on",sn:"sn",sp:"sp",mp:"mp",vd:"vd",lh:"lh",lk:"lk"};
   for(var k in map){var v=it[k];$(map[k]).value=v==null?"":v}
   buildSales(it);buildAreas(it);buildTowers(it);buildWards(it);syncSt();
-  formTok++;upQ=[];pvEls={};pvNm={};editDr=it.dr||"";editIm=(it.im||[]).slice();origIm=editIm.slice();formTrash=[];$("im").value="";setIms("");svLock();renderPv();if(!$("dlg").open)$("dlg").showModal();
+  formTok++;upQ=[];upBad=[];PVS.els={};PVS.nm={};editDr=it.dr||"";editIm=(it.im||[]).slice();origIm=editIm.slice();formTrash=[];$("im").value="";setIms("");svLock();renderPv();if(!$("dlg").open)$("dlg").showModal();
 }
 var WARDS=[];
 function showNewWard(on){$("wnew").style.display=on?"":"none"}
@@ -1343,6 +1299,7 @@ $("f").addEventListener("submit",function(e){
   if(!editIm.length)o.dr="";else if(editDr)o.dr=editDr;
   if(!o.n)return;
   if(upl>0){alert("Ảnh đang được tải lên, vui lòng đợi vài giây.");return}
+  if(upBad.length&&!confirm("Còn "+upBad.length+" ảnh lỗi chưa tải lên được (viền đỏ). Nếu lưu, các ảnh này sẽ không được gắn vào căn. Vẫn lưu?"))return;
   if(editId){o=Object.assign({},findItem(editId),o,{id:editId});if(!o.t)o.t=Date.now()}
   else{o.id=newId||"h"+Date.now().toString(36);o.t=Date.now()}
   var id0=o.id;
@@ -1379,36 +1336,43 @@ $("list").onclick=listClick;
 $("rsel").onchange=render;
 $("bk").onclick=function(){alert("Chưa nạp được bk.js (chức năng sao lưu). Hãy tải lại trang; nếu vẫn lỗi, mở bảng kiểm tra bằng cách chạm 7 lần vào tiêu đề.")};
 $("im").onchange=function(){
-  var fn=$("n").value.trim(),hid=editId||newId;
+  var fn=$("n").value.trim();
   if(!fn){this.value="";alert("Nhập Tên / mã căn trước khi tải ảnh để ảnh vào đúng thư mục của căn.");return}
   var fs=Array.prototype.slice.call(this.files);
   this.value="";if(!fs.length)return;
-  var tok=formTok,total=fs.length,done=0,bad=0,why="";
-  upl+=total;upBusy(total);svLock();setIms("Đang tải ảnh 0/"+total+" lên Drive…");
-  var mon=upMon(function(s){if(tok===formTok&&done<total)setIms("Đang tải ảnh "+done+"/"+total+" lên Drive… ("+s+"s)")});mon.on();
-  function fin(){
-    upl--;upBusy(-1);done++;svLock();
-    if(done>=total)mon.stop();
-    if(tok!==formTok)return;
-    renderPv();
-    if(done<total)setIms("Đang tải ảnh "+done+"/"+total+" lên Drive…");
-    else if(bad)setIms((total-bad)+"/"+total+" ảnh đã tải. "+bad+" ảnh lỗi ("+why+"), hãy chọn lại ảnh lỗi.",1);
-    else setIms("✓ Đã tải "+total+" ảnh lên Drive. Bấm Lưu để gắn ảnh vào căn này.")
-  }
-  runPool(fs.map(function(f,k){return function(){
-    return shrink(f).then(function(u){
-      if(!u){bad++;why="không đọc được một số ảnh";return}
-      var x={src:u,name:uname("nha-",k)};
-      if(tok===formTok){upQ.push(x);renderPv()}
-      return upSafe({name:x.name,mime:"image/jpeg",folder:fn,area:$("d").value.trim(),ward:$("w").value.trim(),addr:$("a").value.trim(),hid:hid,fid:editDr,data:u.split(",")[1]}).then(function(d){
-        LP[d.id]=u;if(tok===formTok){pvNm[d.id]=x.name;editIm.push(d.id);if(d.url)editDr=d.url}
-      },function(e){bad++;why=e&&e.message?e.message:"lỗi kết nối"}).then(function(){
-        var i=upQ.indexOf(x);if(i>-1)upQ.splice(i,1)
-      })
-    }).then(fin,fin)
-  }}),3)
+  doUp(fs)
 };
-$("pv").onclick=function(e){var b=e.target.closest("[data-rm]");if(b){var rid=editIm.splice(+b.dataset.rm,1)[0];renderPv();
+/* Tải một lô ảnh lên Drive (phần nén/tải/thử lại nằm ở img.js). Ảnh lỗi giữ lại thành ô đỏ "Lỗi": chạm để thử lại, bấm × để xóa. */
+function doUp(fs){
+  if(!(window.Img&&Img.up)){alert("Chưa nạp được img.js (công cụ ảnh). Hãy tải lại trang.");return}
+  var fn=$("n").value.trim(),hid=editId||newId,tok=formTok,total=fs.length;
+  function unq(x){var i=upQ.indexOf(x);if(i>-1)upQ.splice(i,1)}
+  Img.up.run({files:fs,pre:"nha-",
+    payload:function(){return{folder:fn,area:$("d").value.trim(),ward:$("w").value.trim(),addr:$("a").value.trim(),hid:hid,fid:editDr}},
+    begin:function(){upl+=total;upBusy(total);svLock();setIms("Đang tải ảnh 0/"+total+" lên Drive…")},
+    say:function(t){if(tok===formTok)setIms(t)},
+    queue:function(x){if(tok===formTok){upQ.push(x);renderPv()}},
+    unq:unq,
+    ok:function(x,d,u){LP[d.id]=u;if(tok===formTok){PVS.nm[d.id]=x.name;editIm.push(d.id);if(d.url)editDr=d.url}unq(x)},
+    bad:function(x){if(tok===formTok)upBad.push(x);else if(x.src.indexOf("blob:")===0)URL.revokeObjectURL(x.src)},
+    step:function(done,total2,bad,why){
+      upl--;upBusy(-1);svLock();
+      if(tok!==formTok)return;
+      renderPv();
+      if(done<total2)setIms("Đang tải ảnh "+done+"/"+total2+" lên Drive…");
+      else if(upBad.length)setIms(upBad.length+" ảnh lỗi ("+why+"). Chạm vào ảnh viền đỏ để thử lại, hoặc bấm × để xóa.",1);
+      else setIms("✓ Đã tải "+total2+" ảnh lên Drive. Bấm Lưu để gắn ảnh vào căn này.")
+    }})
+}
+$("pv").onclick=function(e){
+  var bb=e.target.closest("[data-bad]");   // × trên ảnh lỗi: xóa hẳn ô lỗi
+  if(bb){var nm=bb.dataset.bad;upBad=upBad.filter(function(x){if(x.name!==nm)return true;if(x.src.indexOf("blob:")===0)URL.revokeObjectURL(x.src);return false});renderPv();
+    setIms(upBad.length?upBad.length+" ảnh lỗi. Chạm vào ảnh viền đỏ để thử lại, hoặc bấm × để xóa.":"",1);return}
+  var rt=e.target.closest(".er");   // chạm vào ảnh lỗi: tải lại đúng ảnh đó
+  if(rt&&!e.target.closest("button")){var nm2=rt.dataset.nm,f=null;
+    upBad=upBad.filter(function(x){if(x.name!==nm2)return true;f=x.file;if(x.src.indexOf("blob:")===0)URL.revokeObjectURL(x.src);return false});
+    if(f){renderPv();doUp([f])}return}
+  var b=e.target.closest("[data-rm]");if(b){var rid=editIm.splice(+b.dataset.rm,1)[0];renderPv();
   if(rid){if(origIm.indexOf(rid)>-1)formTrash.push(rid);else trashIds([rid])}}};
 function stars(n){n=Math.round(+n||0);return "★★★★★".slice(0,n)+"☆☆☆☆☆".slice(0,5-n)}
 function curSeg(it){var c=realSeg[it.id];if(!c)c=["g","v","h"].filter(function(k){return segArr(it,k).length})[0]||"g";return c}
@@ -1753,7 +1717,7 @@ function renderSum(){
   if(!rated.length)h+='<p class="pm">Chưa có căn nào được chấm điểm.</p>';
   else{
     top.forEach(function(it,i){
-      h+='<div class="tp"><span class="m">'+med[i]+'</span><div class="nm"><b>'+esc(it.n)+'</b><span>'+esc((it.d||it.w)?wkey(it):"—")+(it.p!=null?" · "+fmt(it.p)+" triệu":"")+'</span></div><span class="sc">'+it.rt+'</span></div>'});
+      h+='<div class="tp" data-id="'+esc(it.id)+'" role="button" tabindex="0" title="Xem trong danh sách"><span class="m">'+med[i]+'</span><div class="nm"><b>'+esc(it.n)+'</b><span>'+esc((it.d||it.w)?wkey(it):"—")+(it.p!=null?" · "+fmt(it.p)+" triệu":"")+'</span></div><span class="sc">'+it.rt+'</span></div>'});
   }
   h+=areaSumH();
   if(h!==lastSumTop){lastSumTop=h;el.innerHTML=h}
@@ -1881,6 +1845,7 @@ function renderSumDet0(){
 function cfLoad(d){var pre=d.querySelector("pre");if(!pre||pre.dataset.ok)return;
   ckGet(d.dataset.cf).then(function(c){pre.textContent=ckForm(c)||"Chưa có nội dung.";pre.dataset.ok=1},function(){pre.textContent="Không tải được. Đóng rồi mở lại để thử lại."})}
 function sumClick(e){
+  var tpb=e.target.closest(".tp[data-id]");if(tpb){showInList(tpb.dataset.id);return}
   var gm=e.target.closest("[data-gmore]");if(gm){var gl=gm.parentElement,gid=gm.dataset.gk,go=gl.classList.toggle("open");if(go)galOpen[gid]=1;else delete galOpen[gid];gm.setAttribute("aria-expanded",go);return}
   var pi=e.target.closest(".ph img");if(pi){openLb(pi);return}
   if(e.target.closest("[data-smore]")){sumLim+=SPAGE;renderSumDet();return}
@@ -1930,7 +1895,7 @@ document.body.dataset.tab="list";
 (function(){var b=$("totop"),tk=false,on=false;function u(){tk=false;var v=window.scrollY>700;if(v!==on){on=v;b.classList.toggle("on",v)}}window.addEventListener("scroll",function(){if(!tk){tk=true;requestAnimationFrame(u)}},{passive:true});b.onclick=function(){window.scrollTo({top:0,behavior:"smooth"})}})();
 var IW={q:[],n:0,nt:0,run:0,wait:0,fail:0,t:0,lo:0,io:null,seen:{},vis:{},eng:{},PER:3};
 function iwGal(g,i){if(window.Img)Img.iwGal(g,i)}
-window.NI={v:1,IW:IW,VW:VW,imgSrc:imgSrc,findItem:findItem,segArr:segArr,curSeg:curSeg,ckWarm:ckWarm,ckGet:ckGet,tab:function(){return tab},items:function(){return items}};
+window.NI={v:2,apiPost:apiPost,waitReady:waitReady,pageOk:pageOk,vis:vis,netMsg:netMsg,IW:IW,VW:VW,imgSrc:imgSrc,findItem:findItem,segArr:segArr,curSeg:curSeg,ckWarm:ckWarm,ckGet:ckGet,tab:function(){return tab},items:function(){return items}};
 if(window.Img)Img.init(window.NI);
 $("add").hidden=true;
 
@@ -2036,7 +2001,7 @@ document.addEventListener("focusin",function(e){var t=e.target;if(!t||!t.closest
   }
 })();
 window.NT={v:1,apiGet:apiGet,apiPost:apiPost,items:function(){return items},esc:esc,su:su,imgSrc:imgSrc,addrOf:addrOf,stName:stName,fmt:fmt,ls:ls,openDv:openDv,openEdit:openForm,showItem:showInList,canW:function(){return canW},idbGet:function(k){return IDBM.get(k)},idbSave:function(k,v){return IDBM.save(k,v)},del:function(id){return removeItem(id).catch(function(e){fail(e);refresh(true);throw e})}};
-window.NK={v:2,S:CS,get tab(){return tab},$:$,CK:CK,LP:LP,PARTS:PARTS,TIPS:TIPS,VW:VW,get canW(){return canW},ckCopy:ckCopy,ckLiteOf:ckLiteOf,ckLoad:ckLoad,ckSaveOff:ckSaveOff,ckSnap:ckSnap,ckStat:ckStat,ckSyncUi:ckSyncUi,ckcSave:ckcSave,closeCk:closeCk,esc:esc,get fail(){return fail},findItem:findItem,imgSrc:imgSrc,get items(){return items},set items(v){items=v;dataRev++},jumpTop:jumpTop,openLb:openLb,persist:persist,rtgH:rtgH,runPool:runPool,shrink:shrink,trashIds:trashIds,uname:uname,upBusy:upBusy,upMon:upMon,upSafe:upSafe};
+window.NK={v:3,S:CS,get tab(){return tab},$:$,CK:CK,LP:LP,PARTS:PARTS,TIPS:TIPS,VW:VW,get canW(){return canW},ckCopy:ckCopy,ckLiteOf:ckLiteOf,ckLoad:ckLoad,ckSaveOff:ckSaveOff,ckSnap:ckSnap,ckStat:ckStat,ckcSave:ckcSave,closeCk:closeCk,esc:esc,get fail(){return fail},findItem:findItem,imgSrc:imgSrc,get items(){return items},set items(v){items=v;dataRev++},jumpTop:jumpTop,openLb:openLb,persist:persist,rtgH:rtgH,trashIds:trashIds,upBusy:upBusy};
 if(window.Ck)Ck.init(window.NK);
 window.NB={v:1,$:$,IDBM:IDBM,apiGet:apiGet,apiPost:apiPost,apiUrl:apiUrl,capP:capP,hs:hs,netMsg:netMsg,nrm:nrm,refresh:refresh,get items(){return items},get canW(){return canW},pendAdd:function(n){pend+=n},bumpVer:function(){wver++;dataVer="";dataRev++}};
 if(window.Bk)Bk.init(window.NB);

@@ -36,10 +36,10 @@ if(NOTRAP){
   })()}
 var R=null,running=false,taps=0,tapT=0;
 var FILES=["ck.js","img.js","dup.js","bk.js","dbg.js"];
-var NK_KEYS=["v","S","tab","$","CK","LP","PARTS","TIPS","VW","canW","ckCopy","ckLiteOf","ckLoad","ckSaveOff","ckSnap","ckStat","ckcSave","closeCk","esc","fail","findItem","imgSrc","items","jumpTop","openLb","persist","rtgH","runPool","shrink","trashIds","uname","upBusy","upMon","upSafe"];
-var NK_FN=["$","ckCopy","ckLiteOf","ckLoad","ckSaveOff","ckSnap","ckStat","ckcSave","closeCk","esc","fail","findItem","imgSrc","jumpTop","openLb","persist","rtgH","runPool","shrink","trashIds","uname","upBusy","upMon","upSafe"];
-var NI_KEYS=["v","IW","VW","imgSrc","findItem","segArr","curSeg","ckWarm","tab","items"];
-var NI_FN=["imgSrc","findItem","segArr","curSeg","ckWarm","tab","items"];
+var NK_KEYS=["v","S","tab","$","CK","LP","PARTS","TIPS","VW","canW","ckCopy","ckLiteOf","ckLoad","ckSaveOff","ckSnap","ckStat","ckcSave","closeCk","esc","fail","findItem","imgSrc","items","jumpTop","openLb","persist","rtgH","trashIds","upBusy"];
+var NK_FN=["$","ckCopy","ckLiteOf","ckLoad","ckSaveOff","ckSnap","ckStat","ckcSave","closeCk","esc","fail","findItem","imgSrc","jumpTop","openLb","persist","rtgH","trashIds","upBusy"];
+var NI_KEYS=["v","IW","VW","imgSrc","findItem","segArr","curSeg","ckWarm","tab","items","apiPost","waitReady","pageOk","vis","netMsg"];
+var NI_FN=["imgSrc","findItem","segArr","curSeg","ckWarm","tab","items","apiPost","waitReady","pageOk","netMsg"];
 var NB_KEYS=["v","$","IDBM","apiGet","apiPost","apiUrl","capP","hs","netMsg","nrm","refresh","items","canW","pendAdd","bumpVer"];
 var NB_FN=["$","apiGet","apiPost","apiUrl","capP","hs","netMsg","nrm","refresh","pendAdd","bumpVer"];
 var NT_KEYS=["v","apiGet","apiPost","items","esc","su","imgSrc","addrOf","stName","fmt","ls","openDv","openEdit","canW","idbGet","idbSave","del"];
