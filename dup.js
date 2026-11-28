@@ -2373,15 +2373,26 @@ function smpApply(rows){
 function smpGet(q,t){
   /* Thử lại 1 lần; nếu vẫn lỗi thì gọi thêm 1 yêu cầu rất nhẹ để phân biệt: lỗi do phản hồi thật (lớn/chậm) hay do máy chủ/đường truyền/bản Code.gs. */
   var t0=Date.now();
-  function once(){return N().apiGet(q,t)}
+  /* Thêm tham số vô hại "_" để mỗi lần gọi là một URL mới: tránh WebView dùng lại phản hồi/chuyển hướng cũ đã lỗi */
+  function bust(x){return x+"&_="+Date.now().toString(36)+Math.floor(Math.random()*1296).toString(36)}
+  function once(){return N().apiGet(bust(q),t)}
   return once().then(null,function(){
     return new Promise(function(r){setTimeout(r,1500)}).then(once).then(null,function(e2){
       var m=String((e2&&e2.message)||e2||"lỗi"),sec=Math.round((Date.now()-t0)/100)/10;
-      return N().apiGet("&action=mm&vc=x&vp=x&from=0",15000).then(function(d){
+      return N().apiGet(bust("&action=mm&vc=x&vp=x&from=0"),15000).then(function(d){
         var dx=(d&&typeof d.total==="number")?"thăm dò nhẹ OK (tab MM "+d.total+" dòng) nên phản hồi thật bị lỗi/quá lớn":"máy chủ chưa hiểu action mm (chưa Deploy bản Code.gs mới?)";
         throw new Error(m+" · "+sec+"s · URL "+q.length+" ký tự · "+dx)
       },function(e3){
-        throw new Error(m+" · "+sec+"s · URL "+q.length+" ký tự · thăm dò nhẹ cũng lỗi ("+String((e3&&e3.message)||e3)+") nên do máy chủ/đường truyền")
+        /* Phân biệt: (a) yêu cầu no-cors tới được máy chủ = máy chủ trả trang lỗi thiếu header CORS; (b) không tới được = lỗi mạng. Và thử action hash để so sánh. */
+        function nocors(){
+          var NBo=window.NB,Nt=N(),u=(NBo&&NBo.apiUrl&&NBo.apiUrl())||(Nt.ls&&Nt.ls("nha-thue-url"))||"",k=(Nt.ls&&Nt.ls("nha-thue-key"))||"";
+          if(!u||typeof fetch!=="function")return Promise.resolve("no-cors: không có URL");
+          return fetch(u+"?key="+encodeURIComponent(k)+bust("&action=mm&vc=x&vp=x&from=0"),{mode:"no-cors",cache:"no-store"}).then(
+            function(){return "no-cors tới được máy chủ (bị chặn đọc do CORS: máy chủ trả trang lỗi?)"},
+            function(){return "no-cors cũng không tới được (lỗi mạng/chặn)"})}
+        function hashp(){return N().apiGet(bust("&action=hash&count=1&v=x"),15000).then(function(){return "action hash vẫn OK"},function(){return "action hash cũng lỗi"})}
+        return Promise.all([nocors(),hashp()]).then(function(a){
+          throw new Error(m+" · "+sec+"s · URL "+q.length+" ký tự · thăm dò nhẹ cũng lỗi ("+String((e3&&e3.message)||e3)+") · "+a.join(" · "))})
       })
     })
   })
